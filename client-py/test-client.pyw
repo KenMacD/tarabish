@@ -54,12 +54,14 @@ class ServerEvents(QThread):
         self.emit(SIGNAL("finished()"))
 
 class ServerConnection(QObject):
-    def __init__(self, serverEvents, parent=None):
+    def __init__(self, app, serverEvents, parent=None):
         super(ServerConnection, self).__init__(parent)
 
         self.connected = False
         self.hasEvents = False
         self.serverEvents = serverEvents
+
+        app.aboutToQuit.connect(lambda: self.disconnect(False))
 
     def connect(self, host, name):
         if not name or not host:
@@ -90,6 +92,10 @@ class ServerConnection(QObject):
 
     def disconnect(self, notify=True):
         if self.connected:
+            try:
+                self.client.quit()
+            except InvalidOperation:
+                pass
             self.serverEvents.stop()
             self.transport.close()
             self.connected = False
@@ -231,11 +237,13 @@ class MainForm(QDialog):
         self.setWindowTitle("Tarabish Test Client")
 
 
+# TODO: handle SIGINT, ctrl+c then closing the window doesn't disconnect
 app = QApplication(sys.argv)
 
 serverEvents = ServerEvents()
-server = ServerConnection(serverEvents)
+server = ServerConnection(app, serverEvents)
 main = MainForm(server)
+main.resize(400, 600)
 main.show()
 main.raise_()
 app.exec_()
