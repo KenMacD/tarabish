@@ -3,10 +3,17 @@
 -include("tarabish_thrift.hrl").
 -include("tarabish_constants.hrl").
 
--export([start/0, start/1, stop/1, handle_function/2, getVersion/0]).
+-export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
+    createAccount/3]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
+
+createAccount(Name, Email, Password) ->
+  case account:create(Name, Email, Password) of
+      {ok, _} -> true;
+      _ -> false
+  end.
  
 start() ->
   start(65222).

@@ -1,13 +1,13 @@
 -module(account).
 
 -export([install/2]).
--export([create/2, validate/2]).
+-export([create/3, validate/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
 -record(account, {
-    id,
     user,
+    email,
     password
   }).
 
@@ -20,30 +20,36 @@ install(RamNodes, DiskNodes)
              {ram_copies, RamNodes},
              {disc_copies, DiskNodes}]).
 
-create(Id, Password) ->
+create(User, Email, Password)
+    when is_binary(User),
+         is_binary(Email),
+         is_binary(Password) ->
   F = fun() ->
-    case mnesia:read(account, Id) of
+    case mnesia:read(account, User) of
       [_] ->
         {error, account_exists};
       _ ->
         Account = #account {
-          id = Id,
+          user = User,
+          email = Email,
           password = erlang:md5(Password)
         },
         ok = mnesia:write(Account),
-        {ok, Id}
+        {ok, User}
     end
   end,
   {atomic, D} = mnesia:transaction(F),
   D.
 
-validate(Id, Password) ->
+validate(User, Password)
+    when is_binary(User),
+         is_binary(Password) ->
   F = fun() ->
-    case mnesia:read(account, Id) of
+    case mnesia:read(account, User) of
       [P] ->
         case P#account.password =:= erlang:md5(Password) of
           true ->
-            {ok, Id};
+            {ok, User};
           _ ->
             {error, invalid}
         end;
@@ -81,24 +87,24 @@ cleanup_db() ->
 account_test_() ->
   {setup, local, fun setup/0, fun cleanup/1,
     [
-      ?_assertEqual({ok, "Alice"}, create("Alice", "Pass")),
-      ?_assertEqual({ok, "Bob"}, create("Bob", "OtherPass")),
-      ?_assertEqual({error, account_exists}, create("Alice", "Pass")),
-      ?_assertEqual({error, account_exists}, create("Alice", "Wrong"))
+      ?_assertEqual({ok, <<"Alice">>}, create(<<"Alice">>, <<"a@invalid">>, <<"Pass">>)),
+      ?_assertEqual({ok, <<"Bob">>}, create(<<"Bob">>, <<"b@invalid">>, <<"OtherPass">>)),
+      ?_assertEqual({error, account_exists}, create(<<"Alice">>, <<"a@invalid">>, <<"Pass">>)),
+      ?_assertEqual({error, account_exists}, create(<<"Alice">>, <<"a@invalid">>, <<"Wrong">>))
     ]}.
 
 verfiy_test_() ->
   {setup, local,
     fun () ->
         setup(),
-        {ok, _} = create("Alice", "Pass")
+        {ok, _} = create(<<"Alice">>, <<"a@invalid">>, <<"Pass">>)
     end,
     fun cleanup/1,
     fun (_) ->
         [
-          ?_assertEqual({ok, "Alice"}, validate("Alice", "Pass")),
-          ?_assertEqual({error, invalid}, validate("Alice", "Wrong")),
-          ?_assertEqual({error, invalid}, validate("Bob", "Any"))
+          ?_assertEqual({ok, <<"Alice">>}, validate(<<"Alice">>, <<"Pass">>)),
+          ?_assertEqual({error, invalid}, validate(<<"Alice">>, <<"Wrong">>)),
+          ?_assertEqual({error, invalid}, validate(<<"Bob">>, <<"Any">>))
         ]
     end}.
 
