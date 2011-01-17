@@ -2,6 +2,9 @@
 all: mk-ebin gen-src
 	erl -make
 
+test: all
+	erl -pz target/ebin -noshell -s account test -s init stop
+
 clean:
 	rm -r target
 	rm erl_crash.dump
