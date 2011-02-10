@@ -24,7 +24,8 @@ start(Port) ->
 %  thrift_socket_server:start([{handler, Handler},
                               {service, tarabish_thrift},
                               {port, Port},
-                              {name, tarabish_server}]),
+                              {name, tarabish_server},
+                              {socket_opts, [{recv_timeout, 60*60*1000}]}]),
   unlink(Pid),
   {ok, Pid}.
 

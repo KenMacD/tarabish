@@ -9,8 +9,11 @@ clean:
 	rm -r target
 	rm erl_crash.dump
 
+client:
+	PYTHONPATH=$(PYTHONPATH):target/generated-sources/gen-py python -i src/main/python/client.py
+
 start: all
-	erl -pz target/ebin -noshell -s server start
+	erl -pz target/ebin -noshell -s main start
 
 mk-ebin:
 	mkdir -p target/ebin
