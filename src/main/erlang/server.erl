@@ -9,10 +9,12 @@
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
 
+% TODO: return Client object from server.
 createAccount(Name, Email, Password) ->
   case account:create(Name, Email, Password) of
-      {ok, _} -> true;
-      _ -> false
+      {ok, _} -> ok;
+      {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
+      _ -> throw(#invalidOperation{why="Unknown"})
   end.
  
 start() ->

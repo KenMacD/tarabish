@@ -2,9 +2,15 @@
 
 const i32	PROTOCOL_VERSION = 1
 
+exception InvalidOperation {
+	1: string why
+}
+
 service Tarabish
 {
-	i32 getVersion();
+	# Always works and returns protocol version.
+	i32 getVersion()
 
-	bool createAccount(1: string name, 2: string email, 3: string password);
+	void createAccount(1: string name, 2: string email, 3: string password)
+		throws (1:InvalidOperation invalid)
 }
