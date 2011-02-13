@@ -4,7 +4,7 @@
 -include("tarabish_constants.hrl").
 
 -export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
-    createAccount/3]).
+    login/2, createAccount/3]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -16,6 +16,19 @@ createAccount(Name, Email, Password) ->
       {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
       _ -> throw(#invalidOperation{why="Unknown"})
   end.
+
+login(Name, Password) ->
+  login(Name, Password, get(id)).
+
+login(Name, Password, undefined) ->
+  case account:validate(Name, Password) of
+    {ok, Id} -> put(id, Id), ok;
+    {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
+    _ -> throw(#invalidOperation{why="Unknown"})
+  end;
+
+login(_Name, _Password, _) ->
+  throw(#invalidOperation{why="Already Authenticated"}).
  
 start() ->
   start(65222).

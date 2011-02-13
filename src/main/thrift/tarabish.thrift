@@ -13,4 +13,8 @@ service Tarabish
 
 	void createAccount(1: string name, 2: string email, 3: string password)
 		throws (1:InvalidOperation invalid)
+
+	void login(1: string name, 2: string password)
+		throws (1:InvalidOperation invalid)
+
 }
