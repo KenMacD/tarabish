@@ -33,7 +33,7 @@ login(_Name, _Password, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
  
 start() ->
-  start(65222).
+  start(42745).
 
 start(Port) ->
   Handler = ?MODULE,

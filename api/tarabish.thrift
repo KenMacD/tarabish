@@ -19,3 +19,11 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 }
+
+service TarabishMsg
+{
+	i32 getVersion()
+
+	void login(1: i64 cookie)
+		throws (1:InvalidOperation invalid)
+}

@@ -8,7 +8,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--record(state, {clients, cookies}).
+% id is Id -> {Client, Cookie}
+% cookie is Cookie -> Id
+-record(state, {id, cookie}).
 
 % Public:
 start() ->
@@ -22,22 +24,24 @@ get_client_by_cookie(Cookie) ->
 
 % gen_server:
 init([]) ->
-  {ok, #state{clients=orddict:new(), cookies=orddict:new()}}.
+  {ok, #state{id=orddict:new(),
+              cookie=orddict:new()}}.
 
 % TODO: Set monitor on client, clear cookie when dies.
 handle_call({get_client, Id}, _From, State) ->
-  case orddict:find(Id, State#state.clients) of
-    {ok, Client} -> {reply, {ok, Client}, State};
+  case orddict:find(Id, State#state.id) of
+    {ok, {Client, Cookie}} ->
+      {reply, {ok, Client, Cookie}, State};
     error -> 
       {ok, Client} = client:start(Id),
-      NewClients = orddict:store(Id, Client, State#state.clients),
       Cookie = new_cookie(),
-      NewCookies = orddict:store(Cookie, Client, State#state.cookies),
-      {reply, {ok, Client, Cookie}, State#state{clients=NewClients, cookies=NewCookies}}
+      NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
+      NewCookie = orddict:store(Cookie, Client, State#state.cookie),
+      {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
   end; 
 
 handle_call({get_client_by_cookie, Cookie}, _From, State) ->
-  case orddict:find(Cookie, State#state.cookies) of
+  case orddict:find(Cookie, State#state.cookie) of
     {ok, Client} -> {reply, {ok, Client}, State};
     error -> {reply, {error, invalid}, State}
   end;

@@ -1,5 +1,5 @@
 all: 
-	mkdir target
+	mkdir -p target
 	thrift --gen erl -gen py:new_style -o target tarabish.thrift
 
 clean:
