@@ -7,7 +7,7 @@ start() ->
   mnesia:start(),
   install_tables([node()], []), % Install all in RAM for now
   tarabish_server:start(),
-  server:start().
+  thrift_cmd:start().
 
 install_tables(RamNodes, DiskNodes)
   when is_list(RamNodes),

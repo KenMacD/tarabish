@@ -1,4 +1,4 @@
--module(server).
+-module(thrift_cmd).
 
 -include("tarabish_thrift.hrl").
 -include("tarabish_constants.hrl").
@@ -41,13 +41,13 @@ start(Port) ->
 %  thrift_socket_server:start([{handler, Handler},
                               {service, tarabish_thrift},
                               {port, Port},
-                              {name, tarabish_server},
+                              {name, ?MODULE},
                               {socket_opts, [{recv_timeout, 60*60*1000}]}]),
   unlink(Pid),
   {ok, Pid}.
 
 stop(Server) ->
-  Server ! thrift_socket_server:stop(Server).
+  thrift_socket_server:stop(Server).
 
 handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
   case apply(?MODULE, Function, tuple_to_list(Args)) of
