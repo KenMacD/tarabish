@@ -9,7 +9,6 @@
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
 
-% TODO: return Client object from server.
 createAccount(Name, Email, Password) ->
   case account:create(Name, Email, Password) of
       {ok, _} -> ok;
@@ -18,11 +17,14 @@ createAccount(Name, Email, Password) ->
   end.
 
 login(Name, Password) ->
-  login(Name, Password, get(id)).
+  login(Name, Password, get(client)).
 
 login(Name, Password, undefined) ->
   case account:validate(Name, Password) of
-    {ok, Id} -> put(id, Id), ok;
+    {ok, Id} ->
+      {ok, Client, Cookie} = tarabish_server:get_client(Id),
+      put(client, Client),
+      Cookie;
     {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
     _ -> throw(#invalidOperation{why="Unknown"})
   end;
