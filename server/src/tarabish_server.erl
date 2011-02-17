@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start/0, get_client/1, get_client_by_cookie/1]).
+-export([start/0, get_client/1, get_client_by_cookie/1, create_table/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -10,7 +10,9 @@
 
 % id is Id -> {Client, Cookie}
 % cookie is Cookie -> Id
--record(state, {id, cookie}).
+% tables is orddict of table_id -> table
+% table_cnt counter for next id
+-record(state, {id, cookie, tables, table_cnt}).
 
 % Public:
 start() ->
@@ -22,10 +24,15 @@ get_client(Id) ->
 get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
 
+create_table() ->
+  gen_server:call({global, ?MODULE}, {create_table}).
+
 % gen_server:
 init([]) ->
   {ok, #state{id=orddict:new(),
-              cookie=orddict:new()}}.
+              cookie=orddict:new(),
+              tables = [],
+              table_cnt = 0}}.
 
 % TODO: Set monitor on client, clear cookie when dies.
 handle_call({get_client, Id}, _From, State) ->
@@ -45,6 +52,12 @@ handle_call({get_client_by_cookie, Cookie}, _From, State) ->
     {ok, Client} -> {reply, {ok, Client}, State};
     error -> {reply, {error, invalid}, State}
   end;
+
+handle_call({create_table}, From, State) ->
+  NextId = State#state.table_cnt + 1,
+  {ok, NewTable} = table:start(From),
+  Tables1 = [NewTable|State#state.tables],
+  {reply, {ok, NewTable, NextId}, State#state{tables=Tables1, table_cnt=NextId}};
 
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
