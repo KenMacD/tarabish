@@ -4,7 +4,7 @@
 -include("tarabish_constants.hrl").
 
 -export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
-    login/2, createAccount/3]).
+    createAccount/3, login/2, create_table/0]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -32,6 +32,16 @@ login(Name, Password, undefined) ->
 login(_Name, _Password, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
  
+create_table() ->
+  create_table(get(client)).
+
+create_table(undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+create_table(Client) ->
+  {ok, TableId} = client:create_table(Client),
+  TableId.
+
 start() ->
   start(42745).
 

@@ -18,6 +18,12 @@ service Tarabish
 	i64 login(1: string name, 2: string password)
 		throws (1:InvalidOperation invalid)
 
+
+	##### After login #####
+
+	# Returns table_id.
+	i32 create_table()
+		throws (1:InvalidOperation invalid)
 }
 
 service TarabishMsg

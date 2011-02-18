@@ -8,16 +8,27 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--record(state, {id}).
+-export([create_table/1]).
+
+-record(state, {id, tables}).
 
 % Public:
 start(Id) ->
   gen_server:start(?MODULE, [Id], []).
 
+create_table(Client) ->
+  gen_server:call(Client, {create_table}).
+
 % gen_server:
 
 init([Id]) ->
-  {ok, #state{id=Id}}.
+  {ok, #state{id=Id,
+              tables=orddict:new()}}.
+
+handle_call({create_table}, _From, State) ->
+  {ok, Table, TableId} = tarabish_server:create_table(),
+  NewTables = orddict:store(TableId, Table, State#state.tables),
+  {reply, {ok, TableId}, State#state{tables=NewTables}};
 
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
