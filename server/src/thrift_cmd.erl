@@ -3,8 +3,9 @@
 -include("tarabish_thrift.hrl").
 -include("tarabish_constants.hrl").
 
--export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
-    createAccount/3, login/2, create_table/0]).
+-export([start/0, start/1, stop/1, handle_function/2]).
+
+-export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -41,6 +42,20 @@ create_table(undefined) ->
 create_table(Client) ->
   {ok, TableId} = client:create_table(Client),
   TableId.
+
+chat(TableId, Message) ->
+  chat(get(client), TableId,  Message).
+
+chat(undefined, _TableId, _Message) ->
+  throw(#invalidOperation{why="Need login first"});
+
+chat(Client, TableId, Message) ->
+  case client:send_chat(Client, TableId, Message) of
+    ok ->
+      ok;
+    {error, Reason} ->
+      throw(#invalidOperation{why=atom_to_list(Reason)})
+  end.
 
 start() ->
   start(42745).

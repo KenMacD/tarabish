@@ -45,11 +45,18 @@ print "Valid Login - ",
 cookie = client.login("Alice", "Password")
 print str(cookie)
 
+table = None
 for i in range(10):
     print "Creating table " + str(i) + " - ",
     table = client.create_table()
     print str(table)
 
+
+print "Sending message to table " + str(table) + " - ",
+try:
+    client.chat(table, "Test Message")
+except InvalidOperation as invalid:
+    print str(invalid)
 
 t2 = TSocket.TSocket('localhost', 42746)
 t2 = TTransport.TBufferedTransport(t2)
@@ -70,3 +77,6 @@ except InvalidOperation as invalid:
 
 print "Valid Login - ",
 print str(c2.login(cookie))
+
+print "Getting Events -",
+print str(c2.get_events())

@@ -4,7 +4,7 @@
 -include("tarabish_constants.hrl").
 
 -export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
-    login/1]).
+    login/1, get_events/0]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -22,6 +22,15 @@ login(SignedCookie, undefined) when is_integer(SignedCookie) ->
 
 login(_Cookie, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
+
+get_events() ->
+  get_events(get(client)).
+
+get_events(undefined) ->
+  throw(#invalidOperation{why="Need Login"});
+
+get_events(Client) ->
+  client:get_events(Client).
 
 start() ->
   start(42746).
