@@ -28,33 +28,28 @@ transport.open()
  
 print "Get Version - " + str(client.getVersion())
 
-print "Creating Alice - ",
+print "Creating Bob - ",
 try:
-    print str(client.createAccount("Alice", "a@invalid", "Password"))
+    print str(client.createAccount("Bob", "b@invalid", "Password"))
 except InvalidOperation as invalid:
     print str(invalid)
 
 print "Invalid Login - ",
 try:
-    client.login("Alice", "PasswordWrong")
+    client.login("Bob", "PasswordWrong")
     print "FAILED"
 except InvalidOperation as invalid:
     print str(invalid)
 
 print "Valid Login - ",
-cookie = client.login("Alice", "Password")
+cookie = client.login("Bob", "Password")
 print str(cookie)
 
-table = None
-for i in range(10):
-    print "Creating table " + str(i) + " - ",
-    table = client.create_table()
-    print str(table)
-
-
+table = 10
+client.join_table(table)
 print "Sending message to table " + str(table) + " - ",
 try:
-    client.chat(table, "Test Message")
+    client.chat(table, "Test Message From Bob")
 except InvalidOperation as invalid:
     print str(invalid)
 

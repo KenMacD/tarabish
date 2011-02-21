@@ -37,6 +37,9 @@ service Tarabish
 
 	void chat(1: i32 table, 2: string message)
 		throws (1:InvalidOperation invalid)
+
+	void join_table(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
 }
 
 service TarabishMsg

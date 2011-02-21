@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([create_table/1, send_chat/3]).
+-export([create_table/1, send_chat/3, join_table/2]).
 
 % From Msg Socket:
 -export([get_events/1]).
@@ -31,6 +31,9 @@ create_table(Client) ->
 send_chat(Client, TableId, Message) ->
   gen_server:call(Client, {chat, TableId, Message}).
 
+join_table(Client, TableId) ->
+  gen_server:call(Client, {join, TableId}).
+
 recv_chat(Client, TableId, Message) ->
   gen_server:cast(Client, {event, chat, TableId, Message}).
 
@@ -42,6 +45,7 @@ init([Id]) ->
               tables=orddict:new(),
               events=[]}}.
 
+% TODO: can use self() here instead of Client?
 handle_call({create_table, Client}, _From, State) ->
   {ok, Table, TableId} = tarabish_server:create_table(Client),
   NewTables = orddict:store(TableId, Table, State#state.tables),
@@ -54,6 +58,21 @@ handle_call({chat, TableId, Message}, _From, State) ->
       {reply, R, State};
     error ->
       {reply, {error, no_table}, State}
+  end;
+
+% TODO: any risk of deadlock?
+handle_call({join, TableId}, _From, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:join(Table, self()) of
+        ok ->
+          NewTables = orddict:store(TableId, Table, State#state.tables),
+          {reply, ok, State#state{tables=NewTables}};
+        {error, Reason} ->
+          {reply, {error, Reason}, State}
+      end;
+    {error, Reason} ->
+      {reply, {error, Reason}, State}
   end;
 
 handle_call({get_events}, _From, State) ->

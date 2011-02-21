@@ -5,7 +5,8 @@
 
 -export([start/0, start/1, stop/1, handle_function/2]).
 
--export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2]).
+-export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2,
+    join_table/1]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -51,6 +52,20 @@ chat(undefined, _TableId, _Message) ->
 
 chat(Client, TableId, Message) ->
   case client:send_chat(Client, TableId, Message) of
+    ok ->
+      ok;
+    {error, Reason} ->
+      throw(#invalidOperation{why=atom_to_list(Reason)})
+  end.
+
+join_table(TableId) ->
+  join_table(get(client), TableId).
+
+join_table(undefined, _TableId) ->
+  throw(#invalidOperation{why="Need login first"});
+
+join_table(Client, TableId) ->
+  case client:join_table(Client, TableId) of
     ok ->
       ok;
     {error, Reason} ->
