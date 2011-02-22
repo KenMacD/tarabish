@@ -14,16 +14,20 @@
 -export([create_table/1, send_chat/3, join_table/2]).
 
 % From Msg Socket:
--export([get_events/1]).
+-export([get_events/2, subscribe/2]).
 
 % From Game:
 -export([recv_chat/3]).
 
--record(state, {id, tables, events}).
+-record(state, {id, tables, events, subscriber}).
 
 % Public:
 start(Id) ->
   gen_server:start(?MODULE, [Id], []).
+
+% gets a cast when an event is added to empty list.
+subscribe(Client, Pid) ->
+  gen_server:cast(Client, {subscribe, Pid}).
 
 create_table(Client) ->
   gen_server:call(Client, {create_table, Client}).
@@ -37,15 +41,37 @@ join_table(Client, TableId) ->
 recv_chat(Client, TableId, Message) ->
   gen_server:cast(Client, {event, chat, TableId, Message}).
 
-get_events(Client) ->
-  gen_server:call(Client, {get_events}).
+get_events(Client, 0) ->
+  gen_server:call(Client, {get_events});
+
+% TODO: finish
+get_events(Client, Timeout) ->
+  clear_new_event(),
+  Events = gen_server:call(Client, {get_events}),
+  get_events(Client, Timeout, Events).
+
+get_events(Client, Timeout, []) ->
+  receive new_event ->
+      gen_server:call(Client, {get_events})
+  after Timeout ->
+      []
+  end;
+
+get_events(_Client, _Timeout, Events) ->
+  Events.
+
+clear_new_event() ->
+  receive new_event ->
+      clear_new_event()
+  after 0 ->
+      ok
+  end.
 
 init([Id]) ->
   {ok, #state{id=Id,
               tables=orddict:new(),
               events=[]}}.
 
-% TODO: can use self() here instead of Client?
 handle_call({create_table, Client}, _From, State) ->
   {ok, Table, TableId} = tarabish_server:create_table(Client),
   NewTables = orddict:store(TableId, Table, State#state.tables),
@@ -84,12 +110,16 @@ handle_call(Request, _From, State) ->
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
 
+% TODO: can use self() here instead of Client?
+handle_cast({subscribe, Pid}, State) ->
+  {noreply, State#state{subscriber=Pid}};
+
 handle_cast({event, chat, TableId, Message}, State) ->
   Event = #event{type=?tarabish_EventType_CHAT,
                  table=TableId,
                  message=Message},
-  NewEvents = [Event|State#state.events],
-  {noreply, State#state{events=NewEvents}};
+  State1 = add_event(Event, State),
+  {noreply, State1};
 
 handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
@@ -105,4 +135,19 @@ terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+  {ok, State}.
+
+new_event(Subscriber) when is_pid(Subscriber) ->
+  Subscriber ! new_event;
+
+new_event(_) ->
+  ok.
+
+add_event(Event, State = #state{events=[]}) ->
+  Subscriber = State#state.subscriber,
+  new_event(Subscriber),
+  State#state{events=[Event]};
+
+add_event(Event, State) ->
+  State#state{events=[Event|State#state.events]}.
+

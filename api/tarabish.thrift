@@ -51,4 +51,7 @@ service TarabishMsg
 
 	list<Event> get_events()
 		throws (1:InvalidOperation invalid)
+
+	list<Event> get_events_timeout(1: i32 timeout_mills)
+		throws (1:InvalidOperation invalid)
 }

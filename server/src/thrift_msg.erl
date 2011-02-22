@@ -4,7 +4,7 @@
 -include("tarabish_constants.hrl").
 
 -export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
-    login/1, get_events/0]).
+    login/1, get_events/0, get_events_timeout/1]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -16,6 +16,7 @@ login(SignedCookie, undefined) when is_integer(SignedCookie) ->
   <<Cookie:64>> = <<SignedCookie:64>>,
   case tarabish_server:get_client_by_cookie(Cookie) of
     {ok, Client} ->
+      client:subscribe(Client, self()),
       put(client, Client);
     {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)})
   end;
@@ -24,13 +25,16 @@ login(_Cookie, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
 
 get_events() ->
-  get_events(get(client)).
+  get_events(get(client), 0).
 
-get_events(undefined) ->
+get_events_timeout(Timeout) ->
+  get_events(get(client), Timeout).
+
+get_events(undefined, _Timeout) ->
   throw(#invalidOperation{why="Need Login"});
 
-get_events(Client) ->
-  client:get_events(Client).
+get_events(Client, Timeout) ->
+  client:get_events(Client, Timeout).
 
 start() ->
   start(42746).
