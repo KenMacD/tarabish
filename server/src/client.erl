@@ -30,7 +30,7 @@ subscribe(Client, Pid) ->
   gen_server:cast(Client, {subscribe, Pid}).
 
 create_table(Client) ->
-  gen_server:call(Client, {create_table, Client}).
+  gen_server:call(Client, {create_table}).
 
 send_chat(Client, TableId, Message) ->
   gen_server:call(Client, {chat, TableId, Message}).
@@ -72,8 +72,8 @@ init([Id]) ->
               tables=orddict:new(),
               events=[]}}.
 
-handle_call({create_table, Client}, _From, State) ->
-  {ok, Table, TableId} = tarabish_server:create_table(Client),
+handle_call({create_table}, _From, State) ->
+  {ok, Table, TableId} = tarabish_server:create_table(self()),
   NewTables = orddict:store(TableId, Table, State#state.tables),
   {reply, {ok, TableId}, State#state{tables=NewTables}};
 
@@ -110,7 +110,6 @@ handle_call(Request, _From, State) ->
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
 
-% TODO: can use self() here instead of Client?
 handle_cast({subscribe, Pid}, State) ->
   {noreply, State#state{subscriber=Pid}};
 
