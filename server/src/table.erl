@@ -2,40 +2,40 @@
 
 -behaviour(gen_server).
 
--export([start/2]).
+-export([start/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/2]).
+-export([chat/3, join/3]).
 
--record(person, {client}).
--record(state, {id, owner, members}).
+-record(person, {name, client, seat}).
+-record(state, {id, members}).
 
 % Public:
-start(Id, Client) ->
-  gen_server:start(?MODULE, [Id, Client], []).
+start(Id) ->
+  gen_server:start(?MODULE, [Id], []).
 
 %% TODO: check if table is still alive
 chat(Table, From, Message) ->
   gen_server:cast(Table, {chat, From, Message}).
 
-join(Table, Client) ->
-  gen_server:call(Table, {join, Client}).
+join(Table, ClientName, Client) ->
+  gen_server:call(Table, {join, ClientName, Client}).
 
 % gen_server:
 
-init([Id, Client]) ->
-  Person = #person{client=Client},
-  {ok, #state{id=Id, owner=Person, members=[Person]}}.
+init([Id]) ->
+  {ok, #state{id=Id, members=[]}}.
 
-handle_call({join, Client}, _From, State) ->
+handle_call({join, ClientName, Client}, _From, State) ->
   case is_member(Client, State#state.members) of
     false ->
-      NewMembers = [#person{client=Client}|State#state.members],
+      Person = #person{name=ClientName, client=Client, seat=none},
+      NewMembers = [Person|State#state.members],
       {reply, ok, State#state{members=NewMembers}};
-    true ->
+    _ExistingPerson ->
       {reply, {error, already_joined}, State}
   end;
 
@@ -66,8 +66,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
+% by client or clientid?
 is_member(Client, Members) ->
-  lists:keysearch(Client, #person.client, Members).
+  lists:keyfind(Client, #person.client, Members).
 
 send_chat(_TableId, _Message, []) ->
   ok;

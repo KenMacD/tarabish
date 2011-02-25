@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start/0, get_client/1, get_client_by_cookie/1, create_table/1,
+-export([start/0, get_client/1, get_client_by_cookie/1, create_table/0,
     get_table/1]).
 
 %% gen_server callbacks
@@ -25,8 +25,8 @@ get_client(Id) ->
 get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
 
-create_table(Client) ->
-  gen_server:call({global, ?MODULE}, {create_table, Client}).
+create_table() ->
+  gen_server:call({global, ?MODULE}, {create_table}).
 
 get_table(TableId) ->
   gen_server:call({global, ?MODULE}, {get_table, TableId}).
@@ -57,9 +57,9 @@ handle_call({get_client_by_cookie, Cookie}, _From, State) ->
     error -> {reply, {error, invalid}, State}
   end;
 
-handle_call({create_table, Client}, _From, State) ->
+handle_call({create_table}, _From, State) ->
   NextId = State#state.table_cnt + 1,
-  {ok, NewTable} = table:start(NextId, Client),
+  {ok, NewTable} = table:start(NextId),
   Tables1 = orddict:store(NextId, NewTable, State#state.tables),
   {reply, {ok, NewTable, NextId}, State#state{tables=Tables1, table_cnt=NextId}};
 

@@ -31,10 +31,6 @@ service Tarabish
 
 	##### After login #####
 
-	# Returns table_id.
-	i32 create_table()
-		throws (1:InvalidOperation invalid)
-
 	void chat(1: i32 table, 2: string message)
 		throws (1:InvalidOperation invalid)
 

@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([create_table/1, send_chat/3, join_table/2]).
+-export([send_chat/3, join_table/2]).
 
 % From Msg Socket:
 -export([get_events/2, subscribe/2]).
@@ -28,9 +28,6 @@ start(Id) ->
 % gets a cast when an event is added to empty list.
 subscribe(Client, Pid) ->
   gen_server:cast(Client, {subscribe, Pid}).
-
-create_table(Client) ->
-  gen_server:call(Client, {create_table}).
 
 send_chat(Client, TableId, Message) ->
   gen_server:call(Client, {chat, TableId, Message}).
@@ -72,11 +69,6 @@ init([Id]) ->
               tables=orddict:new(),
               events=[]}}.
 
-handle_call({create_table}, _From, State) ->
-  {ok, Table, TableId} = tarabish_server:create_table(self()),
-  NewTables = orddict:store(TableId, Table, State#state.tables),
-  {reply, {ok, TableId}, State#state{tables=NewTables}};
-
 handle_call({chat, TableId, Message}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
@@ -90,7 +82,7 @@ handle_call({chat, TableId, Message}, _From, State) ->
 handle_call({join, TableId}, _From, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
-      case table:join(Table, self()) of
+      case table:join(Table, State#state.id, self()) of
         ok ->
           NewTables = orddict:store(TableId, Table, State#state.tables),
           {reply, ok, State#state{tables=NewTables}};
