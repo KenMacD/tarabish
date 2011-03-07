@@ -1,9 +1,15 @@
 -module(tarabish_server).
 
+-include("tarabish_types.hrl").
+
 -behaviour(gen_server).
 
+%% Public:
 -export([start/0, get_client/1, get_client_by_cookie/1, create_table/0,
-    get_table/1]).
+    get_table/1, get_tables/0]).
+
+%% From tables
+-export([update_table_image/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -13,7 +19,7 @@
 % cookie is Cookie -> Id
 % tables is orddict of table_id -> table
 % table_cnt counter for next id
--record(state, {id, cookie, tables, table_cnt}).
+-record(state, {id, cookie, tables, tables_view, table_cnt}).
 
 % Public:
 start() ->
@@ -31,11 +37,19 @@ create_table() ->
 get_table(TableId) ->
   gen_server:call({global, ?MODULE}, {get_table, TableId}).
 
+get_tables() ->
+  gen_server:call({global, ?MODULE}, {get_tables}).
+
+% From Tables:
+update_table_image(TableId, #tableView{} = TableView) ->
+  gen_server:cast({global, ?MODULE}, {update_table, TableId, TableView}).
+
 % gen_server:
 init([]) ->
   {ok, #state{id=orddict:new(),
               cookie=orddict:new(),
               tables=orddict:new(),
+              tables_view=orddict:new(),
               table_cnt = 0}}.
 
 % TODO: Set monitor on client, clear cookie when dies.
@@ -43,13 +57,13 @@ handle_call({get_client, Id}, _From, State) ->
   case orddict:find(Id, State#state.id) of
     {ok, {Client, Cookie}} ->
       {reply, {ok, Client, Cookie}, State};
-    error -> 
+    error ->
       {ok, Client} = client:start(Id),
       Cookie = new_cookie(),
       NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
       {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
-  end; 
+  end;
 
 handle_call({get_client_by_cookie, Cookie}, _From, State) ->
   case orddict:find(Cookie, State#state.cookie) of
@@ -61,7 +75,13 @@ handle_call({create_table}, _From, State) ->
   NextId = State#state.table_cnt + 1,
   {ok, NewTable} = table:start(NextId),
   Tables1 = orddict:store(NextId, NewTable, State#state.tables),
-  {reply, {ok, NewTable, NextId}, State#state{tables=Tables1, table_cnt=NextId}};
+  % Store new view:
+  TablesView1 = orddict:store(NextId,
+                              #tableView{tableId=NextId},
+                              State#state.tables_view),
+  {reply, {ok, NewTable, NextId}, State#state{tables=Tables1,
+                                              tables_view=TablesView1,
+                                              table_cnt=NextId}};
 
 handle_call({get_table, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
@@ -69,10 +89,20 @@ handle_call({get_table, TableId}, _From, State) ->
     error -> {reply, {error, invalid}, State}
   end;
 
+handle_call({get_tables}, _From, State) ->
+  io:format("1: ~w~n", [State#state.tables_view]),
+  Tables = tables_view_to_list(State#state.tables_view),
+  io:format("2: ~w~n", [Tables]),
+  {reply, {ok, Tables}, State};
+
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
+
+handle_cast({update_table, TableId, #tableView{} = TableView}, State) ->
+  TablesView1 = orddict:store(TableId, TableView, State#state.tables_view),
+  {noreply, State#state{tables_view=TablesView1}};
 
 handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
@@ -94,3 +124,7 @@ code_change(_OldVsn, State, _Extra) ->
 new_cookie() ->
   <<Cookie:64>> = crypto:rand_bytes(8),
   Cookie.
+
+tables_view_to_list(TableViews) ->
+  {_TableIds, Views} = lists:unzip(orddict:to_list(TableViews)),
+  Views.

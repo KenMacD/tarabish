@@ -1,5 +1,7 @@
 -module(table).
 
+-include("tarabish_types.hrl").
+
 -behaviour(gen_server).
 
 -export([start/1]).
@@ -11,7 +13,7 @@
 -export([chat/3, join/3]).
 
 -record(person, {name, client, seat}).
--record(state, {id, members}).
+-record(state, {id, members, view}).
 
 % Public:
 start(Id) ->
@@ -27,14 +29,22 @@ join(Table, ClientName, Client) ->
 % gen_server:
 
 init([Id]) ->
-  {ok, #state{id=Id, members=[]}}.
+  View = new_table_view(Id),
+  tarabish_server:update_table_image(Id, View),
+  {ok, #state{id=Id, members=[], view=View}}.
 
 handle_call({join, ClientName, Client}, _From, State) ->
   case is_member(Client, State#state.members) of
     false ->
       Person = #person{name=ClientName, client=Client, seat=none},
       NewMembers = [Person|State#state.members],
-      {reply, ok, State#state{members=NewMembers}};
+      % Add observer:
+      View = State#state.view,
+      Observers = View#tableView.observers,
+      View1 = View#tableView{observers=[ClientName|Observers]},
+      % Update Server:
+      tarabish_server:update_table_image(State#state.id, View1),
+      {reply, ok, State#state{members=NewMembers, view=View1}};
     _ExistingPerson ->
       {reply, {error, already_joined}, State}
   end;
@@ -82,3 +92,6 @@ bjoin(List) ->
   F = fun(A, B) -> <<A/binary, B/binary>> end,
   lists:foldr(F, <<>>, List).
 
+new_table_view(Id) ->
+  #tableView{tableId=Id,
+             observers=[]}.

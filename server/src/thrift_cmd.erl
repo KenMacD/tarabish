@@ -5,8 +5,9 @@
 
 -export([start/0, start/1, stop/1, handle_function/2]).
 
+% From Thrift
 -export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2,
-    join_table/1]).
+    join_table/1, get_tables/0]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -33,7 +34,7 @@ login(Name, Password, undefined) ->
 
 login(_Name, _Password, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
- 
+
 create_table() ->
   create_table(get(client)).
 
@@ -68,6 +69,20 @@ join_table(Client, TableId) ->
   case client:join_table(Client, TableId) of
     ok ->
       ok;
+    {error, Reason} ->
+      throw(#invalidOperation{why=atom_to_list(Reason)})
+  end.
+
+get_tables() ->
+  get_tables(get(client)).
+
+get_tables(undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+get_tables(_Client) ->
+  case tarabish_server:get_tables() of
+    {ok, Tables} ->
+      Tables;
     {error, Reason} ->
       throw(#invalidOperation{why=atom_to_list(Reason)})
   end.

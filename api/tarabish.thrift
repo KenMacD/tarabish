@@ -10,6 +10,16 @@ enum EventType {
   CHAT = 1,
 }
 
+
+struct TableView {
+  1: i32 tableId,
+  2: string north,
+  3: string east,
+  4: string south,
+  5: string west,
+  6: list<string> observers
+}
+
 struct Event {
   1: EventType	type,
   2: i32	table,
@@ -35,6 +45,9 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	void join_table(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
+
+	list<TableView> get_tables()
 		throws (1:InvalidOperation invalid)
 }
 

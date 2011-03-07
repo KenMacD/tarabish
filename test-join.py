@@ -45,6 +45,10 @@ print "Valid Login - ",
 cookie = client.login("Bob", "Password")
 print str(cookie)
 
+print "Checking Table list - ",
+tables = client.get_tables()
+print str(tables)
+
 table = 1
 client.join_table(table)
 print "Sending message to table " + str(table) + " - ",
@@ -52,6 +56,10 @@ try:
     print client.chat(table, "Test Message From Bob")
 except InvalidOperation as invalid:
     print str(invalid)
+
+print "Checking Table list - ",
+tables = client.get_tables()
+print str(tables)
 
 raw_input("Press Enter to continue...")
 
