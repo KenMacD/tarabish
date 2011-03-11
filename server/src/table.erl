@@ -10,10 +10,12 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3]).
+-export([chat/3, join/3, sit/4]).
 
+% Seat record will have more, like cards, for now it matches the view.
+-record(seat, {open, name}).
 -record(person, {name, client, seat}).
--record(state, {id, members, view}).
+-record(state, {id, seats, observers, members}).
 
 % Public:
 start(Id) ->
@@ -26,27 +28,53 @@ chat(Table, From, Message) ->
 join(Table, ClientName, Client) ->
   gen_server:call(Table, {join, ClientName, Client}).
 
+sit(Table, ClientName, Client, Seat) ->
+  gen_server:call(Table, {sit, ClientName, Client, Seat}).
+
 % gen_server:
 
 init([Id]) ->
-  View = new_table_view(Id),
-  tarabish_server:update_table_image(Id, View),
-  {ok, #state{id=Id, members=[], view=View}}.
+  Seats = make_seats(4),
+  State = #state{id=Id, seats=Seats, observers=[], members=orddict:new()},
+  update_server(State),
+  {ok, State}.
 
 handle_call({join, ClientName, Client}, _From, State) ->
-  case is_member(Client, State#state.members) of
-    false ->
+  case orddict:find(ClientName, State#state.members) of
+    {ok, _Person} ->
+      {reply, {error, already_joined}, State};
+    error ->
       Person = #person{name=ClientName, client=Client, seat=none},
-      NewMembers = [Person|State#state.members],
-      % Add observer:
-      View = State#state.view,
-      Observers = View#tableView.observers,
-      View1 = View#tableView{observers=[ClientName|Observers]},
-      % Update Server:
-      tarabish_server:update_table_image(State#state.id, View1),
-      {reply, ok, State#state{members=NewMembers, view=View1}};
-    _ExistingPerson ->
-      {reply, {error, already_joined}, State}
+      NewMembers = orddict:store(ClientName, Person, State#state.members),
+      Observers = [ClientName|State#state.observers],
+      NewState = State#state{members=NewMembers, observers=Observers},
+      update_server(NewState),
+      {reply, ok, NewState}
+  end;
+
+handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
+  Seat = get_seat(State, SeatNum),
+  if Seat#seat.open == true ->
+    Seat1 = #seat{name=ClientName, open=false},
+    NewSeats = setelement(SeatNum + 1, State#state.seats, Seat1),
+    case orddict:find(ClientName, State#state.members) of
+      {ok, #person{seat=none} = Person} ->
+        NewPerson = Person#person{seat=Seat},
+        NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+        NewState = State#state{members=NewMembers, seats=NewSeats},
+        update_server(NewState),
+        {reply, ok, NewState};
+      {ok, _Person} ->
+          {reply, {error, already_seated}, State};
+      error -> % Not at table, join
+        NewPerson = #person{name=ClientName, client=Client, seat=SeatNum},
+        NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+        NewState = State#state{members=NewMembers, seats=NewSeats},
+        update_server(NewState),
+        {reply, ok, NewState}
+    end;
+  true ->
+    {reply, {error, seat_taken}, State}
   end;
 
 handle_call(Request, _From, State) ->
@@ -56,7 +84,8 @@ handle_call(Request, _From, State) ->
 
 handle_cast({chat, From, Message}, State) ->
   ExpandedMessage = bjoin([From, <<" --> ">>, Message]),
-  send_chat(State#state.id, ExpandedMessage, State#state.members),
+  {_Ids, Members} = lists:unzip(orddict:to_list(State#state.members)),
+  send_chat(State#state.id, ExpandedMessage, Members),
   {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -76,10 +105,6 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
-% by client or clientid?
-is_member(Client, Members) ->
-  lists:keyfind(Client, #person.client, Members).
-
 send_chat(_TableId, _Message, []) ->
   ok;
 
@@ -92,6 +117,44 @@ bjoin(List) ->
   F = fun(A, B) -> <<A/binary, B/binary>> end,
   lists:foldr(F, <<>>, List).
 
-new_table_view(Id) ->
-  #tableView{tableId=Id,
-             observers=[]}.
+% Passes a list, but returns a tuple.
+make_seats(Num) ->
+  make_seats(Num, []).
+
+make_seats(0, Seats) ->
+  erlang:list_to_tuple(Seats);
+
+make_seats(Num, Seats) ->
+  make_seats(Num - 1, [#seat{open=true}|Seats]).
+
+get_seat(State, SeatNum) ->
+  element(SeatNum + 1, State#state.seats).
+
+update_server(State) ->
+  View = make_table_view(State),
+  tarabish_server:update_table_image(State#state.id, View).
+
+make_table_view(State) ->
+  Seats = erlang:tuple_to_list(State#state.seats),
+  ViewSeats = make_seats_views(Seats),
+  #tableView{tableId=State#state.id,
+             seats=ViewSeats,
+             observers=State#state.observers}.
+
+make_seats_views(Seats) ->
+  make_seats_views(Seats, []).
+
+make_seats_views([], Views) ->
+  lists:reverse(Views);
+
+make_seats_views([Seat|Rest], Views) ->
+  SeatView = make_one_seat_view(Seat),
+  make_seats_views(Rest, [SeatView|Views]).
+
+% Seat name to empty string for UI
+make_one_seat_view(#seat{open=true} = _Seat) ->
+  #seatView{isOpen=true, name=""};
+
+make_one_seat_view(Seat) ->
+  #seatView{isOpen=false, name=Seat#seat.name}.
+

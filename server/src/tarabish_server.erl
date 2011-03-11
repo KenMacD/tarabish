@@ -90,9 +90,7 @@ handle_call({get_table, TableId}, _From, State) ->
   end;
 
 handle_call({get_tables}, _From, State) ->
-  io:format("1: ~w~n", [State#state.tables_view]),
   Tables = tables_view_to_list(State#state.tables_view),
-  io:format("2: ~w~n", [Tables]),
   {reply, {ok, Tables}, State};
 
 handle_call(Request, _From, State) ->

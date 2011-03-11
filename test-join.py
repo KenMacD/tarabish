@@ -50,7 +50,24 @@ tables = client.get_tables()
 print str(tables)
 
 table = 1
-client.join_table(table)
+print "Joining Table 1 -",
+print str(client.join_table(table))
+
+print "Sitting at seat 0 table 1",
+print str(client.sit(table, 0))
+
+table = 2
+print "Sitting at seat 0 table 2 -",
+print str(client.sit(table, 0))
+
+print "Sitting in seat 1 table 2 -",
+try:
+    client.sit(table, 1)
+    print "FAILED"
+except InvalidOperation as invalid:
+    print str(invalid)
+
+
 print "Sending message to table " + str(table) + " - ",
 try:
     print client.chat(table, "Test Message From Bob")

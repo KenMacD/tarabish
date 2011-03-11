@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([send_chat/3, join_table/2]).
+-export([send_chat/3, join_table/2, sit/3]).
 
 % From Msg Socket:
 -export([get_events/2, subscribe/2]).
@@ -34,6 +34,9 @@ send_chat(Client, TableId, Message) ->
 
 join_table(Client, TableId) ->
   gen_server:call(Client, {join, TableId}).
+
+sit(Client, TableId, Seat) ->
+  gen_server:call(Client, {sit, TableId, Seat}).
 
 recv_chat(Client, TableId, Message) ->
   gen_server:cast(Client, {event, chat, TableId, Message}).
@@ -92,6 +95,25 @@ handle_call({join, TableId}, _From, State) ->
     {error, Reason} ->
       {reply, {error, Reason}, State}
   end;
+
+
+handle_call({sit, TableId, Seat}, _From, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:sit(Table, State#state.id, self(), Seat) of
+        ok ->
+          % If we were already watching the table is should overwrite
+          NewTables = orddict:store(TableId, Table, State#state.tables),
+          {reply, ok, State#state{tables=NewTables}};
+        {error, Reason} ->
+          {reply, {error, Reason}, State}
+      end;
+    {error, Reason} ->
+      {reply, {error, Reason}, State}
+  end;
+
+
+
 
 handle_call({get_events}, _From, State) ->
   Reply = lists:reverse(State#state.events),

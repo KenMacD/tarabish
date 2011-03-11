@@ -10,14 +10,18 @@ enum EventType {
   CHAT = 1,
 }
 
+struct SeatView {
+  1: bool isOpen
+  2: string name  # Seated clients name
+}
 
 struct TableView {
   1: i32 tableId,
-  2: string north,
-  3: string east,
-  4: string south,
-  5: string west,
-  6: list<string> observers
+
+  # list of 4 elements.
+  2: list<SeatView> seats,
+
+  3: list<string> observers
 }
 
 struct Event {
@@ -49,6 +53,12 @@ service Tarabish
 
 	list<TableView> get_tables()
 		throws (1:InvalidOperation invalid)
+
+	##### After joining a table #####
+
+	void sit(1: i32 table_id, 2: byte seat)
+		throws (1:InvalidOperation invalid)
+
 }
 
 service TarabishMsg
