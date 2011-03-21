@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([send_chat/3, join_table/2, sit/3]).
+-export([send_chat/3, join_table/2, sit/3, start_game/2]).
 
 % From Msg Socket:
 -export([get_events/2, subscribe/2]).
@@ -37,6 +37,9 @@ join_table(Client, TableId) ->
 
 sit(Client, TableId, Seat) ->
   gen_server:call(Client, {sit, TableId, Seat}).
+
+start_game(Client, TableId) ->
+  gen_server:call(Client, {start_game, TableId}).
 
 recv_chat(Client, TableId, Message) ->
   gen_server:cast(Client, {event, chat, TableId, Message}).
@@ -112,8 +115,13 @@ handle_call({sit, TableId, Seat}, _From, State) ->
       {reply, {error, Reason}, State}
   end;
 
-
-
+handle_call({start_game, TableId}, _From, State) ->
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      {reply, table:start_game(Table, State#state.id), State};
+    _ ->
+      {reply, {error, not_at_table}, State}
+  end;
 
 handle_call({get_events}, _From, State) ->
   Reply = lists:reverse(State#state.events),

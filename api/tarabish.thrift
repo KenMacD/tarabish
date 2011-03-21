@@ -44,21 +44,22 @@ service Tarabish
 
 
 	##### After login #####
-
-	void chat(1: i32 table, 2: string message)
-		throws (1:InvalidOperation invalid)
-
 	void join_table(1: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
 	list<TableView> get_tables()
 		throws (1:InvalidOperation invalid)
 
-	##### After joining a table #####
-
 	void sit(1: i32 table_id, 2: byte seat)
 		throws (1:InvalidOperation invalid)
 
+	##### After joining a table #####
+	void chat(1: i32 table, 2: string message)
+		throws (1:InvalidOperation invalid)
+
+	##### Once we have a full table #####
+	void start_game(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
 }
 
 service TarabishMsg

@@ -10,12 +10,12 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3, sit/4]).
+-export([chat/3, join/3, sit/4, start_game/2]).
 
 % Seat record will have more, like cards, for now it matches the view.
 -record(seat, {open, name}).
 -record(person, {name, client, seat}).
--record(state, {id, seats, observers, members}).
+-record(state, {id, seats, observers, members, game}).
 
 % Public:
 start(Id) ->
@@ -31,11 +31,15 @@ join(Table, ClientName, Client) ->
 sit(Table, ClientName, Client, Seat) ->
   gen_server:call(Table, {sit, ClientName, Client, Seat}).
 
+start_game(Table, ClientName) ->
+  gen_server:call(Table, {start_game, ClientName}).
+
 % gen_server:
 
 init([Id]) ->
   Seats = make_seats(4),
-  State = #state{id=Id, seats=Seats, observers=[], members=orddict:new()},
+  State = #state{id=Id, seats=Seats, observers=[], members=orddict:new(),
+                 game=none},
   update_server(State),
   {ok, State}.
 
@@ -59,7 +63,7 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
     NewSeats = setelement(SeatNum + 1, State#state.seats, Seat1),
     case orddict:find(ClientName, State#state.members) of
       {ok, #person{seat=none} = Person} ->
-        NewPerson = Person#person{seat=Seat},
+        NewPerson = Person#person{seat=SeatNum},
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewState = State#state{members=NewMembers, seats=NewSeats},
         update_server(NewState),
@@ -77,6 +81,21 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
     {reply, {error, seat_taken}, State}
   end;
 
+handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none}} ->
+      {reply, {error, not_authorized}, State};
+    {ok, _Person} ->
+      % TODO: actually start game
+      send_chat(State#state.id, "Game Started", State#state.members),
+      {reply, ok, State#state{game=started}};
+    error ->
+      {reply, {error, not_at_table}, State}
+  end;
+
+handle_call({start_game, ClientName}, _From, State) ->
+  {reply, {error, already_started}, State};
+
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
@@ -84,8 +103,7 @@ handle_call(Request, _From, State) ->
 
 handle_cast({chat, From, Message}, State) ->
   ExpandedMessage = bjoin([From, <<" --> ">>, Message]),
-  {_Ids, Members} = lists:unzip(orddict:to_list(State#state.members)),
-  send_chat(State#state.id, ExpandedMessage, Members),
+  send_chat(State#state.id, ExpandedMessage, State#state.members),
   {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -105,13 +123,17 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
-send_chat(_TableId, _Message, []) ->
+send_chat_1(_TableId, _Message, []) ->
   ok;
 
-send_chat(TableId, Message, [Person|Others]) ->
+send_chat_1(TableId, Message, [Person|Others]) ->
   Client = Person#person.client,
   client:recv_chat(Client, TableId, Message),
-  send_chat(TableId, Message, Others).
+  send_chat_1(TableId, Message, Others).
+
+send_chat(TableId, Message, MemberDict) ->
+  {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),
+  send_chat_1(TableId, Message, Members).
 
 bjoin(List) ->
   F = fun(A, B) -> <<A/binary, B/binary>> end,

@@ -1,8 +1,8 @@
-#Sun Mar 06 14:46:02 AST 2011
+#Sun Mar 20 21:09:14 ADT 2011
 backend_version=R14B
 eclipse.preferences.version=1
 external_includes=
 external_modules=
 include_dirs=gen-erl;
 output_dir=ebin
-source_dirs=gen-erl;src;
+source_dirs=test;gen-erl;src;

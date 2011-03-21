@@ -7,7 +7,7 @@
 
 % From Thrift
 -export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2,
-    join_table/1, get_tables/0, sit/2]).
+    join_table/1, get_tables/0, sit/2, start_game/1]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -95,6 +95,20 @@ sit(_TableId, _Seat, undefined) ->
 
 sit(TableId, Seat, Client) ->
   case client:sit(Client, TableId, Seat) of
+    ok ->
+      ok;
+    {error, Reason} ->
+      throw(#invalidOperation{why=atom_to_list(Reason)})
+  end.
+
+start_game(TableId) ->
+  start_game(TableId, get(client)).
+
+start_game(TableId, undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+start_game(TableId, Client) ->
+  case client:start_game(Client, TableId) of
     ok ->
       ok;
     {error, Reason} ->
