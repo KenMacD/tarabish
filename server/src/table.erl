@@ -1,6 +1,7 @@
 -module(table).
 
 -include("tarabish_types.hrl").
+-include("client.hrl").
 
 -behaviour(gen_server).
 
@@ -12,8 +13,6 @@
 
 -export([chat/3, join/3, sit/4, start_game/2]).
 
-% Seat record will have more, like cards, for now it matches the view.
--record(seat, {open, name}).
 -record(person, {name, client, seat}).
 -record(state, {id, seats, observers, members, game}).
 
@@ -37,7 +36,7 @@ start_game(Table, ClientName) ->
 % gen_server:
 
 init([Id]) ->
-  Seats = make_seats(4),
+  Seats = {empty, empty, empty, empty},
   State = #state{id=Id, seats=Seats, observers=[], members=orddict:new(),
                  game=none},
   update_server(State),
@@ -58,9 +57,9 @@ handle_call({join, ClientName, Client}, _From, State) ->
 
 handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
   Seat = get_seat(State, SeatNum),
-  if Seat#seat.open == true ->
-    Seat1 = #seat{name=ClientName, open=false},
-    NewSeats = setelement(SeatNum + 1, State#state.seats, Seat1),
+  if Seat == empty ->
+    ClientRec = #client{name=ClientName, pid=Client},
+    NewSeats = setelement(SeatNum + 1, State#state.seats, ClientRec),
     case orddict:find(ClientName, State#state.members) of
       {ok, #person{seat=none} = Person} ->
         NewPerson = Person#person{seat=SeatNum},
@@ -140,15 +139,6 @@ bjoin(List) ->
   lists:foldr(F, <<>>, List).
 
 % Passes a list, but returns a tuple.
-make_seats(Num) ->
-  make_seats(Num, []).
-
-make_seats(0, Seats) ->
-  erlang:list_to_tuple(Seats);
-
-make_seats(Num, Seats) ->
-  make_seats(Num - 1, [#seat{open=true}|Seats]).
-
 get_seat(State, SeatNum) ->
   element(SeatNum + 1, State#state.seats).
 
@@ -174,9 +164,9 @@ make_seats_views([Seat|Rest], Views) ->
   make_seats_views(Rest, [SeatView|Views]).
 
 % Seat name to empty string for UI
-make_one_seat_view(#seat{open=true} = _Seat) ->
+make_one_seat_view(empty) ->
   #seatView{isOpen=true, name=""};
 
 make_one_seat_view(Seat) ->
-  #seatView{isOpen=false, name=Seat#seat.name}.
+  #seatView{isOpen=false, name=Seat#client.name}.
 

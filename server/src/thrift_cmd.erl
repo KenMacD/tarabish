@@ -104,7 +104,7 @@ sit(TableId, Seat, Client) ->
 start_game(TableId) ->
   start_game(TableId, get(client)).
 
-start_game(TableId, undefined) ->
+start_game(_TableId, undefined) ->
   throw(#invalidOperation{why="Need login first"});
 
 start_game(TableId, Client) ->

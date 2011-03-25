@@ -1,0 +1,1 @@
+-record(client, {name, pid}).
