@@ -87,7 +87,8 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
     {ok, _Person} ->
       % TODO: actually start game
       send_chat(State#state.id, "Game Started", State#state.members),
-      {reply, ok, State#state{game=started}};
+      Game = game:start(self()),
+      {reply, ok, State#state{game=Game}};
     error ->
       {reply, {error, not_at_table}, State}
   end;

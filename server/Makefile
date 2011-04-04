@@ -4,7 +4,9 @@ all:
 	erl -make
 
 test: all
-	erl -pz ebin -noshell -s account test -s init stop
+	erl -pz ebin -noshell -s account test \
+	                      -s deck test \
+	                      -s game test -s init stop
 
 test_ct:
 	mkdir -p test_log

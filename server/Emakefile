@@ -1,2 +1,2 @@
-{'../api/target/gen-erl/*', [{outdir, "ebin"}]}.
+{'../api/target/gen-erl/*', [debug_info,{outdir, "ebin"}]}.
 {'src/*', [{outdir, "ebin"}, {i, "../api/target/gen-erl"}]}.
