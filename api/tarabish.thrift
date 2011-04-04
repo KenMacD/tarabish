@@ -10,6 +10,30 @@ enum EventType {
   CHAT = 1,
 }
 
+####################
+# Card values:
+####################
+typedef byte CardSuit
+typedef byte CardValue
+
+const byte HIDDEN = 0
+
+const byte JACK   = 11
+const byte QUEEN  = 12
+const byte KING   = 13
+const byte ACE    = 14
+
+const byte SPADES   = 1
+const byte HEARTS   = 2
+const byte DIAMONDS = 3
+const byte CLUBS    = 4
+
+struct Card {
+  1: byte value,
+  2: byte suit,
+}
+
+
 struct SeatView {
   1: bool isOpen
   2: string name  # Seated clients name
