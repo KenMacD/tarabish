@@ -123,17 +123,13 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
-send_chat_1(_TableId, _Message, []) ->
-  ok;
-
-send_chat_1(TableId, Message, [Person|Others]) ->
-  Client = Person#person.client,
-  client:recv_chat(Client, TableId, Message),
-  send_chat_1(TableId, Message, Others).
-
 send_chat(TableId, Message, MemberDict) ->
   {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),
-  send_chat_1(TableId, Message, Members).
+  Event = #event{type=?tarabish_EventType_CHAT,
+                 table=TableId,
+                 message=Message},
+  lists:map(fun(Person) -> client:recv_event(Person#person.client, Event)  end,
+            Members).
 
 bjoin(List) ->
   F = fun(A, B) -> <<A/binary, B/binary>> end,

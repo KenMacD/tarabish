@@ -17,7 +17,7 @@
 -export([get_events/2, subscribe/2]).
 
 % From Game:
--export([recv_chat/3]).
+-export([recv_event/2]).
 
 -record(state, {id, tables, events, subscriber}).
 
@@ -41,8 +41,8 @@ sit(Client, TableId, Seat) ->
 start_game(Client, TableId) ->
   gen_server:call(Client, {start_game, TableId}).
 
-recv_chat(Client, TableId, Message) ->
-  gen_server:cast(Client, {event, chat, TableId, Message}).
+recv_event(Client, Event) ->
+  gen_server:cast(Client, {event, Event}).
 
 get_events(Client, 0) ->
   gen_server:call(Client, {get_events});
@@ -135,10 +135,7 @@ handle_call(Request, _From, State) ->
 handle_cast({subscribe, Pid}, State) ->
   {noreply, State#state{subscriber=Pid}};
 
-handle_cast({event, chat, TableId, Message}, State) ->
-  Event = #event{type=?tarabish_EventType_CHAT,
-                 table=TableId,
-                 message=Message},
+handle_cast({event, Event}, State) ->
   State1 = add_event(Event, State),
   {noreply, State1};
 
