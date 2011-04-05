@@ -134,11 +134,7 @@ determine_dealer(Table, Deck, Players) when is_list(Players) ->
   % O(n^2) for n = 4
   PlayerMapper = fun(PlayerNum) -> lists:nth(PlayerNum + 1, Players) end,
   Players1 = lists:map(PlayerMapper, HighCards),
-  determine_dealer(Table, Rest, Players1);
-
-determine_dealer(_Table, _Deck, Player) ->
-  % TODO: clear table?
-  Player.
+  determine_dealer(Table, Rest, Players1).
 
 deal_one(Table, Deck, []) ->
   Deck;
