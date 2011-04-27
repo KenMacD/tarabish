@@ -40,6 +40,9 @@ init([Table]) ->
 
   Dealer = determine_dealer(Table, deck:shuffle(deck:new())),
 
+  DealerEvent = #event{type=?tarabish_EventType_DEALER, seat=Dealer},
+  table:broadcast(Table, DealerEvent),
+
   Deck = deck:shuffle(deck:new()),
 
   {ok, state_name, #state{table=Table,

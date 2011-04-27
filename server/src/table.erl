@@ -13,6 +13,9 @@
 
 -export([chat/3, join/3, sit/4, start_game/2]).
 
+%% From game
+-export([broadcast/2]).
+
 -record(person, {name, client, seat}).
 -record(state, {id, seats, observers, members, game}).
 
@@ -22,7 +25,9 @@ start(Id) ->
 
 %% TODO: check if table is still alive
 chat(Table, From, Message) ->
-  gen_server:cast(Table, {chat, From, Message}).
+  ExpandedMessage = bjoin([From, <<" --> ">>, Message]),
+  Event = #event{type=?tarabish_EventType_CHAT, message=ExpandedMessage},
+  broadcast(Table, Event).
 
 join(Table, ClientName, Client) ->
   gen_server:call(Table, {join, ClientName, Client}).
@@ -32,6 +37,9 @@ sit(Table, ClientName, Client, Seat) ->
 
 start_game(Table, ClientName) ->
   gen_server:call(Table, {start_game, ClientName}).
+
+broadcast(Table, Event) ->
+  gen_server:cast(Table, {broadcast, Event}).
 
 % gen_server:
 
@@ -86,7 +94,6 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
       {reply, {error, not_authorized}, State};
     {ok, _Person} ->
       % TODO: actually start game
-      send_chat(State#state.id, "Game Started", State#state.members),
       Game = game:start(self()),
       {reply, ok, State#state{game=Game}};
     error ->
@@ -101,9 +108,8 @@ handle_call(Request, _From, State) ->
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
 
-handle_cast({chat, From, Message}, State) ->
-  ExpandedMessage = bjoin([From, <<" --> ">>, Message]),
-  send_chat(State#state.id, ExpandedMessage, State#state.members),
+handle_cast({broadcast, Event}, State) ->
+  send_event(State#state.id, Event, State#state.members),
   {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -123,12 +129,10 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
-send_chat(TableId, Message, MemberDict) ->
+send_event(TableId, Event, MemberDict) ->
   {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),
-  Event = #event{type=?tarabish_EventType_CHAT,
-                 table=TableId,
-                 message=Message},
-  lists:map(fun(Person) -> client:recv_event(Person#person.client, Event)  end,
+  TableEvent = Event#event{table=TableId},
+  lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
 
 bjoin(List) ->

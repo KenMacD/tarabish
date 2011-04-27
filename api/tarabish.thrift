@@ -6,10 +6,6 @@ exception InvalidOperation {
 	1: string why
 }
 
-enum EventType {
-  CHAT = 1,
-}
-
 ####################
 # Card values:
 ####################
@@ -48,10 +44,18 @@ struct TableView {
   3: list<string> observers
 }
 
+enum EventType {
+  CHAT = 1,    # message in 'message'
+  DEALER = 2,  # dealer in 'seat' 0-3
+}
+
 struct Event {
   1: EventType	type,
   2: i32	table,
+
   3: string	message,
+
+  4: byte	seat,
 }
 
 service Tarabish
