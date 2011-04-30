@@ -38,6 +38,12 @@ start(TablePid) ->
 % TODO: monitor table
 init([Table]) ->
 
+  % TODO: use crypto:rand_bytes instead of random for shuffle
+  % seed random number generator
+  {A1,A2,A3} = now(),
+  random:seed(A1, A2, A3),
+
+  % in 0, 1, 2, 3
   Dealer = determine_dealer(Table, deck:shuffle(deck:new())),
 
   DealerEvent = #event{type=?tarabish_EventType_DEALER, seat=Dealer},
