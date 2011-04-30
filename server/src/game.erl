@@ -51,10 +51,17 @@ init([Table]) ->
 
   Deck = deck:shuffle(deck:new()),
 
+  FirstPlayer = (Dealer + 1) rem 4,
+  DealOrder = lists:seq(FirstPlayer, 3) ++ lists:seq(0, FirstPlayer - 1),
+
+  % TODO: save cards dealt to players for later verification (on table?)
+  Deck1 = deal3(Table, Deck,  DealOrder),
+  Deck2 = deal3(Table, Deck1, DealOrder),
+
   {ok, state_name, #state{table=Table,
                           score1=0,
                           score2=0,
-                          deck=Deck,
+                          deck=Deck2,
                           dealer=Dealer}}.
 
 %% --------------------------------------------------------------------
@@ -151,6 +158,18 @@ deal_one(Table, Deck, [Player|Others]) ->
   [Card|Rest] = Deck,
   %table:deal_one_up(Table, Player, Card),
   deal_one(Table, Rest, Others).
+
+deal3(_Table, Deck, []) ->
+  Deck;
+
+deal3(Table, Deck, [Seat|Others]) ->
+  {Cards, Deck1} = lists:split(3, Deck),
+  Event = #event{type=?tarabish_EventType_DEAL,
+                 seat=Seat,
+                 cards=Cards,
+                 table=Table},
+  table:deal3(Table, Event),
+  deal3(Table, Deck1, Others).
 
 %% --------------------------------------------------------------------
 %%% Tests

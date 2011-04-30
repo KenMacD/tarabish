@@ -45,8 +45,9 @@ struct TableView {
 }
 
 enum EventType {
-  CHAT = 1,    # message in 'message'
+  CHAT   = 1,  # message in 'message'
   DEALER = 2,  # dealer in 'seat' 0-3
+  DEAL   = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
 }
 
 struct Event {
@@ -56,6 +57,8 @@ struct Event {
   3: string	message,
 
   4: byte	seat,
+
+  5: list<Card> cards,
 }
 
 service Tarabish
