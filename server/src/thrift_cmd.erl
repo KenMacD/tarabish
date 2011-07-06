@@ -115,6 +115,20 @@ start_game(TableId, Client) ->
       throw(#invalidOperation{why=atom_to_list(Reason)})
   end.
 
+call_trump(TableId, Suit) ->
+  call_trump(TableId, Suit, get(client)).
+
+call_trump(_TableId, _Suit, undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+call_trump(TableId, Suit, Client) ->
+  case client:call_trump(Client, TableId, Suit) of
+    ok ->
+      ok;
+    {error, Reason} ->
+      throw(#invalidOperation{why=atom_to_list(Reason)})
+    end.
+
 start() ->
   start(42745).
 

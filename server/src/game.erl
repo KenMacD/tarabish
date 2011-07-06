@@ -18,15 +18,21 @@
 	 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 %% states:
--export([wait_trump/2]).
+-export([wait_trump/3]).
 
--record(state, {table, score1, score2, deck, dealer, toask}).
+%% from table:
+-export([call_trump/3]).
+
+-record(state, {table, score1, score2, deck, dealer, toact, toask}).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 start(TablePid) ->
-  gen_server:start(?MODULE, [TablePid], []).
+  gen_fsm:start(?MODULE, [TablePid], []).
+
+call_trump(Game, Seat, Suit) ->
+  gen_fsm:sync_send_event(Game, {call_trump, Seat, Suit}).
 
 %% ====================================================================
 %% Server functions
@@ -71,10 +77,17 @@ init([Table]) ->
                           score2=0,
                           deck=Deck2,
                           dealer=Dealer,
+                          toact=FirstPlayer,
                           toask=ToAsk}}.
 
-wait_trump(_Event, StateData) ->
-  {next_state, wait_trump, StateData}.
+wait_trump({call_trump, Seat, Suit}, _From, StateData)
+    when StateData#state.toact =:= Seat ->
+  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
+  table:broadcast(StateData#state.table, Event),
+  {reply, ok, state_name, StateData};
+
+wait_trump(_Event, _From, StateData) ->
+  {reply, {error, invalid}, wait_trump, StateData}.
 
 %% --------------------------------------------------------------------
 %% Func: StateName/2
@@ -95,8 +108,7 @@ state_name(_Event, StateData) ->
 %%          {stop, Reason, Reply, NewStateData}
 %% --------------------------------------------------------------------
 state_name(_Event, _From, StateData) ->
-    Reply = ok,
-    {reply, Reply, state_name, StateData}.
+    {reply, {error, bad_state}, state_name, StateData}.
 
 %% --------------------------------------------------------------------
 %% Func: handle_event/3

@@ -46,10 +46,11 @@ struct TableView {
 }
 
 enum EventType {
-  CHAT      = 1,  # message in 'message'
-  DEALER    = 2,  # dealer in 'seat' 0-3
-  DEAL      = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
-  ASK_TRUMP = 4, # Ask player to call trump
+  CHAT       = 1,  # message in 'message'
+  DEALER     = 2,  # dealer in 'seat' 0-3
+  DEAL       = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
+  ASK_TRUMP  = 4,  # ask player to call trump
+  CALL_TRUMP = 5,  # 'seat' called or passed trump in 'suit'
 }
 
 struct Event {
@@ -61,6 +62,8 @@ struct Event {
   4: byte	seat,
 
   5: list<Card> cards,
+
+  6: byte	suit,
 }
 
 service Tarabish
@@ -92,6 +95,9 @@ service Tarabish
 
 	##### Once we have a full table #####
 	void start_game(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
+
+	void call_trump(1: i32 table_id, 2: byte suit)
 		throws (1:InvalidOperation invalid)
 }
 
