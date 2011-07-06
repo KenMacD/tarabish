@@ -17,7 +17,10 @@
 -export([init/1, state_name/2, state_name/3, handle_event/3,
 	 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {table, score1, score2, deck, dealer}).
+%% states:
+-export([wait_trump/2]).
+
+-record(state, {table, score1, score2, deck, dealer, toask}).
 
 %% ====================================================================
 %% External functions
@@ -58,11 +61,20 @@ init([Table]) ->
   Deck1 = deal3(Table, Deck,  DealOrder),
   Deck2 = deal3(Table, Deck1, DealOrder),
 
-  {ok, state_name, #state{table=Table,
+  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
+                         seat=FirstPlayer},
+  table:broadcast(Table, AskTrumpEvent),
+  ToAsk = tl(DealOrder),
+
+  {ok, wait_trump, #state{table=Table,
                           score1=0,
                           score2=0,
                           deck=Deck2,
-                          dealer=Dealer}}.
+                          dealer=Dealer,
+                          toask=ToAsk}}.
+
+wait_trump(_Event, StateData) ->
+  {next_state, wait_trump, StateData}.
 
 %% --------------------------------------------------------------------
 %% Func: StateName/2
@@ -70,7 +82,7 @@ init([Table]) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-state_name(Event, StateData) ->
+state_name(_Event, StateData) ->
     {next_state, state_name, StateData}.
 
 %% --------------------------------------------------------------------
@@ -82,7 +94,7 @@ state_name(Event, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}
 %% --------------------------------------------------------------------
-state_name(Event, From, StateData) ->
+state_name(_Event, _From, StateData) ->
     Reply = ok,
     {reply, Reply, state_name, StateData}.
 
@@ -92,7 +104,7 @@ state_name(Event, From, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-handle_event(Event, StateName, StateData) ->
+handle_event(_Event, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
 %% --------------------------------------------------------------------
@@ -104,7 +116,7 @@ handle_event(Event, StateName, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}
 %% --------------------------------------------------------------------
-handle_sync_event(Event, From, StateName, StateData) ->
+handle_sync_event(_Event, _From, StateName, StateData) ->
     Reply = ok,
     {reply, Reply, StateName, StateData}.
 
@@ -114,7 +126,7 @@ handle_sync_event(Event, From, StateName, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-handle_info(Info, StateName, StateData) ->
+handle_info(_Info, StateName, StateData) ->
     {next_state, StateName, StateData}.
 
 %% --------------------------------------------------------------------
@@ -122,7 +134,7 @@ handle_info(Info, StateName, StateData) ->
 %% Purpose: Shutdown the fsm
 %% Returns: any
 %% --------------------------------------------------------------------
-terminate(Reason, StateName, StatData) ->
+terminate(_Reason, _StateName, _StatData) ->
     ok.
 
 %% --------------------------------------------------------------------
@@ -130,7 +142,7 @@ terminate(Reason, StateName, StatData) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState, NewStateData}
 %% --------------------------------------------------------------------
-code_change(OldVsn, StateName, StateData, Extra) ->
+code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.
 
 %% --------------------------------------------------------------------
@@ -140,7 +152,7 @@ determine_dealer(Table, Deck) ->
   Dealer = determine_dealer(Table, Deck, [0,1,2,3]),
   Dealer.
 
-determine_dealer(Table, Deck, [Player|[]]) ->
+determine_dealer(_Table, _Deck, [Player|[]]) ->
   Player;
 
 determine_dealer(Table, Deck, Players) when is_list(Players) ->
@@ -152,10 +164,10 @@ determine_dealer(Table, Deck, Players) when is_list(Players) ->
   Players1 = lists:map(PlayerMapper, HighCards),
   determine_dealer(Table, Rest, Players1).
 
-deal_one(Table, Deck, []) ->
+deal_one(_Table, Deck, []) ->
   Deck;
-deal_one(Table, Deck, [Player|Others]) ->
-  [Card|Rest] = Deck,
+deal_one(Table, Deck, [_Player|Others]) ->
+  [_Card|Rest] = Deck,
   %table:deal_one_up(Table, Player, Card),
   deal_one(Table, Rest, Others).
 

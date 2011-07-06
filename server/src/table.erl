@@ -76,7 +76,8 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
       {ok, #person{seat=none} = Person} ->
         NewPerson = Person#person{seat=SeatNum},
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
-        NewState = State#state{members=NewMembers, seats=NewSeats},
+        NewObservers = lists:delete(ClientName, State#state.observers),
+        NewState = State#state{members=NewMembers, seats=NewSeats, observers=NewObservers},
         update_server(NewState),
         {reply, ok, NewState};
       {ok, _Person} ->

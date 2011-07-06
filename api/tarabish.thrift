@@ -13,6 +13,7 @@ typedef byte CardSuit
 typedef byte CardValue
 
 const byte HIDDEN = 0
+const byte PASS   = 0
 
 const byte JACK   = 11
 const byte QUEEN  = 12
@@ -45,9 +46,10 @@ struct TableView {
 }
 
 enum EventType {
-  CHAT   = 1,  # message in 'message'
-  DEALER = 2,  # dealer in 'seat' 0-3
-  DEAL   = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
+  CHAT      = 1,  # message in 'message'
+  DEALER    = 2,  # dealer in 'seat' 0-3
+  DEAL      = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
+  ASK_TRUMP = 4, # Ask player to call trump
 }
 
 struct Event {
