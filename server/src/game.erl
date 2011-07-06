@@ -23,7 +23,7 @@
 %% from table:
 -export([call_trump/3]).
 
--record(state, {table, score1, score2, deck, dealer, toact, toask}).
+-record(state, {table, score1, score2, deck, dealer, toact, toask, order}).
 
 %% ====================================================================
 %% External functions
@@ -77,17 +77,38 @@ init([Table]) ->
                           score2=0,
                           deck=Deck2,
                           dealer=Dealer,
+                          order=DealOrder,
                           toact=FirstPlayer,
                           toask=ToAsk}}.
 
-wait_trump({call_trump, Seat, Suit}, _From, StateData)
-    when StateData#state.toact =:= Seat ->
-  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
-  table:broadcast(StateData#state.table, Event),
-  {reply, ok, state_name, StateData};
+% Handle force the dealer:
+wait_trump({call_trump, Seat, ?tarabish_PASS}, _From, #state{toask=[]} = State)
+    when State#state.toact =:= Seat ->
+  {reply, {error, forced_to_call}, wait_trump, State};
 
-wait_trump(_Event, _From, StateData) ->
-  {reply, {error, invalid}, wait_trump, StateData}.
+% Other player passes
+wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From, State)
+    when State#state.toact =:= Seat ->
+
+  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
+  table:broadcast(State#state.table, Event),
+
+  [NewAct|NewAsk] = State#state.toask,
+  {reply, ok, wait_trump, State#state{toact=NewAct, toask=NewAsk}}; 
+
+% Non pass:
+wait_trump({call_trump, Seat, Suit}, _From, State)
+    when State#state.toact =:= Seat ->
+
+  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
+  table:broadcast(State#state.table, Event),
+
+  [First|Rest] = State#state.order,
+  % TODO: change to need-card state
+  {reply, ok, state_name, State#state{toact=First, toask=Rest}};
+
+wait_trump(_Event, _From, State) ->
+  {reply, {error, invalid}, wait_trump, State}.
 
 %% --------------------------------------------------------------------
 %% Func: StateName/2
@@ -95,8 +116,8 @@ wait_trump(_Event, _From, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-state_name(_Event, StateData) ->
-    {next_state, state_name, StateData}.
+state_name(_Event, State) ->
+    {next_state, state_name, State}.
 
 %% --------------------------------------------------------------------
 %% Func: StateName/3
@@ -107,8 +128,8 @@ state_name(_Event, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}
 %% --------------------------------------------------------------------
-state_name(_Event, _From, StateData) ->
-    {reply, {error, bad_state}, state_name, StateData}.
+state_name(_Event, _From, State) ->
+    {reply, {error, bad_state}, state_name, State}.
 
 %% --------------------------------------------------------------------
 %% Func: handle_event/3
@@ -116,8 +137,8 @@ state_name(_Event, _From, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-handle_event(_Event, StateName, StateData) ->
-    {next_state, StateName, StateData}.
+handle_event(_Event, StateName, State) ->
+    {next_state, StateName, State}.
 
 %% --------------------------------------------------------------------
 %% Func: handle_sync_event/4
@@ -128,9 +149,9 @@ handle_event(_Event, StateName, StateData) ->
 %%          {stop, Reason, NewStateData}                          |
 %%          {stop, Reason, Reply, NewStateData}
 %% --------------------------------------------------------------------
-handle_sync_event(_Event, _From, StateName, StateData) ->
+handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
-    {reply, Reply, StateName, StateData}.
+    {reply, Reply, StateName, State}.
 
 %% --------------------------------------------------------------------
 %% Func: handle_info/3
@@ -138,8 +159,8 @@ handle_sync_event(_Event, _From, StateName, StateData) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
-handle_info(_Info, StateName, StateData) ->
-    {next_state, StateName, StateData}.
+handle_info(_Info, StateName, State) ->
+    {next_state, StateName, State}.
 
 %% --------------------------------------------------------------------
 %% Func: terminate/3
@@ -154,8 +175,8 @@ terminate(_Reason, _StateName, _StatData) ->
 %% Purpose: Convert process state when code is changed
 %% Returns: {ok, NewState, NewStateData}
 %% --------------------------------------------------------------------
-code_change(_OldVsn, StateName, StateData, _Extra) ->
-    {ok, StateName, StateData}.
+code_change(_OldVsn, StateName, State, _Extra) ->
+    {ok, StateName, State}.
 
 %% --------------------------------------------------------------------
 %%% Internal functions
