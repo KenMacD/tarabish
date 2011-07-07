@@ -94,6 +94,10 @@ wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From, State)
   table:broadcast(State#state.table, Event),
 
   [NewAct|NewAsk] = State#state.toask,
+
+  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP, seat=NewAct},
+  table:broadcast(State#state.table, AskTrumpEvent),
+
   {reply, ok, wait_trump, State#state{toact=NewAct, toask=NewAsk}}; 
 
 % Non pass:
