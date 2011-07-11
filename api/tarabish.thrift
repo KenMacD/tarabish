@@ -51,6 +51,7 @@ enum EventType {
   DEAL       = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
   ASK_TRUMP  = 4,  # ask player to call trump
   CALL_TRUMP = 5,  # 'seat' called or passed trump in 'suit'
+  ASK_CARD   = 6,
 }
 
 struct Event {

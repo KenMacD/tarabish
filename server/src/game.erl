@@ -23,7 +23,16 @@
 %% from table:
 -export([call_trump/3]).
 
--record(state, {table, score1, score2, deck, dealer, toact, toask, order}).
+-record(state, {table,
+                hands,    % What the players are holding[[], [], [], []]
+                score1,   % Score for player 0, 2
+                score2,   % Score for player 1, 3
+                deck,     % What's left of the deck
+                dealer,   % Which seat is dealing
+                trick,    % Trick number (for runs/done)
+                toact,    % Player we're waiting on
+                toask,    % Players left to ask to act
+                order}).  % The deal/play order for this hand
 
 %% ====================================================================
 %% External functions
@@ -62,24 +71,35 @@ init([Table]) ->
 
   FirstPlayer = (Dealer + 1) rem 4,
   DealOrder = lists:seq(FirstPlayer, 3) ++ lists:seq(0, FirstPlayer - 1),
+  ToAsk = tl(DealOrder),
+
+  State = #state{table=Table,
+                 hands=[[], [], [], []],
+                 score1=0,
+                 score2=0,
+                 deck=Deck,
+                 dealer=Dealer,
+                 order=DealOrder,
+                 toact=FirstPlayer,
+                 trick=0,
+                 toask=ToAsk},
+  % State1 = deal3(State),
+  % State2 = deal3(State1),
+
+  % TODO-LLL: update deal3 to take state, return state
 
   % TODO: save cards dealt to players for later verification (on table?)
+  % Pass the state and get a new state back
   Deck1 = deal3(Table, Deck,  DealOrder),
   Deck2 = deal3(Table, Deck1, DealOrder),
+
+  State1 = State#state{deck=Deck2},
 
   AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
                          seat=FirstPlayer},
   table:broadcast(Table, AskTrumpEvent),
-  ToAsk = tl(DealOrder),
 
-  {ok, wait_trump, #state{table=Table,
-                          score1=0,
-                          score2=0,
-                          deck=Deck2,
-                          dealer=Dealer,
-                          order=DealOrder,
-                          toact=FirstPlayer,
-                          toask=ToAsk}}.
+  {ok, wait_trump, State1}.
 
 % Handle force the dealer:
 wait_trump({call_trump, Seat, ?tarabish_PASS}, _From, #state{toask=[]} = State)
@@ -106,10 +126,15 @@ wait_trump({call_trump, Seat, Suit}, _From, State)
 
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
+  Deck = deal3(State#state.table, State#state.deck, State#state.order),
 
   [First|Rest] = State#state.order,
+
+  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=First},
+  table:broadcast(State#state.table, AskCardEvent),
+
   % TODO: change to need-card state
-  {reply, ok, state_name, State#state{toact=First, toask=Rest}};
+  {reply, ok, state_name, State#state{toact=First, toask=Rest, deck=Deck, trick=1}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
