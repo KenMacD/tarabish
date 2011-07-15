@@ -7,7 +7,7 @@
 
 % From Thrift
 -export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2,
-    join_table/1, get_tables/0, sit/2, start_game/1]).
+    join_table/1, get_tables/0, sit/2, start_game/1, call_trump/2]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
