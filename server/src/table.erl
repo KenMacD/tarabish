@@ -62,6 +62,9 @@ handle_call({join, ClientName, Client}, _From, State) ->
     {ok, _Person} ->
       {reply, {error, already_joined}, State};
     error ->
+      Event = #event{type=?tarabish_EventType_JOIN,
+                     name=ClientName},
+      send_event_all(Event, State),
       Person = #person{name=ClientName, client=Client, seat=none},
       NewMembers = orddict:store(ClientName, Person, State#state.members),
       Observers = [ClientName|State#state.observers],
@@ -75,8 +78,13 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
   if Seat == empty ->
     ClientRec = #client{name=ClientName, pid=Client},
     NewSeats = setelement(SeatNum + 1, State#state.seats, ClientRec),
+    Event = #event{type=?tarabish_EventType_SIT,
+                   name=ClientName,
+                   seat=SeatNum},
     case orddict:find(ClientName, State#state.members) of
       {ok, #person{seat=none} = Person} ->
+
+        send_event_all(Event, State),
         NewPerson = Person#person{seat=SeatNum},
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewObservers = lists:delete(ClientName, State#state.observers),
@@ -86,6 +94,7 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
       {ok, _Person} ->
           {reply, {error, already_seated}, State};
       error -> % Not at table, join
+        send_event_all(Event, State),
         NewPerson = #person{name=ClientName, client=Client, seat=SeatNum},
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewState = State#state{members=NewMembers, seats=NewSeats},
@@ -101,7 +110,8 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, _Person} ->
-      % TODO: actually start game
+      Event = #event{type=?tarabish_EventType_NEW_GAME},
+      send_event_all(Event, State),
       {ok, Game} = game:start(self()),
       {reply, ok, State#state{game=Game}};
     error ->
@@ -131,7 +141,7 @@ handle_call(Request, _From, State) ->
   {stop, "Bad Call", State}.
 
 handle_cast({broadcast, Event}, State) ->
-  send_event(State#state.id, Event, State#state.members),
+  send_event_all(Event, State),
   {noreply, State};
 
 handle_cast({deal3, Event}, State) ->
@@ -155,6 +165,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
+send_event_all(Event, State) ->
+  send_event(State#state.id, Event, State#state.members).
+
 send_event(TableId, Event, MemberDict) ->
   {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),
   TableEvent = Event#event{table=TableId},

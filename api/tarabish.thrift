@@ -45,26 +45,38 @@ struct TableView {
   3: list<string> observers
 }
 
+# Thrift doesn't allow different types, so only some fields populated.
+# TODO: need commands for PART/STAND
 enum EventType {
-  CHAT       = 1,  # message in 'message'
-  DEALER     = 2,  # dealer in 'seat' 0-3
-  DEAL       = 3,  # deal 3 cards to 'seat', if you're seat view 'cards'
-  ASK_TRUMP  = 4,  # ask player to call trump
-  CALL_TRUMP = 5,  # 'seat' called or passed trump in 'suit'
-  ASK_CARD   = 6,
+  JOIN,		# table, name
+  PART,		# table, name
+  SIT,		# table, name, seat
+  STAND,	# table, name, seat
+
+  CHAT,		# table, message TODO: update to contain name?
+
+  NEW_GAME,	# table
+
+  DEALER,	# table, seat (0-3)
+  DEAL,		# table, seat, cards? (if to you)
+  ASK_TRUMP,	# table, seat
+  CALL_TRUMP,	# table, seat, suit
+  ASK_CARD,	# table, seat
 }
 
 struct Event {
   1: EventType	type,
   2: i32	table,
 
-  3: string	message,
+  3: string	name,
 
-  4: byte	seat,
+  4: string	message,
 
-  5: list<Card> cards,
+  5: byte	seat,
 
-  6: byte	suit,
+  6: list<Card> cards,
+
+  7: byte	suit,
 }
 
 service Tarabish
