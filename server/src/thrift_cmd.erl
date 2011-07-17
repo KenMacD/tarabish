@@ -6,8 +6,7 @@
 -export([start/0, start/1, stop/1, handle_function/2]).
 
 % From Thrift
--export([getVersion/0, createAccount/3, login/2, chat/2,
-    join_table/1, get_tables/0, sit/2, start_game/1, call_trump/2]).
+-export([getVersion/0, createAccount/3, login/2]).
 
 getVersion() ->
   ?tarabish_PROTOCOL_VERSION.
@@ -35,90 +34,6 @@ login(Name, Password, undefined) ->
 login(_Name, _Password, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
 
-chat(TableId, Message) ->
-  chat(get(client), TableId,  Message).
-
-chat(undefined, _TableId, _Message) ->
-  throw(#invalidOperation{why="Need login first"});
-
-chat(Client, TableId, Message) ->
-  case client:send_chat(Client, TableId, Message) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-  end.
-
-join_table(TableId) ->
-  join_table(get(client), TableId).
-
-join_table(undefined, _TableId) ->
-  throw(#invalidOperation{why="Need login first"});
-
-join_table(Client, TableId) ->
-  case client:join_table(Client, TableId) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-  end.
-
-get_tables() ->
-  get_tables(get(client)).
-
-get_tables(undefined) ->
-  throw(#invalidOperation{why="Need login first"});
-
-get_tables(_Client) ->
-  case tarabish_server:get_tables() of
-    {ok, Tables} ->
-      Tables;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-  end.
-
-sit(TableId, Seat) ->
-  sit(TableId, Seat, get(client)).
-
-sit(_TableId, _Seat, undefined) ->
-  throw(#invalidOperation{why="Need login first"});
-
-sit(TableId, Seat, Client) ->
-  case client:sit(Client, TableId, Seat) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-  end.
-
-start_game(TableId) ->
-  start_game(TableId, get(client)).
-
-start_game(_TableId, undefined) ->
-  throw(#invalidOperation{why="Need login first"});
-
-start_game(TableId, Client) ->
-  case client:start_game(Client, TableId) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-  end.
-
-call_trump(TableId, Suit) ->
-  call_trump(TableId, Suit, get(client)).
-
-call_trump(_TableId, _Suit, undefined) ->
-  throw(#invalidOperation{why="Need login first"});
-
-call_trump(TableId, Suit, Client) ->
-  case client:call_trump(Client, TableId, Suit) of
-    ok ->
-      ok;
-    {error, Reason} ->
-      throw(#invalidOperation{why=atom_to_list(Reason)})
-    end.
-
 start() ->
   start(42745).
 
@@ -136,8 +51,57 @@ start(Port) ->
 stop(Server) ->
   thrift_socket_server:stop(Server).
 
+local(Function, Args) ->
+  apply(?MODULE, Function, tuple_to_list(Args)).
+
+server_call(Function, Args) ->
+  server_call(Function, Args, get(client)).
+
+server_call(_Function, _Args, undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+server_call(Function, Args, _Client) ->
+  case apply(tarabish_server, Function, tuple_to_list(Args)) of
+      ok -> ok;
+      {ok, Result} -> Result;
+      {error, Reason} ->
+        throw(#invalidOperation{why=atom_to_list(Reason)})
+    end.
+
+client_call(Function, Args) ->
+  client_call(Function, Args, get(client)).
+
+client_call(_Function, _Args, undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+client_call(Function, Args, Client) ->
+  case apply(client, Function, [Client | tuple_to_list(Args)]) of
+      ok -> ok;
+      {ok, Result} -> Result;
+      {error, Reason} ->
+        throw(#invalidOperation{why=atom_to_list(Reason)})
+    end.
+
 handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
-  case apply(?MODULE, Function, tuple_to_list(Args)) of
+  FunctionHandlers =
+    [{[getVersion, createAccount, login],
+        fun local/2},
+     {[get_tables],
+        fun server_call/2},
+     {[chat, join_table, sit, start_game, call_trump],
+        fun client_call/2}],
+  case handle_function(Function, Args, FunctionHandlers) of
     ok -> ok;
     Reply -> {reply, Reply}
   end.
+
+handle_function(Function, Args, [{Functions, Handler}|Rest]) ->
+  case contains(Function, Functions) of
+    true  -> Handler(Function, Args);
+    false -> handle_function(Function, Args, Rest)
+  end.
+
+contains(_Key, []) ->
+  false;
+contains(Key, List) ->
+  lists:any(fun(X) -> Key == X end, List).
