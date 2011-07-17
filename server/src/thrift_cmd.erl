@@ -6,7 +6,7 @@
 -export([start/0, start/1, stop/1, handle_function/2]).
 
 % From Thrift
--export([getVersion/0, createAccount/3, login/2, create_table/0, chat/2,
+-export([getVersion/0, createAccount/3, login/2, chat/2,
     join_table/1, get_tables/0, sit/2, start_game/1, call_trump/2]).
 
 getVersion() ->
@@ -34,16 +34,6 @@ login(Name, Password, undefined) ->
 
 login(_Name, _Password, _) ->
   throw(#invalidOperation{why="Already Authenticated"}).
-
-create_table() ->
-  create_table(get(client)).
-
-create_table(undefined) ->
-  throw(#invalidOperation{why="Need login first"});
-
-create_table(Client) ->
-  {ok, TableId} = client:create_table(Client),
-  TableId.
 
 chat(TableId, Message) ->
   chat(get(client), TableId,  Message).
