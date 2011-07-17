@@ -84,16 +84,15 @@ client_call(Function, Args, Client) ->
 
 handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
   FunctionHandlers =
-    [{[getVersion, createAccount, login],
-        fun local/2},
-     {[get_tables],
-        fun server_call/2},
-     {[chat, join_table, sit, start_game, call_trump],
-        fun client_call/2}],
+    [{[getVersion, createAccount, login], fun local/2},
+     {[get_tables],                       fun server_call/2}],
   case handle_function(Function, Args, FunctionHandlers) of
     ok -> ok;
     Reply -> {reply, Reply}
   end.
+
+handle_function(Function, Args, []) ->
+  client_call(Function, Args);
 
 handle_function(Function, Args, [{Functions, Handler}|Rest]) ->
   case contains(Function, Functions) of
