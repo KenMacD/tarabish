@@ -6,12 +6,12 @@
 -export([start/0, start/1, stop/1, handle_function/2]).
 
 % From Thrift
--export([getVersion/0, createAccount/3, login/2]).
+-export([get_version/0, create_account/3, login/2, cap_to_underscore/1]).
 
-getVersion() ->
+get_version() ->
   ?tarabish_PROTOCOL_VERSION.
 
-createAccount(Name, Email, Password) ->
+create_account(Name, Email, Password) ->
   case account:create(Name, Email, Password) of
       {ok, _} -> ok;
       {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
@@ -82,11 +82,23 @@ client_call(Function, Args, Client) ->
         throw(#invalidOperation{why=atom_to_list(Reason)})
     end.
 
+cap_to_underscore_char(C) when is_integer(C) ->
+  Lc = string:to_lower(C),
+  case Lc =:= C of
+    true  -> C;
+    false -> ["_", Lc]
+  end.
+
+cap_to_underscore(Function) when is_atom(Function) ->
+  FunctionList = [cap_to_underscore_char(C) || C <- atom_to_list(Function)],
+  list_to_atom(lists:flatten(FunctionList)).
+
 handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
+  FunctionNameAtom = cap_to_underscore(Function),
   FunctionHandlers =
-    [{[getVersion, createAccount, login], fun local/2},
+    [{[get_version, create_account, login], fun local/2},
      {[get_tables],                       fun server_call/2}],
-  case handle_function(Function, Args, FunctionHandlers) of
+  case handle_function(FunctionNameAtom, Args, FunctionHandlers) of
     ok -> ok;
     Reply -> {reply, Reply}
   end.

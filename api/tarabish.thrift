@@ -93,10 +93,10 @@ service Tarabish
 
 
 	##### After login #####
-	void join_table(1: i32 table_id)
+	void joinTable(1: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	list<TableView> get_tables()
+	list<TableView> getTables()
 		throws (1:InvalidOperation invalid)
 
 	void sit(1: i32 table_id, 2: byte seat)
@@ -107,10 +107,10 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	##### Once we have a full table #####
-	void start_game(1: i32 table_id)
+	void startGame(1: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void call_trump(1: i32 table_id, 2: byte suit)
+	void callTrump(1: i32 table_id, 2: byte suit)
 		throws (1:InvalidOperation invalid)
 }
 
@@ -121,9 +121,9 @@ service TarabishMsg
 	void login(1: i64 cookie)
 		throws (1:InvalidOperation invalid)
 
-	list<Event> get_events()
+	list<Event> getEvents()
 		throws (1:InvalidOperation invalid)
 
-	list<Event> get_events_timeout(1: i32 timeout_mills)
+	list<Event> getEventsTimeout(1: i32 timeout_mills)
 		throws (1:InvalidOperation invalid)
 }

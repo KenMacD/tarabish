@@ -47,7 +47,7 @@ print "Login"
 cookie = client.login(name, "password")
 
 print "Checking Table list - ",
-tables = client.get_tables()
+tables = client.getTables()
 print str(tables)
 
 def join_first_seat(tables):
@@ -59,7 +59,7 @@ def join_first_seat(tables):
                 client.sit(table.tableId, seat_num)
                 if seat_num == 3:
                     print "Starting the game"
-                    client.start_game(table.tableId)
+                    client.startGame(table.tableId)
                 return (table.tableId, seat_num)
             seat_num += 1
 
@@ -121,13 +121,13 @@ def print_event(event, seat):
 
 ec = join_event(cookie)
 while True:
-    events = ec.get_events_timeout(300000)
+    events = ec.getEventsTimeout(300000)
     for event in events:
         print_event(event, seatnum)
         if event.type == EventType.ASK_TRUMP and event.seat == seatnum:
             if (seatnum > 0):
-                client.call_trump(tableid, SPADES)
+                client.callTrump(tableid, SPADES)
             else:
-                client.call_trump(tableid, PASS)
+                client.callTrump(tableid, PASS)
 
 sys.exit(1)

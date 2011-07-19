@@ -3,10 +3,10 @@
 -include("tarabishMsg_thrift.hrl").
 -include("tarabish_constants.hrl").
 
--export([start/0, start/1, stop/1, handle_function/2, getVersion/0,
+-export([start/0, start/1, stop/1, handle_function/2, get_version/0,
     login/1, get_events/0, get_events_timeout/1]).
 
-getVersion() ->
+get_version() ->
   ?tarabish_PROTOCOL_VERSION.
 
 login(Cookie) ->
@@ -53,7 +53,8 @@ stop(Server) ->
   thrift_socket_server:stop(Server).
 
 handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
-  case apply(?MODULE, Function, tuple_to_list(Args)) of
+  FunctionName = thrift_cmd:cap_to_underscore(Function),
+  case apply(?MODULE, FunctionName, tuple_to_list(Args)) of
     ok -> ok;
     Reply -> {reply, Reply}
   end.
