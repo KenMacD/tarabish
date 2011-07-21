@@ -83,23 +83,14 @@ init([Table]) ->
                  toact=FirstPlayer,
                  trick=0,
                  toask=ToAsk},
-  % State1 = deal3(State),
-  % State2 = deal3(State1),
-
-  % TODO-LLL: update deal3 to take state, return state
-
-  % TODO: save cards dealt to players for later verification (on table?)
-  % Pass the state and get a new state back
-  Deck1 = deal3(Table, Deck,  DealOrder),
-  Deck2 = deal3(Table, Deck1, DealOrder),
-
-  State1 = State#state{deck=Deck2},
+  State1 = deal3(State),
+  State2 = deal3(State1),
 
   AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
                          seat=FirstPlayer},
   table:broadcast(Table, AskTrumpEvent),
 
-  {ok, wait_trump, State1}.
+  {ok, wait_trump, State2}.
 
 % Handle force the dealer:
 wait_trump({call_trump, Seat, ?tarabish_PASS}, _From, #state{toask=[]} = State)
@@ -126,7 +117,7 @@ wait_trump({call_trump, Seat, Suit}, _From, State)
 
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
-  Deck = deal3(State#state.table, State#state.deck, State#state.order),
+  State1 = deal3(State),
 
   [First|Rest] = State#state.order,
 
@@ -134,7 +125,7 @@ wait_trump({call_trump, Seat, Suit}, _From, State)
   table:broadcast(State#state.table, AskCardEvent),
 
   % TODO: change to need-card state
-  {reply, ok, state_name, State#state{toact=First, toask=Rest, deck=Deck, trick=1}};
+  {reply, ok, state_name, State1#state{toact=First, toask=Rest, trick=1}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
@@ -233,17 +224,22 @@ deal_one(Table, Deck, [_Player|Others]) ->
   %table:deal_one_up(Table, Player, Card),
   deal_one(Table, Rest, Others).
 
-deal3(_Table, Deck, []) ->
-  Deck;
+deal3_each(_Deck, Dealt, []) ->
+  lists:reverse(Dealt);
 
-deal3(Table, Deck, [Seat|Others]) ->
+deal3_each(Deck,  Dealt, [_Seat|Others]) ->
   {Cards, Deck1} = lists:split(3, Deck),
-  Event = #event{type=?tarabish_EventType_DEAL,
-                 seat=Seat,
-                 cards=Cards,
-                 table=Table},
-  table:deal3(Table, Event),
-  deal3(Table, Deck1, Others).
+  deal3_each(Deck1, [Cards|Dealt], Others).
+
+deal3(State) ->
+  BeforeCards = State#state.hands,
+  NewCards = deal3_each(State#state.deck, [], State#state.order),
+  Cards = lists:zipwith(fun lists:merge/2, BeforeCards, NewCards),
+
+  table:deal3(State#state.table, State#state.dealer, NewCards),
+
+  State#state{deck=lists:nthtail(12, State#state.deck),
+              hands=Cards}.
 
 %% --------------------------------------------------------------------
 %%% Tests

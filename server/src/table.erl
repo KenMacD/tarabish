@@ -14,7 +14,7 @@
 -export([chat/3, join/3, sit/4, start_game/2, call_trump/3]).
 
 %% From game
--export([broadcast/2, deal3/2]).
+-export([broadcast/2, deal3/3]).
 
 -record(person, {name, client, seat}).
 -record(state, {id, seats, observers, members, game}).
@@ -45,8 +45,8 @@ call_trump(Table, ClientName, Suit) ->
 broadcast(Table, Event) ->
   gen_server:cast(Table, {broadcast, Event}).
 
-deal3(Table, #event{type=?tarabish_EventType_DEAL} = Event) ->
-  gen_server:cast(Table, {deal3, Event}).
+deal3(Table, Dealer, Cards) ->
+  gen_server:cast(Table, {deal3, Dealer, Cards}).
 
 % gen_server:
 
@@ -144,8 +144,8 @@ handle_cast({broadcast, Event}, State) ->
   send_event_all(Event, State),
   {noreply, State};
 
-handle_cast({deal3, Event}, State) ->
-  send_cards(State#state.id, Event, State#state.members),
+handle_cast({deal3, Dealer, Cards}, State) ->
+  send_cards(State#state.id, Dealer, Cards, State#state.members),
   {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -174,23 +174,27 @@ send_event(TableId, Event, MemberDict) ->
   lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
 
-send_cards1(_Event, []) ->
+send_cards1(_Event, _Cards, []) ->
   ok;
 
-send_cards1(Event, [#person{} = Person|Rest])
-    when Person#person.seat == Event#event.seat ->
+send_cards1(Event, Cards, [#person{} = Person|Rest])
+    when Person#person.seat == none ->
   client:recv_event(Person#person.client, Event),
-  send_cards1(Event, Rest);
+  send_cards1(Event, Cards, Rest);
 
-send_cards1(Event, [#person{} = Person|Rest]) ->
-  Event1 = Event#event{cards = undefined},
+send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
+  Event1 = Event#event{cards = lists:nth(Person#person.seat + 1, Cards)},
+
   client:recv_event(Person#person.client, Event1),
-  send_cards1(Event, Rest).
+  send_cards1(Event, Cards, Rest).
 
-send_cards(TableId, Event, MembersDict) ->
+send_cards(TableId, Dealer, Cards, MembersDict) ->
   {_Ids, Persons} = lists:unzip(orddict:to_list(MembersDict)),
-  Event1 = Event#event{table=TableId},
-  send_cards1(Event1, Persons).
+
+  Event = #event{type=?tarabish_EventType_DEAL,
+                 table=TableId,
+                 seat=Dealer},
+  send_cards1(Event, Cards, Persons).
 
 bjoin(List) ->
   F = fun(A, B) -> <<A/binary, B/binary>> end,

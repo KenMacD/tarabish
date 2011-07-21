@@ -58,7 +58,7 @@ enum EventType {
   NEW_GAME,	# table
 
   DEALER,	# table, seat (0-3)
-  DEAL,		# table, seat, cards? (if to you)
+  DEAL,		# table, seat=first-dealt, cards (to you)
   ASK_TRUMP,	# table, seat
   CALL_TRUMP,	# table, seat, suit
   ASK_CARD,	# table, seat
