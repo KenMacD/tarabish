@@ -18,10 +18,10 @@
 	 handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 %% states:
--export([wait_trump/3]).
+-export([wait_trump/3, wait_card/3]).
 
 %% from table:
--export([call_trump/3]).
+-export([call_trump/3, play_card/3]).
 
 -record(state, {table,
                 hands,    % What the players are holding[[], [], [], []]
@@ -42,6 +42,9 @@ start(TablePid) ->
 
 call_trump(Game, Seat, Suit) ->
   gen_fsm:sync_send_event(Game, {call_trump, Seat, Suit}).
+
+play_card(Game, Seat, Card) ->
+  gen_fsm:sync_send_event(Game, {play_card, Seat, Card}).
 
 %% ====================================================================
 %% Server functions
@@ -124,11 +127,31 @@ wait_trump({call_trump, Seat, Suit}, _From, State)
   AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=First},
   table:broadcast(State#state.table, AskCardEvent),
 
-  % TODO: change to need-card state
-  {reply, ok, state_name, State1#state{toact=First, toask=Rest, trick=1}};
+  {reply, ok, wait_card, State1#state{toact=First, toask=Rest, trick=1}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
+
+% TODO: verify they can play that card:
+wait_card({play_card, Seat, Card}, _From, State)
+    when State#state.toact =:= Seat ->
+  Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
+  table:broadcast(State#state.table, Event),
+
+  case State#state.toask =:= [] of
+    true  -> {reply, ok, state_name, State}; % TODO: handle 4 cards in
+    false ->
+      [NewAct|NewAsk] = State#state.toask,
+
+      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=NewAct},
+      table:broadcast(State#state.table, Event1),
+
+      {reply, ok, wait_card, State#state{toact=NewAct, toask=NewAsk}}
+  end;
+
+wait_card(_Event, _From, State) ->
+  {reply, {error, invalid}, wait_card, State}.
+
 
 %% --------------------------------------------------------------------
 %% Func: StateName/2

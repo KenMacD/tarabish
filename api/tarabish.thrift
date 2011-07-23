@@ -58,10 +58,13 @@ enum EventType {
   NEW_GAME,	# table
 
   DEALER,	# table, seat (0-3)
-  DEAL,		# table, seat=first-dealt, cards (to you)
+  DEAL,		# table, seat=first-dealt, dealt (to you)
   ASK_TRUMP,	# table, seat
   CALL_TRUMP,	# table, seat, suit
+
   ASK_CARD,	# table, seat
+  PLAY_CARD,	# table, seat, card
+
 }
 
 struct Event {
@@ -74,9 +77,11 @@ struct Event {
 
   5: byte	seat,
 
-  6: list<Card> cards,
+  6: list<Card> dealt,
 
   7: byte	suit,
+
+  8: Card	card,
 }
 
 service Tarabish
@@ -111,6 +116,9 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	void callTrump(1: i32 table_id, 2: byte suit)
+		throws (1:InvalidOperation invalid)
+
+	void playCard(1: i32 table_id, 2: Card card)
 		throws (1:InvalidOperation invalid)
 }
 

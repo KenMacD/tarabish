@@ -78,12 +78,6 @@ def join_event(cookie):
     return event_client
 
 def print_event(event, seat):
-    def format_deal(event):
-        if event.cards:
-            return "Deal: You receive cards %s at table %d"%(event.cards, event.table)
-        else:
-            return "Deal: %d received cards at table %d"%(event.seat, event.table)
-
     def format_ask_trump(event,seat):
         if seat == event.seat:
             return "Ask Trump: You are requested to call trump at %d"%(event.table)
@@ -102,6 +96,13 @@ def print_event(event, seat):
             return "Call Trump: %s called %s for trump at %d"%(someone,
                     event.suit, event.table)
 
+    def format_ask_card(event, seat):
+        if seat == event.seat:
+            return "Ask Card: You are requested to play a card at %d"%(event.table)
+        else:
+            return "Ask Card: %d is requested to play a card at %d"%(event.seat,
+                    event.table)
+
     format = {
             EventType.JOIN: lambda e: "Join: %s joined table %d"%(e.name,
                 e.table),
@@ -110,9 +111,13 @@ def print_event(event, seat):
             EventType.NEW_GAME: lambda e: "New Game: at table %d"%(e.table),
             EventType.DEALER: lambda e: "Dealer: is %d at table %d"%(e.seat,
                 e.table),
-            EventType.DEAL: format_deal,
+            EventType.DEAL: lambda e: "Deal: You received card %s at %d"%(
+                event.dealt, event.table),
             EventType.ASK_TRUMP: lambda e: format_ask_trump(e, seat),
             EventType.CALL_TRUMP: lambda e: format_call_trump(e, seat),
+            EventType.ASK_CARD: lambda e: format_ask_card(e, seat),
+            EventType.PLAY_CARD: lambda e: "Card: %d played %s at %d"%(
+                event.seat, str(event.card), event.table),
             }
     if event.type in format:
         print format[event.type](event)
@@ -120,14 +125,20 @@ def print_event(event, seat):
         print "Unknown Event %s"%(str(event))
 
 ec = join_event(cookie)
+cards = []
 while True:
     events = ec.getEventsTimeout(300000)
     for event in events:
         print_event(event, seatnum)
+        if event.type == EventType.DEAL:
+            cards += event.dealt
         if event.type == EventType.ASK_TRUMP and event.seat == seatnum:
             if (seatnum > 0):
                 client.callTrump(tableid, SPADES)
             else:
                 client.callTrump(tableid, PASS)
+        if event.type == EventType.ASK_CARD and event.seat == seatnum:
+            client.playCard(tableid, cards[0])
+            cards = cards[1:]
 
 sys.exit(1)

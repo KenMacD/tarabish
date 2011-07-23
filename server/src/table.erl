@@ -11,7 +11,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3, sit/4, start_game/2, call_trump/3]).
+-export([chat/3, join/3, sit/4, start_game/2, call_trump/3, play_card/3]).
 
 %% From game
 -export([broadcast/2, deal3/3]).
@@ -40,6 +40,9 @@ start_game(Table, ClientName) ->
 
 call_trump(Table, ClientName, Suit) ->
   gen_server:call(Table, {call_trump, ClientName, Suit}).
+
+play_card(Table, ClientName, Card) ->
+  gen_server:call(Table, {play_card, ClientName, Card}).
 
 % From Game:
 broadcast(Table, Event) ->
@@ -135,6 +138,21 @@ handle_call({call_trump, ClientName, Suit}, _From, State) ->
         {reply, {error, not_at_table}, State}
     end;
 
+handle_call({play_card, _ClientName, _Card}, _From, #state{game=none} = State) ->
+  {reply, {error, no_game}, State};
+
+% TODO: not_authorized isn't really needed here, as it shoudl be checked in the game
+handle_call({play_card, ClientName, Card}, _From, State) ->
+  case orddict:find(ClientName, State#state.members) of
+      {ok, #person{seat=none}} ->
+        {reply, {error, not_authorized}, State};
+      {ok, Person} ->
+        Reply = game:play_card(State#state.game, Person#person.seat, Card),
+        {reply, Reply, State};
+      error ->
+        {reply, {error, not_at_table}, State}
+    end;
+
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
@@ -183,7 +201,7 @@ send_cards1(Event, Cards, [#person{} = Person|Rest])
   send_cards1(Event, Cards, Rest);
 
 send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
-  Event1 = Event#event{cards = lists:nth(Person#person.seat + 1, Cards)},
+  Event1 = Event#event{dealt = lists:nth(Person#person.seat + 1, Cards)},
 
   client:recv_event(Person#person.client, Event1),
   send_cards1(Event, Cards, Rest).
