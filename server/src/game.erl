@@ -30,8 +30,6 @@
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
-                toact,    % Player we're waiting on
-                toask,    % Players left to ask to act
                 order}).  % The deal/play order for this hand
 
 %% ====================================================================
@@ -72,9 +70,7 @@ init([Table]) ->
 
   Deck = deck:shuffle(deck:new()),
 
-  FirstPlayer = (Dealer + 1) rem 4,
-  DealOrder = lists:seq(FirstPlayer, 3) ++ lists:seq(0, FirstPlayer - 1),
-  ToAsk = tl(DealOrder),
+  DealOrder = create_order(Dealer+1),
 
   State = #state{table=Table,
                  hands=[[], [], [], []],
@@ -83,70 +79,64 @@ init([Table]) ->
                  deck=Deck,
                  dealer=Dealer,
                  order=DealOrder,
-                 toact=FirstPlayer,
-                 trick=0,
-                 toask=ToAsk},
+                 trick=0},
   State1 = deal3(State),
   State2 = deal3(State1),
 
   AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
-                         seat=FirstPlayer},
+                         seat=hd(DealOrder)},
   table:broadcast(Table, AskTrumpEvent),
 
   {ok, wait_trump, State2}.
 
 % Handle force the dealer:
-wait_trump({call_trump, Seat, ?tarabish_PASS}, _From, #state{toask=[]} = State)
-    when State#state.toact =:= Seat ->
+wait_trump({call_trump, Seat, ?tarabish_PASS}, _From,
+    #state{order = [Seat|[]]} = State) ->
   {reply, {error, forced_to_call}, wait_trump, State};
 
 % Other player passes
-wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From, State)
-    when State#state.toact =:= Seat ->
+wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From,
+    #state{order=[Seat|Rest]} = State) ->
 
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
 
-  [NewAct|NewAsk] = State#state.toask,
-
-  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP, seat=NewAct},
+  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP, seat=hd(Rest)},
   table:broadcast(State#state.table, AskTrumpEvent),
 
-  {reply, ok, wait_trump, State#state{toact=NewAct, toask=NewAsk}}; 
+  {reply, ok, wait_trump, State#state{order=Rest}};
 
 % Non pass:
-wait_trump({call_trump, Seat, Suit}, _From, State)
-    when State#state.toact =:= Seat ->
+wait_trump({call_trump, Seat, Suit}, _From,
+    #state{order=[Seat|_Rest], dealer=Dealer} = State) ->
 
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
   State1 = deal3(State),
 
-  [First|Rest] = State#state.order,
+  PlayOrder = create_order(Dealer + 1),
 
-  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=First},
+  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(PlayOrder)},
   table:broadcast(State#state.table, AskCardEvent),
 
-  {reply, ok, wait_card, State1#state{toact=First, toask=Rest, trick=1}};
+  {reply, ok, wait_card, State1#state{order=PlayOrder, trick=1}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
 
 % TODO: verify they can play that card:
-wait_card({play_card, Seat, Card}, _From, State)
-    when State#state.toact =:= Seat ->
+wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
+
   Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
   table:broadcast(State#state.table, Event),
 
-  case State#state.toask =:= [] of
+  case Rest =:= [] of
     true  -> {reply, ok, state_name, State}; % TODO: handle 4 cards in
     false ->
-      [NewAct|NewAsk] = State#state.toask,
-
-      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=NewAct},
+      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
       table:broadcast(State#state.table, Event1),
 
-      {reply, ok, wait_card, State#state{toact=NewAct, toask=NewAsk}}
+      {reply, ok, wait_card, State#state{order=Rest}}
   end;
 
 wait_card(_Event, _From, State) ->
@@ -263,6 +253,12 @@ deal3(State) ->
 
   State#state{deck=lists:nthtail(12, State#state.deck),
               hands=Cards}.
+
+create_order(First) when First > 3 ->
+  create_order(First rem 4);
+
+create_order(First) ->
+  lists:seq(First, 3) ++ lists:seq(0, First - 1).
 
 %% --------------------------------------------------------------------
 %%% Tests
