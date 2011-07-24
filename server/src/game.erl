@@ -30,7 +30,8 @@
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
-                order}).  % The deal/play order for this hand
+                order,    % The deal/play order for this hand
+                inplay}). % Current cards on the table as [(Card, Seat),]
 
 %% ====================================================================
 %% External functions
@@ -79,6 +80,7 @@ init([Table]) ->
                  deck=Deck,
                  dealer=Dealer,
                  order=DealOrder,
+                 inplay=[],
                  trick=0},
   State1 = deal3(State),
   State2 = deal3(State1),
@@ -119,7 +121,7 @@ wait_trump({call_trump, Seat, Suit}, _From,
   AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(PlayOrder)},
   table:broadcast(State#state.table, AskCardEvent),
 
-  {reply, ok, wait_card, State1#state{order=PlayOrder, trick=1}};
+  {reply, ok, wait_card, State1#state{order=PlayOrder, trick=1, inplay=[]}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
@@ -130,13 +132,16 @@ wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
   Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
   table:broadcast(State#state.table, Event),
 
+  InPlay = [{Card, Seat}|State#state.inplay],
+
   case Rest =:= [] of
-    true  -> {reply, ok, state_name, State}; % TODO: handle 4 cards in
+    true  ->
+      {reply, ok, state_name, State}; % TODO: handle 4 cards in
     false ->
       Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
       table:broadcast(State#state.table, Event1),
 
-      {reply, ok, wait_card, State#state{order=Rest}}
+      {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}
   end;
 
 wait_card(_Event, _From, State) ->
