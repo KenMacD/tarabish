@@ -280,3 +280,12 @@ determine_dealer_test_() ->
                                                ?E, ?E, ?E, ?T]))
   ].
 
+create_order_test_() ->
+  [
+    ?_assertEqual([0,1,2,3], create_order(0)),
+    ?_assertEqual([1,2,3,0], create_order(1)),
+    ?_assertEqual([2,3,0,1], create_order(2)),
+    ?_assertEqual([3,0,1,2], create_order(3)),
+    ?_assertEqual([0,1,2,3], create_order(4)),
+    ?_assertEqual([1,2,3,0], create_order(5))
+  ].
