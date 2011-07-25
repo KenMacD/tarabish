@@ -118,6 +118,8 @@ def print_event(event, seat):
             EventType.ASK_CARD: lambda e: format_ask_card(e, seat),
             EventType.PLAY_CARD: lambda e: "Card: %d played %s at %d"%(
                 event.seat, str(event.card), event.table),
+            EventType.TAKE_TRICK: lambda e: "Trick: %d took trick at %d"%(
+                event.seat, event.table),
             }
     if event.type in format:
         print format[event.type](event)

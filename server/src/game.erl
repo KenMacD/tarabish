@@ -27,11 +27,18 @@
                 hands,    % What the players are holding[[], [], [], []]
                 score1,   % Score for player 0, 2
                 score2,   % Score for player 1, 3
+
+                % Set per hand:
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
+                trump,    % Trump for this hand
+
+                % Set per trick:
                 order,    % The deal/play order for this hand
-                inplay}). % Current cards on the table as [(Card, Seat),]
+                inplay,   % Current cards on the table as [(Card, Seat),]
+                ledin     % Suit that started the thing
+              }).
 
 %% ====================================================================
 %% External functions
@@ -81,6 +88,8 @@ init([Table]) ->
                  dealer=Dealer,
                  order=DealOrder,
                  inplay=[],
+                 ledin=?tarabish_NONE,
+                 trump=?tarabish_NONE,
                  trick=0},
   State1 = deal3(State),
   State2 = deal3(State1),
@@ -121,10 +130,39 @@ wait_trump({call_trump, Seat, Suit}, _From,
   AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(PlayOrder)},
   table:broadcast(State#state.table, AskCardEvent),
 
-  {reply, ok, wait_card, State1#state{order=PlayOrder, trick=1, inplay=[]}};
+  {reply, ok, wait_card, State1#state{order=PlayOrder,
+                                      trick=1,
+                                      inplay=[],
+                                      ledin=?tarabish_NONE,
+                                      trump=Suit}};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
+
+% First card of the trick
+process_card(Seat, Card, Rest, #state{ledin=?tarabish_NONE} = State) ->
+  process_card(Seat, Card, Rest, State#state{ledin=Card#card.suit});
+
+process_card(Seat, Card, [], State) ->
+
+  InPlay = lists:reverse([{Card, Seat}|State#state.inplay]),
+  BestSeat = best_hand(InPlay, State#state.trump),
+  Event = #event{type=?tarabish_EventType_TAKE_TRICK, seat=BestSeat},
+  table:broadcast(State#state.table, Event),
+
+  Event2 = #event{type=?tarabish_EventType_ASK_CARD, seat=BestSeat},
+  table:broadcast(State#state.table, Event2),
+
+  % TODO: handle trick 9 - score, etc
+  NewOrder = create_order(BestSeat),
+  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
+
+process_card(Seat, Card, Rest, State) ->
+      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
+      table:broadcast(State#state.table, Event1),
+
+      InPlay = [{Card, Seat}|State#state.inplay],
+      {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}.
 
 % TODO: verify they can play that card:
 wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
@@ -132,17 +170,7 @@ wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
   Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
   table:broadcast(State#state.table, Event),
 
-  InPlay = [{Card, Seat}|State#state.inplay],
-
-  case Rest =:= [] of
-    true  ->
-      {reply, ok, state_name, State}; % TODO: handle 4 cards in
-    false ->
-      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
-      table:broadcast(State#state.table, Event1),
-
-      {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}
-  end;
+  process_card(Seat, Card, Rest, State);
 
 wait_card(_Event, _From, State) ->
   {reply, {error, invalid}, wait_card, State}.

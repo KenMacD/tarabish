@@ -14,6 +14,7 @@ typedef byte CardValue
 
 const byte HIDDEN = 0
 const byte PASS   = 0
+const byte NONE	  = 0
 
 const byte JACK   = 11
 const byte QUEEN  = 12
@@ -64,6 +65,8 @@ enum EventType {
 
   ASK_CARD,	# table, seat
   PLAY_CARD,	# table, seat, card
+
+  TAKE_TRICK,	# table, seat
 
 }
 
