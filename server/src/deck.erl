@@ -11,7 +11,7 @@
 %%
 %% Exported Functions
 %%
--export([new/0, shuffle/1, high_card/1]).
+-export([new/0, shuffle/1, high_card/1, nontrump_higher/2, trump_higher/2]).
 
 %%
 %% API Functions
@@ -71,6 +71,40 @@ high_card([Value|Rest], Max, _OldWinners, On) when Value > Max ->
 high_card([_Value|Rest], Max, Winners, On) -> % lower
   high_card(Rest, Max, Winners, On + 1).
 
+nontrump_higher(?tarabish_ACE, _Value) ->
+  true;
+
+nontrump_higher(_Value, ?tarabish_ACE) ->
+  false;
+
+nontrump_higher(10, _Value) ->
+  true;
+
+nontrump_higher(_Value, 10) ->
+  false;
+
+nontrump_higher(Value1, Value2) when Value1 > Value2 ->
+  true;
+
+nontrump_higher(_Value1, _Value2) ->
+  false.
+
+trump_higher(?tarabish_JACK, _Value) ->
+  true;
+
+trump_higher(_Value, ?tarabish_JACK) ->
+  false;
+
+trump_higher(9, _Value) ->
+  true;
+
+trump_higher(_Value, 9) ->
+  false;
+
+trump_higher(Value1, Value2) ->
+  nontrump_higher(Value1, Value2).
+
+
 %%
 %% Local Functions
 %%
@@ -93,3 +127,21 @@ high_card_test() ->
   ?assertEqual([0, 1], high_card([J, J, N, A])),
   ?assertEqual([1, 3], high_card([N, J, N, J])).
 
+high_trump_test_() ->
+  [
+    ?_assertEqual(true,  trump_higher(?tarabish_JACK, 8)),
+    ?_assertEqual(false, trump_higher(9, ?tarabish_JACK)),
+    ?_assertEqual(true,  trump_higher(?tarabish_JACK, 9)),
+    ?_assertEqual(true,  trump_higher(9, ?tarabish_ACE)),
+    ?_assertEqual(true,  trump_higher(?tarabish_ACE, 10)),
+    ?_assertEqual(true, trump_higher(10, ?tarabish_KING)),
+    ?_assertEqual(true, trump_higher(8, 7))
+  ].
+
+high_nontrump_test_() ->
+  [
+    ?_assertEqual(true, nontrump_higher(?tarabish_ACE, 10)),
+    ?_assertEqual(true, nontrump_higher(10, ?tarabish_KING)),
+    ?_assertEqual(true, nontrump_higher(?tarabish_KING, ?tarabish_JACK)),
+    ?_assertEqual(true, nontrump_higher(9, 8))
+  ].

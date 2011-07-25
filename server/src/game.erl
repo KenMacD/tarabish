@@ -265,6 +265,37 @@ create_order(First) when First > 3 ->
 create_order(First) ->
   lists:seq(First, 3) ++ lists:seq(0, First - 1).
 
+best_hand([{FirstCard, FirstSeat}|Rest], Trump) ->
+  best_hand(Rest, {FirstCard, FirstSeat}, Trump, FirstCard#card.suit).
+
+best_hand([], {_Card, Seat}, _Trump, _Led) ->
+  Seat;
+
+best_hand([{NewCard, NewSeat}|Rest], {Card, _Seat}, Trump, Led)
+  when NewCard#card.suit == Trump, Card#card.suit /= Trump ->
+    best_hand(Rest, {NewCard, NewSeat}, Trump, Led);
+
+best_hand([{NewCard, _NewSeat}|Rest], {Card, Seat}, Trump, Led)
+  when NewCard#card.suit /= Trump, Card#card.suit == Trump ->
+    best_hand(Rest, {Card, Seat}, Trump, Led);
+
+best_hand([{NewCard, NewSeat}|Rest], {Card, Seat}, Trump, Led)
+  when NewCard#card.suit == Trump, Card#card.suit == Trump ->
+    case deck:trump_higher(NewCard#card.value, Card#card.value) of
+      true -> best_hand(Rest, {NewCard, NewSeat}, Trump, Led);
+      false -> best_hand(Rest, {Card, Seat}, Trump, Led)
+    end;
+
+best_hand([{NewCard, _NewSeat}|Rest], {Card, Seat}, Trump, Led)
+  when NewCard#card.suit /= Led ->
+    best_hand(Rest, {Card, Seat}, Trump, Led);
+
+best_hand([{NewCard, NewSeat}|Rest], {Card, Seat}, Trump, Led) ->
+  case deck:nontrump_higher(NewCard#card.value, Card#card.value) of
+    true -> best_hand(Rest, {NewCard, NewSeat}, Trump, Led);
+    false -> best_hand(Rest, {Card, Seat}, Trump, Led)
+  end.
+
 %% --------------------------------------------------------------------
 %%% Tests
 %% --------------------------------------------------------------------
@@ -293,4 +324,27 @@ create_order_test_() ->
     ?_assertEqual([3,0,1,2], create_order(3)),
     ?_assertEqual([0,1,2,3], create_order(4)),
     ?_assertEqual([1,2,3,0], create_order(5))
+  ].
+
+best_hand_test_() ->
+  Hands1 = [{#card{value=8, suit=?tarabish_SPADES},   0},
+            {#card{value=8, suit=?tarabish_DIAMONDS}, 1},
+            {#card{value=8, suit=?tarabish_HEARTS},   2},
+            {#card{value=8, suit=?tarabish_CLUBS},    3}],
+
+  Hands2 = [{#card{value=8, suit=?tarabish_SPADES},   2},
+            {#card{value=9, suit=?tarabish_SPADES},   3},
+            {#card{value=6, suit=?tarabish_HEARTS},   0},
+            {#card{value=6, suit=?tarabish_CLUBS},    1}],
+
+  Hands3 = [{#card{value=8,  suit=?tarabish_SPADES},   3},
+            {#card{value=8,  suit=?tarabish_DIAMONDS}, 0},
+            {#card{value=9,  suit=?tarabish_DIAMONDS}, 1},
+            {?J#card{suit=?tarabish_DIAMONDS}, 2}],
+
+  [
+    ?_assertEqual(0, best_hand(Hands1, ?tarabish_SPADES)),
+    ?_assertEqual(2, best_hand(Hands1, ?tarabish_HEARTS)),
+    ?_assertEqual(3, best_hand(Hands2, ?tarabish_DIAMONDS)),
+    ?_assertEqual(2, best_hand(Hands3, ?tarabish_DIAMONDS))
   ].
