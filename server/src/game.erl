@@ -250,8 +250,9 @@ deal3_each(Deck,  Dealt, [_Seat|Others]) ->
   deal3_each(Deck1, [Cards|Dealt], Others).
 
 deal3(State) ->
+  Order = create_order(State#state.dealer + 1),
   BeforeCards = State#state.hands,
-  NewCards = deal3_each(State#state.deck, [], State#state.order),
+  NewCards = deal3_each(State#state.deck, [], Order),
   Cards = lists:zipwith(fun lists:merge/2, BeforeCards, NewCards),
 
   table:deal3(State#state.table, State#state.dealer, NewCards),
