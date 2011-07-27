@@ -6,6 +6,7 @@ all:
 test: all
 	erl -pz ebin -noshell -s account test \
 	                      -s deck test \
+			      -s rules test \
 	                      -s game test -s init stop
 
 test_ct:

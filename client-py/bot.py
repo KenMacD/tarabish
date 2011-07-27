@@ -140,7 +140,16 @@ while True:
             else:
                 client.callTrump(tableid, PASS)
         if event.type == EventType.ASK_CARD and event.seat == seatnum:
-            client.playCard(tableid, cards[0])
-            cards = cards[1:]
+            played = 0
+            for card in cards[:]:
+                try:
+                    client.playCard(tableid, card)
+                    cards.remove(card)
+                    played = 1
+                    break;
+                except InvalidOperation, e:
+                    pass # expected
+            if not played:
+                print "!!! No valid cards in hand: " + str(cards)
 
 sys.exit(1)

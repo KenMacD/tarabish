@@ -24,7 +24,7 @@
 -export([call_trump/3, play_card/3]).
 
 -record(state, {table,
-                hands,    % What the players are holding[[], [], [], []]
+                hands,    % What the players are holding{[], [], [], []}
                 score1,   % Score for player 0, 2
                 score2,   % Score for player 1, 3
 
@@ -81,7 +81,7 @@ init([Table]) ->
   DealOrder = create_order(Dealer+1),
 
   State = #state{table=Table,
-                 hands=[[], [], [], []],
+                 hands={[], [], [], []},
                  score1=0,
                  score2=0,
                  deck=Deck,
@@ -166,15 +166,24 @@ process_card(Seat, Card, Rest, State) ->
 
 % TODO: verify they can play that card:
 wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
+  Hand = element(Seat + 1, State#state.hands),
 
-  Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
-  table:broadcast(State#state.table, Event),
+  % TODO: use hightrump here to make sure player beats other trumps.
+  case rules:valid_play(Card, Hand, State#state.ledin, State#state.trump, 0) of
+    true ->
 
-  process_card(Seat, Card, Rest, State);
+      Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
+      table:broadcast(State#state.table, Event),
+
+      NewHand = lists:delete(Card, Hand),
+      NewHands = setelement(Seat + 1, State#state.hands, NewHand),
+      process_card(Seat, Card, Rest, State#state{hands=NewHands});
+    false ->
+      {reply, {error, invalid}, wait_card, State}
+  end;
 
 wait_card(_Event, _From, State) ->
   {reply, {error, invalid}, wait_card, State}.
-
 
 %% --------------------------------------------------------------------
 %% Func: StateName/2
@@ -279,14 +288,15 @@ deal3_each(Deck,  Dealt, [_Seat|Others]) ->
 
 deal3(State) ->
   Order = create_order(State#state.dealer + 1),
-  BeforeCards = State#state.hands,
+
+  BeforeCards = tuple_to_list(State#state.hands),
   NewCards = deal3_each(State#state.deck, [], Order),
   Cards = lists:zipwith(fun lists:merge/2, BeforeCards, NewCards),
 
   table:deal3(State#state.table, State#state.dealer, NewCards),
 
   State#state{deck=lists:nthtail(12, State#state.deck),
-              hands=Cards}.
+              hands=list_to_tuple(Cards)}.
 
 create_order(First) when First > 3 ->
   create_order(First rem 4);
