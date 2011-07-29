@@ -24,8 +24,7 @@
 -export([call_trump/3, play_card/3]).
 
 -record(state, {table,
-                score1,   % Score for player 0, 2
-                score2,   % Score for player 1, 3
+                score,    % Two scores { , } (0,2 -- 1,3)
 
                 % Set per hand:
                 hands,    % What the players are holding{[], [], [], []}
@@ -33,6 +32,7 @@
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
                 trump,    % Trump for this hand
+                hscore,   % Score for this hand (for bait, etc) { , }
 
                 % Set per trick:
                 order,    % The deal/play order for this hand
@@ -76,7 +76,7 @@ init([Table]) ->
   DealerEvent = #event{type=?tarabish_EventType_DEALER, seat=Dealer},
   table:broadcast(Table, DealerEvent),
 
-  State = new_hand(Dealer, #state{table=Table, score1=0, score2=0}),
+  State = new_hand(Dealer, #state{table=Table, score={0,0}}),
   State1 = deal3(State),
   State2 = deal3(State1),
 
@@ -119,14 +119,26 @@ wait_trump({call_trump, Seat, Suit}, _From,
   AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(PlayOrder)},
   table:broadcast(State#state.table, AskCardEvent),
 
-  {reply, ok, wait_card, State1#state{order=PlayOrder,
-                                      trick=1,
-                                      inplay=[],
-                                      ledin=?tarabish_NONE,
-                                      trump=Suit}};
+  {reply, ok, wait_card, new_trick(State1#state{trick=1, trump=Suit})};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
+
+process_trick(LastWin, #state{trick=9} = State) ->
+  % TODO: add 10 to last
+  % TODO: count up score
+  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
+  table:broadcast(State#state.table, Event),
+
+  NewOrder = create_order(LastWin),
+  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
+
+process_trick(LastWin, State) ->
+  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
+  table:broadcast(State#state.table, Event),
+
+  NewOrder = create_order(LastWin),
+  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}}.
 
 % First card of the trick
 process_card(Seat, Card, Rest, #state{ledin=?tarabish_NONE} = State) ->
@@ -139,12 +151,13 @@ process_card(Seat, Card, [], State) ->
   Event = #event{type=?tarabish_EventType_TAKE_TRICK, seat=BestSeat},
   table:broadcast(State#state.table, Event),
 
-  Event2 = #event{type=?tarabish_EventType_ASK_CARD, seat=BestSeat},
-  table:broadcast(State#state.table, Event2),
+  {Cards, _Seats} = lists:unzip(InPlay),
+  BestSeatScore = (BestSeat rem 2) + 1,
+  CardScore = deck:score_cards(Cards, State#state.trump),
+  OldScore = element(BestSeatScore, State#state.hscore),
+  NewScores = setelement(BestSeatScore, State#state.hscore, CardScore + OldScore),
 
-  % TODO: handle trick 9 - score, etc
-  NewOrder = create_order(BestSeat),
-  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
+  process_trick(BestSeat, State#state{hscore=NewScores});
 
 process_card(Seat, Card, Rest, State) ->
       Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
@@ -251,7 +264,8 @@ new_hand(Dealer, State) ->
                         deck=Deck,
                         dealer=Dealer,
                         trick=0,
-                        trump=?tarabish_NONE}).
+                        trump=?tarabish_NONE,
+                        hscore={0, 0}}).
 
 new_trick(#state{dealer=Dealer} = State) ->
   DealOrder = create_order(Dealer+1),
