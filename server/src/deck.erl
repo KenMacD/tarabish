@@ -11,7 +11,8 @@
 %%
 %% Exported Functions
 %%
--export([new/0, shuffle/1, high_card/1, nontrump_higher/2, trump_higher/2]).
+-export([new/0, shuffle/1, high_card/1, nontrump_higher/2, trump_higher/2,
+    score_cards/2]).
 
 %%
 %% API Functions
@@ -70,6 +71,38 @@ high_card([Value|Rest], Max, _OldWinners, On) when Value > Max ->
 
 high_card([_Value|Rest], Max, Winners, On) -> % lower
   high_card(Rest, Max, Winners, On + 1).
+
+score_cards(Cards, Trump) ->
+  S = scorer(Trump),
+  lists:foldl(fun(C, Sum) -> S(C) + Sum end, 0, Cards).
+
+scorer(Trump) ->
+  fun(Card) ->
+      case Card#card.suit == Trump of
+        true -> score_trump(Card#card.value);
+        false -> score_nontrump(Card#card.value)
+      end
+  end.
+
+score_trump(?tarabish_JACK) ->
+  20;
+score_trump(9) ->
+  14;
+score_trump(OtherValue) ->
+  score_nontrump(OtherValue).
+
+score_nontrump(?tarabish_ACE) ->
+  11;
+score_nontrump(10) ->
+  10;
+score_nontrump(?tarabish_KING) ->
+  4;
+score_nontrump(?tarabish_QUEEN) ->
+  3;
+score_nontrump(?tarabish_JACK) ->
+  2;
+score_nontrump(_Other) ->
+  0.
 
 nontrump_higher(?tarabish_ACE, _Value) ->
   true;
@@ -144,4 +177,39 @@ high_nontrump_test_() ->
     ?_assertEqual(true, nontrump_higher(10, ?tarabish_KING)),
     ?_assertEqual(true, nontrump_higher(?tarabish_KING, ?tarabish_JACK)),
     ?_assertEqual(true, nontrump_higher(9, 8))
+  ].
+
+scorer_test_() ->
+  S = scorer(?tarabish_CLUBS),
+  [
+    ?_assertEqual(20, S(#card{value=?tarabish_JACK, suit=?tarabish_CLUBS})),
+    ?_assertEqual( 2, S(#card{value=?tarabish_JACK, suit=?tarabish_SPADES})),
+
+    ?_assertEqual(14, S(#card{value=9, suit=?tarabish_CLUBS})),
+    ?_assertEqual( 0, S(#card{value=9, suit=?tarabish_DIAMONDS})),
+
+    ?_assertEqual(11, S(#card{value=?tarabish_ACE, suit=?tarabish_CLUBS})),
+    ?_assertEqual(11, S(#card{value=?tarabish_ACE, suit=?tarabish_HEARTS})),
+
+    ?_assertEqual(10, S(#card{value=10, suit=?tarabish_CLUBS})),
+    ?_assertEqual(10, S(#card{value=10, suit=?tarabish_DIAMONDS})),
+
+    ?_assertEqual( 4, S(#card{value=?tarabish_KING, suit=?tarabish_CLUBS})),
+    ?_assertEqual( 3, S(#card{value=?tarabish_QUEEN, suit=?tarabish_CLUBS})),
+
+    ?_assertEqual( 0, S(#card{value=8, suit=?tarabish_CLUBS})),
+    ?_assertEqual( 0, S(#card{value=7, suit=?tarabish_HEARTS})),
+    ?_assertEqual( 0, S(#card{value=6, suit=?tarabish_DIAMONDS}))
+  ].
+
+score_cards_test_() ->
+  Hand = [#card{value=?tarabish_JACK, suit=?tarabish_CLUBS},
+          #card{value=9             , suit=?tarabish_CLUBS},
+          #card{value=?tarabish_JACK, suit=?tarabish_SPADES},
+          #card{value=9             , suit=?tarabish_HEARTS}],
+  [
+    ?_assertEqual(20+14+2, score_cards(Hand, ?tarabish_CLUBS)),
+    ?_assertEqual(14+2+2, score_cards(Hand, ?tarabish_HEARTS)),
+    ?_assertEqual(20+2, score_cards(Hand, ?tarabish_SPADES)),
+    ?_assertEqual(2+2, score_cards(Hand, ?tarabish_DIAMONDS))
   ].
