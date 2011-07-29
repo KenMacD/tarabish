@@ -24,11 +24,11 @@
 -export([call_trump/3, play_card/3]).
 
 -record(state, {table,
-                hands,    % What the players are holding{[], [], [], []}
                 score1,   % Score for player 0, 2
                 score2,   % Score for player 1, 3
 
                 % Set per hand:
+                hands,    % What the players are holding{[], [], [], []}
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
@@ -76,26 +76,15 @@ init([Table]) ->
   DealerEvent = #event{type=?tarabish_EventType_DEALER, seat=Dealer},
   table:broadcast(Table, DealerEvent),
 
-  Deck = deck:shuffle(deck:new()),
-
-  DealOrder = create_order(Dealer+1),
-
-  State = #state{table=Table,
-                 hands={[], [], [], []},
-                 score1=0,
-                 score2=0,
-                 deck=Deck,
-                 dealer=Dealer,
-                 order=DealOrder,
-                 inplay=[],
-                 ledin=?tarabish_NONE,
-                 trump=?tarabish_NONE,
-                 trick=0},
+  State = new_hand(Dealer, #state{table=Table, score1=0, score2=0}),
   State1 = deal3(State),
   State2 = deal3(State1),
 
+  FirstSeat = hd(State2#state.order),
+
+  % TODO: add to_wait_trump() to send these events:
   AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
-                         seat=hd(DealOrder)},
+                         seat=FirstSeat},
   table:broadcast(Table, AskTrumpEvent),
 
   {ok, wait_trump, State2}.
@@ -164,7 +153,6 @@ process_card(Seat, Card, Rest, State) ->
       InPlay = [{Card, Seat}|State#state.inplay],
       {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}.
 
-% TODO: verify they can play that card:
 wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
   Hand = element(Seat + 1, State#state.hands),
 
@@ -256,6 +244,22 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
+new_hand(Dealer, State) ->
+  Deck = deck:shuffle(deck:new()),
+
+  new_trick(State#state{hands={[], [], [], []},
+                        deck=Deck,
+                        dealer=Dealer,
+                        trick=0,
+                        trump=?tarabish_NONE}).
+
+new_trick(#state{dealer=Dealer} = State) ->
+  DealOrder = create_order(Dealer+1),
+  State#state{order=DealOrder,
+              ledin=?tarabish_NONE,
+              inplay=[]}.
+
+
 determine_dealer(Table, Deck) ->
   Dealer = determine_dealer(Table, Deck, [0,1,2,3]),
   Dealer.
