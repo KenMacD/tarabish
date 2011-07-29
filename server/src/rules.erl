@@ -13,6 +13,10 @@
 %%
 -export([valid_play/5]).
 
+% When nothing led you can play anything:
+valid_play(Card, Hand, ?tarabish_NONE, _TrumpSuit, _HighTrumpValue) ->
+  lists:member(Card, Hand);
+
 valid_play(Card, Hand, Led, TrumpSuit, HighTrumpValue) ->
   ValidCards = find_must(Hand, Led, TrumpSuit, HighTrumpValue),
   case ValidCards == [] of
