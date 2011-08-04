@@ -158,6 +158,11 @@ handle_call(Request, _From, State) ->
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
 
+handle_cast({broadcast,
+    #event{type=?tarabish_EventType_GAME_DONE} = Event}, State) ->
+      send_event_all(Event, State),
+      {noreply, State#state{game=none}};
+
 handle_cast({broadcast, Event}, State) ->
   send_event_all(Event, State),
   {noreply, State};

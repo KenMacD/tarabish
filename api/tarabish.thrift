@@ -75,6 +75,8 @@ enum EventType {
   TAKE_TRICK,	# table, seat
   HAND_DONE,	# table, hand_score, score, bait
 
+  GAME_DONE,	# table, score, seat(0,1)=winner
+
 }
 
 struct Event {

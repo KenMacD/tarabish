@@ -50,6 +50,7 @@ print "Checking Table list - ",
 tables = client.getTables()
 print str(tables)
 
+tablenum = 0
 def join_first_seat(tables):
     for table in tables:
         seat_num = 0
@@ -59,6 +60,8 @@ def join_first_seat(tables):
                 client.sit(table.tableId, seat_num)
                 if seat_num == 3:
                     print "Starting the game"
+                    global tablenum
+                    tablenum = table.tableId
                     client.startGame(table.tableId)
                 return (table.tableId, seat_num)
             seat_num += 1
@@ -124,12 +127,15 @@ def print_event(event, seat):
                 "Hand: Scores %d, %d Total %d %d, Bait %d"%(
                 event.hand_score[0], event.hand_score[1],
                 event.score[0], event.score[1], event.bait),
+            EventType.GAME_DONE: lambda e: \
+                "Game Over: %d wins at table %d"%(event.seat, event.table)
             }
     if event.type in format:
         print format[event.type](event)
     else:
         print "Unknown Event %s"%(str(event))
 
+game = 0
 ec = join_event(cookie)
 cards = []
 while True:
@@ -156,5 +162,12 @@ while True:
                     pass # expected
             if not played:
                 print "!!! No valid cards in hand: " + str(cards)
+        if event.type == EventType.GAME_DONE:
+            game = game + 1
+            if game < 5 and seatnum == 3:
+                client.startGame(tablenum)
+            elif game == 5:
+                sys.exit(1)
+
 
 sys.exit(1)
