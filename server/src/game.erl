@@ -152,18 +152,10 @@ process_hand(Score1, Score2, BaitType,
   {reply, ok, wait_trump, State1}.
 
 process_trick(LastWin, #state{trick=9} = State) ->
-  % TODO: count up score
   % TODO: add 20's and 50's
-  % TODO: bait
   State1 = add_hscore(LastWin, 10, State),
 
   process_hand(State1);
-
-%  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
-%  table:broadcast(State#state.table, Event),
-
-%  NewOrder = create_order(LastWin),
-%  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
 
 process_trick(LastWin, #state{trick=Trick} = State) ->
   Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
