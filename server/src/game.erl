@@ -33,6 +33,7 @@
                 trick,    % Trick number (for runs/done)
                 trump,    % Trump for this hand
                 hscore,   % Score for this hand (for bait, etc) { , }
+                caller,   % 0 or 1 for who called trump
 
                 % Set per trick:
                 order,    % The deal/play order for this hand
@@ -77,17 +78,9 @@ init([Table]) ->
   table:broadcast(Table, DealerEvent),
 
   State = new_hand(Dealer, #state{table=Table, score={0,0}}),
-  State1 = deal3(State),
-  State2 = deal3(State1),
 
-  FirstSeat = hd(State2#state.order),
+  {ok, wait_trump, State}.
 
-  % TODO: add to_wait_trump() to send these events:
-  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
-                         seat=FirstSeat},
-  table:broadcast(Table, AskTrumpEvent),
-
-  {ok, wait_trump, State2}.
 
 % Handle force the dealer:
 wait_trump({call_trump, Seat, ?tarabish_PASS}, _From,
@@ -108,37 +101,68 @@ wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From,
 
 % Non pass:
 wait_trump({call_trump, Seat, Suit}, _From,
-    #state{order=[Seat|_Rest], dealer=Dealer} = State) ->
+    #state{order=[Seat|_Rest]} = State) ->
 
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
   State1 = deal3(State),
+  State2 = new_trick(State1#state.dealer + 1,
+      State1#state{trick=1, trump=Suit, caller=(Seat rem 2)}),
 
-  PlayOrder = create_order(Dealer + 1),
-
-  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(PlayOrder)},
+  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD,
+    seat=hd(State2#state.order)},
   table:broadcast(State#state.table, AskCardEvent),
 
-  {reply, ok, wait_card, new_trick(State1#state{trick=1, trump=Suit})};
+  {reply, ok, wait_card, State2};
 
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
 
+%process_hand(#state{hscore={S1, S2}} = State) when S1 == S2 ->
+  % Half bait
+
+%process_hand(#state{hscore={S1, S2}, caller=0} = State) when S1 < S2 ->
+  % bait
+
+%process_hand(#state{hscore={S1, S2}, caller=1} = State) when S2 < S1 ->
+  % bait
+
+process_hand(#state{hscore=HandScore, score=Score, caller=_Caller,
+    dealer=Dealer, table=Table} = State) ->
+  % normal
+  % TODO: score to 500
+  HandScoreList = tuple_to_list(HandScore),
+  ScoreList = tuple_to_list(Score),
+  NewScoresList = lists:zipwith(fun(X, Y) -> X + Y end, HandScoreList, ScoreList),
+
+  Event = #event{type=?tarabish_EventType_HAND_DONE,
+                 hand_score=HandScoreList,
+                 score=NewScoresList},
+  table:broadcast(Table, Event),
+
+  State1 = new_hand(Dealer + 1, State#state{score=list_to_tuple(NewScoresList)}),
+  {reply, ok, wait_trump, State1}.
+
 process_trick(LastWin, #state{trick=9} = State) ->
-  % TODO: add 10 to last
   % TODO: count up score
+  % TODO: add 20's and 50's
+  % TODO: bait
+  State1 = add_hscore(LastWin, 10, State),
+
+  process_hand(State1);
+
+%  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
+%  table:broadcast(State#state.table, Event),
+
+%  NewOrder = create_order(LastWin),
+%  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
+
+process_trick(LastWin, #state{trick=Trick} = State) ->
   Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
   table:broadcast(State#state.table, Event),
 
-  NewOrder = create_order(LastWin),
-  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}};
-
-process_trick(LastWin, State) ->
-  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
-  table:broadcast(State#state.table, Event),
-
-  NewOrder = create_order(LastWin),
-  {reply, ok, wait_card, State#state{order=NewOrder, inplay=[]}}.
+  {reply, ok, wait_card,
+    new_trick(LastWin, State#state{trick = Trick + 1})}.
 
 % First card of the trick
 process_card(Seat, Card, Rest, #state{ledin=?tarabish_NONE} = State) ->
@@ -152,12 +176,10 @@ process_card(Seat, Card, [], State) ->
   table:broadcast(State#state.table, Event),
 
   {Cards, _Seats} = lists:unzip(InPlay),
-  BestSeatScore = (BestSeat rem 2) + 1,
   CardScore = deck:score_cards(Cards, State#state.trump),
-  OldScore = element(BestSeatScore, State#state.hscore),
-  NewScores = setelement(BestSeatScore, State#state.hscore, CardScore + OldScore),
+  State1 = add_hscore(BestSeat, CardScore, State),
 
-  process_trick(BestSeat, State#state{hscore=NewScores});
+  process_trick(BestSeat, State1);
 
 process_card(Seat, Card, Rest, State) ->
       Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
@@ -257,22 +279,44 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-new_hand(Dealer, State) ->
+new_hand(Dealer, State) when Dealer > 3 ->
+  new_hand(Dealer rem 4, State);
+
+new_hand(Dealer, #state{table=Table} = State) ->
   Deck = deck:shuffle(deck:new()),
 
-  new_trick(State#state{hands={[], [], [], []},
-                        deck=Deck,
-                        dealer=Dealer,
-                        trick=0,
-                        trump=?tarabish_NONE,
-                        hscore={0, 0}}).
+  State1 = State#state{hands={[], [], [], []},
+                 deck=Deck,
+                 dealer=Dealer,
+                 trick=0,
+                 trump=?tarabish_NONE,
+                 hscore={0, 0},
+                 caller=-1},
 
-new_trick(#state{dealer=Dealer} = State) ->
-  DealOrder = create_order(Dealer+1),
+  State2 = deal3(State1),
+  State3 = deal3(State2),
+  State4 = new_trick(State3#state.dealer + 1, State3),
+
+  FirstSeat = hd(State4#state.order),
+
+  % TODO: add to_wait_trump() to send these events:
+  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
+                         seat=FirstSeat},
+  table:broadcast(Table, AskTrumpEvent),
+
+  State4.
+
+new_trick(LastWin, State) ->
+  DealOrder = create_order(LastWin),
   State#state{order=DealOrder,
               ledin=?tarabish_NONE,
               inplay=[]}.
 
+add_hscore(Seat, Score, State) ->
+  ScoreSeat = (Seat rem 2) + 1,
+  OldScore = element(ScoreSeat, State#state.hscore),
+  NewScores = setelement(ScoreSeat, State#state.hscore, OldScore + Score),
+  State#state{hscore=NewScores}.
 
 determine_dealer(Table, Deck) ->
   Dealer = determine_dealer(Table, Deck, [0,1,2,3]),

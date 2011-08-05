@@ -67,6 +67,7 @@ enum EventType {
   PLAY_CARD,	# table, seat, card
 
   TAKE_TRICK,	# table, seat
+  HAND_DONE,	# table, hand_score, score
 
 }
 
@@ -85,6 +86,9 @@ struct Event {
   7: byte	suit,
 
   8: Card	card,
+
+  9: list<i32>  hand_score,
+ 10: list<i32>  score,
 }
 
 service Tarabish

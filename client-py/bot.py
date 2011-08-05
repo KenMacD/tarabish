@@ -120,6 +120,9 @@ def print_event(event, seat):
                 event.seat, str(event.card), event.table),
             EventType.TAKE_TRICK: lambda e: "Trick: %d took trick at %d"%(
                 event.seat, event.table),
+            EventType.HAND_DONE: lambda e: "Hand: Scores %d, %d Total %d %d"%(
+                event.hand_score[0], event.hand_score[1],
+                event.score[0], event.score[1]),
             }
     if event.type in format:
         print format[event.type](event)
