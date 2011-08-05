@@ -120,9 +120,10 @@ def print_event(event, seat):
                 event.seat, str(event.card), event.table),
             EventType.TAKE_TRICK: lambda e: "Trick: %d took trick at %d"%(
                 event.seat, event.table),
-            EventType.HAND_DONE: lambda e: "Hand: Scores %d, %d Total %d %d"%(
+            EventType.HAND_DONE: lambda e: \
+                "Hand: Scores %d, %d Total %d %d, Bait %d"%(
                 event.hand_score[0], event.hand_score[1],
-                event.score[0], event.score[1]),
+                event.score[0], event.score[1], event.bait),
             }
     if event.type in format:
         print format[event.type](event)
@@ -138,10 +139,11 @@ while True:
         if event.type == EventType.DEAL:
             cards += event.dealt
         if event.type == EventType.ASK_TRUMP and event.seat == seatnum:
-            if (seatnum > 0):
-                client.callTrump(tableid, SPADES)
-            else:
+            try:
                 client.callTrump(tableid, PASS)
+            except InvalidOperation, e:
+                # Forced
+                client.callTrump(tableid, SPADES)
         if event.type == EventType.ASK_CARD and event.seat == seatnum:
             played = 0
             for card in cards[:]:

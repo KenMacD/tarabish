@@ -46,6 +46,12 @@ struct TableView {
   3: list<string> observers
 }
 
+enum BaitType {
+  NONE,
+  HALF,
+  FULL,
+}
+
 # Thrift doesn't allow different types, so only some fields populated.
 # TODO: need commands for PART/STAND
 enum EventType {
@@ -67,7 +73,7 @@ enum EventType {
   PLAY_CARD,	# table, seat, card
 
   TAKE_TRICK,	# table, seat
-  HAND_DONE,	# table, hand_score, score
+  HAND_DONE,	# table, hand_score, score, bait
 
 }
 
@@ -89,6 +95,7 @@ struct Event {
 
   9: list<i32>  hand_score,
  10: list<i32>  score,
+ 11: BaitType	bait,
 }
 
 service Tarabish

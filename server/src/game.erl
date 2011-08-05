@@ -118,26 +118,34 @@ wait_trump({call_trump, Seat, Suit}, _From,
 wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
 
-%process_hand(#state{hscore={S1, S2}} = State) when S1 == S2 ->
+process_hand(#state{hscore={S1, S2}, caller=Caller} = State) when S1 == S2 ->
   % Half bait
+  process_hand(S1 * Caller, S2 * ((Caller + 1) rem 2), ?tarabish_BaitType_HALF, State);
 
-%process_hand(#state{hscore={S1, S2}, caller=0} = State) when S1 < S2 ->
+process_hand(#state{hscore={S1, S2}, caller=0} = State) when S1 < S2 ->
   % bait
+  process_hand(0, S1 + S2, ?tarabish_BaitType_FULL, State);
 
-%process_hand(#state{hscore={S1, S2}, caller=1} = State) when S2 < S1 ->
+process_hand(#state{hscore={S1, S2}, caller=1} = State) when S2 < S1 ->
   % bait
+  process_hand(S1 + S2, 0, ?tarabish_BaitType_FULL, State);
 
-process_hand(#state{hscore=HandScore, score=Score, caller=_Caller,
-    dealer=Dealer, table=Table} = State) ->
+process_hand(#state{hscore={S1, S2}} = State) ->
   % normal
+  process_hand(S1, S2, ?tarabish_BaitType_NONE, State).
+
+process_hand(Score1, Score2, BaitType,
+  #state{score=Score, caller=_Caller, dealer=Dealer, table=Table} = State) ->
+
   % TODO: score to 500
-  HandScoreList = tuple_to_list(HandScore),
+  HandScoreList = [Score1, Score2],
   ScoreList = tuple_to_list(Score),
   NewScoresList = lists:zipwith(fun(X, Y) -> X + Y end, HandScoreList, ScoreList),
 
   Event = #event{type=?tarabish_EventType_HAND_DONE,
                  hand_score=HandScoreList,
-                 score=NewScoresList},
+                 score=NewScoresList,
+                 bait=BaitType},
   table:broadcast(Table, Event),
 
   State1 = new_hand(Dealer + 1, State#state{score=list_to_tuple(NewScoresList)}),
