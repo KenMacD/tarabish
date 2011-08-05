@@ -38,6 +38,7 @@
                 % Set per trick:
                 order,    % The deal/play order for this hand
                 inplay,   % Current cards on the table as [(Card, Seat),]
+                htrump,   % Current highest trump in play
                 ledin     % Suit that started the thing
               }).
 
@@ -206,11 +207,11 @@ process_card(Seat, Card, Rest, State) ->
       InPlay = [{Card, Seat}|State#state.inplay],
       {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}.
 
-wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
+wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
+    #state{order=[Seat|Rest], ledin=LedIn, trump=Trump, htrump=HighTrump} = State) ->
   Hand = element(Seat + 1, State#state.hands),
 
-  % TODO: use hightrump here to make sure player beats other trumps.
-  case rules:valid_play(Card, Hand, State#state.ledin, State#state.trump, 0) of
+  case rules:valid_play(Card, Hand, LedIn, trump, HighTrump) of
     true ->
 
       Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
@@ -218,7 +219,13 @@ wait_card({play_card, Seat, Card}, _From, #state{order=[Seat|Rest]} = State) ->
 
       NewHand = lists:delete(Card, Hand),
       NewHands = setelement(Seat + 1, State#state.hands, NewHand),
-      process_card(Seat, Card, Rest, State#state{hands=NewHands});
+      case Suit == Trump of
+          true ->
+            process_card(Seat, Card, Rest, State#state{hands=NewHands,
+                htrump=Value});
+          false ->
+            process_card(Seat, Card, Rest, State#state{hands=NewHands})
+        end;
     false ->
       {reply, {error, invalid}, wait_card, State}
   end;
@@ -328,6 +335,7 @@ new_trick(LastWin, State) ->
   DealOrder = create_order(LastWin),
   State#state{order=DealOrder,
               ledin=?tarabish_NONE,
+              htrump=0,
               inplay=[]}.
 
 add_hscore(Seat, Score, State) ->
