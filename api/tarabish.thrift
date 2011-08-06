@@ -123,6 +123,15 @@ service Tarabish
 	void sit(1: i32 table_id, 2: byte seat)
 		throws (1:InvalidOperation invalid)
 
+	void stand(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
+
+	void partTable(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
+
+	void quit()
+		throws (1:InvalidOperation invalid)
+
 	##### After joining a table #####
 	void chat(1: i32 table, 2: string message)
 		throws (1:InvalidOperation invalid)

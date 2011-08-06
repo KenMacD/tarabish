@@ -4,15 +4,15 @@
 
 -behaviour(gen_server).
 
--export([start/1]).
+-export([start/1, quit/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([send_chat/3, join_table/2, sit/3, start_game/2, call_trump/3,
-    play_card/3]).
+-export([send_chat/3, join_table/2, part_table/2, sit/3, stand/2,
+    start_game/2, call_trump/3, play_card/3]).
 
 % From Msg Socket:
 -export([get_events/2, subscribe/2]).
@@ -26,6 +26,9 @@
 start(Id) ->
   gen_server:start(?MODULE, [Id], []).
 
+quit(Client) ->
+  gen_server:call(Client, {stop}).
+
 % gets a cast when an event is added to empty list.
 subscribe(Client, Pid) ->
   gen_server:cast(Client, {subscribe, Pid}).
@@ -36,8 +39,14 @@ send_chat(Client, TableId, Message) ->
 join_table(Client, TableId) ->
   gen_server:call(Client, {join, TableId}).
 
+part_table(Client, TableId) ->
+  gen_server:call(Client, {part, TableId}).
+
 sit(Client, TableId, Seat) ->
   gen_server:call(Client, {sit, TableId, Seat}).
+
+stand(Client, TableId) ->
+  gen_server:call(Client, {stand, TableId}).
 
 start_game(Client, TableId) ->
   gen_server:call(Client, {start_game, TableId}).
@@ -54,21 +63,34 @@ recv_event(Client, Event) ->
 get_events(Client, 0) ->
   gen_server:call(Client, {get_events});
 
-% TODO: finish
+% Either of these might fail and throw noproc
 get_events(Client, Timeout) ->
   clear_new_event(),
   Events = gen_server:call(Client, {get_events}),
   get_events(Client, Timeout, Events).
 
 get_events(Client, Timeout, []) ->
-  receive new_event ->
-      gen_server:call(Client, {get_events})
+  Ref = erlang:monitor(process, Client),
+  receive
+    new_event ->
+      erlang:demonitor(Ref),
+      clear_possible_down(Ref),
+      gen_server:call(Client, {get_events});
+    {'DOWN',Ref,process,_,_} ->
+      []
   after Timeout ->
       []
   end;
 
 get_events(_Client, _Timeout, Events) ->
   Events.
+
+clear_possible_down(Ref) ->
+  receive {'DOWN',Ref,process,_,_} ->
+      clear_possible_down(Ref)
+  after 0 ->
+      ok
+  end.
 
 clear_new_event() ->
   receive new_event ->
@@ -81,6 +103,9 @@ init([Id]) ->
   {ok, #state{id=Id,
               tables=orddict:new(),
               events=[]}}.
+
+handle_call({stop}, _From, State) ->
+  {stop, normal, ok, State};
 
 handle_call({chat, TableId, Message}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
@@ -115,6 +140,34 @@ handle_call({sit, TableId, Seat}, _From, State) ->
           % If we were already watching the table is should overwrite
           NewTables = orddict:store(TableId, Table, State#state.tables),
           {reply, ok, State#state{tables=NewTables}};
+        {error, Reason} ->
+          {reply, {error, Reason}, State}
+      end;
+    {error, Reason} ->
+      {reply, {error, Reason}, State}
+  end;
+
+handle_call({stand, TableId}, _From, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:stand(Table, State#state.id) of
+        ok ->
+          % Stay at table, but as observer
+          {reply, ok, State};
+        {error, Reason} ->
+          {reply, {error, Reason}, State}
+      end;
+    {error, Reason} ->
+      {reply, {error, Reason}, State}
+  end;
+
+handle_call({part, TableId}, _From, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:part(Table, State#state.id) of
+        ok ->
+          Tables = orddict:erase(TableId, State#state.tables),
+          {reply, ok, State#state{tables=Tables}};
         {error, Reason} ->
           {reply, {error, Reason}, State}
       end;
@@ -172,8 +225,9 @@ handle_info(Info, State) ->
     [?MODULE, Info]),
   {noreply, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, #state{id=Id, tables=Tables} = _State) ->
+  orddict:map(fun(_TableId, Table) -> table:part(Table, Id) end, Tables),
+  ok.
 
 code_change(_OldVsn, State, _Extra) ->
   {ok, State}.

@@ -34,7 +34,13 @@ get_events(undefined, _Timeout) ->
   throw(#invalidOperation{why="Need Login"});
 
 get_events(Client, Timeout) ->
-  client:get_events(Client, Timeout).
+  case (catch client:get_events(Client, Timeout)) of
+    {'EXIT',{noproc,_Stackdump}} ->
+      erase(client),
+      throw(#invalidOperation{why="Client Gone"});
+    Other ->
+      Other
+  end.
 
 start() ->
   start(42746).

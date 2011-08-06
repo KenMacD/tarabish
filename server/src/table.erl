@@ -11,7 +11,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3, sit/4, start_game/2, call_trump/3, play_card/3]).
+-export([chat/3, join/3, part/2, sit/4, stand/2,
+    start_game/2, call_trump/3, play_card/3]).
 
 %% From game
 -export([broadcast/2, deal3/3]).
@@ -32,8 +33,14 @@ chat(Table, From, Message) ->
 join(Table, ClientName, Client) ->
   gen_server:call(Table, {join, ClientName, Client}).
 
+part(Table, ClientName) ->
+  gen_server:call(Table, {part, ClientName}).
+
 sit(Table, ClientName, Client, Seat) ->
   gen_server:call(Table, {sit, ClientName, Client, Seat}).
+
+stand(Table, ClientName) ->
+  gen_server:call(Table, {stand, ClientName}).
 
 start_game(Table, ClientName) ->
   gen_server:call(Table, {start_game, ClientName}).
@@ -76,6 +83,28 @@ handle_call({join, ClientName, Client}, _From, State) ->
       {reply, ok, NewState}
   end;
 
+handle_call({part, ClientName}, _From, State) ->
+  Event = #event{type=?tarabish_EventType_PART,
+                 name=ClientName},
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none} = _Person} ->
+      send_event_all(Event, State),
+      NewMembers = orddict:erase(ClientName, State#state.members),
+      NewObservers = lists:delete(ClientName, State#state.observers),
+      NewState = State#state{members=NewMembers, observers=NewObservers},
+      update_server(NewState),
+      {reply, ok, NewState};
+    {ok, #person{seat=SeatNum} = _Person} ->
+      send_event_all(Event, State),
+      NewMembers = orddict:erase(ClientName, State#state.members),
+      NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
+      NewState = State#state{members=NewMembers, seats=NewSeats},
+      update_server(NewState),
+      {reply, ok, NewState};
+    error ->
+      {reply, {error, no_at_table}, State}
+  end;
+
 handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
   Seat = get_seat(State, SeatNum),
   if Seat == empty ->
@@ -106,6 +135,27 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
     end;
   true ->
     {reply, {error, seat_taken}, State}
+  end;
+
+handle_call({stand, ClientName}, _From, State) ->
+  Event = #event{type=?tarabish_EventType_STAND,
+                 name=ClientName},
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none} = _Person} ->
+      {reply, {error, not_seated}, State};
+    {ok, #person{seat=SeatNum} = Person} ->
+      send_event_all(Event, State),
+      NewPerson = Person#person{seat=none},
+      NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
+      NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+      NewObservers = [ClientName|State#state.observers],
+
+      NewState = State#state{members=NewMembers, seats=NewSeats,
+        observers=NewObservers},
+      update_server(NewState),
+      {reply, ok, NewState};
+    error ->
+      {reply, {error, not_at_table}, State}
   end;
 
 handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->

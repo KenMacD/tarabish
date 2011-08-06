@@ -31,6 +31,12 @@ test1(_Config) ->
   ok = client:join_table(Carol, TableId),
   ok = client:join_table(Dave,  TableId),
 
+  % A few part and rejoin
+  ok = client:part_table(Alice, TableId),
+  ok = client:part_table(Bob, TableId),
+  ok = client:join_table(Alice, TableId),
+  ok = client:join_table(Bob, TableId),
+
   % Can't start, not sitting:
   {error, _} = client:start_game(Alice, TableId),
 
@@ -40,6 +46,12 @@ test1(_Config) ->
   ok = client:sit(Bob,   TableId, 1),
   ok = client:sit(Carol, TableId, 2),
   ok = client:sit(Dave,  TableId, 3),
+
+  % Alice and Bob change seats:
+  ok = client:stand(Alice, TableId),
+  ok = client:part_table(Bob, TableId),
+  ok = client:sit(Alice, TableId, 1),
+  ok = client:sit(Bob, TableId, 0), %join and sit
 
   % Can now start the game:
   ok = client:start_game(Alice, TableId),
