@@ -11,7 +11,7 @@
 
 %% --------------------------------------------------------------------
 %% External exports
--export([start/1, determine_dealer/2]).
+-export([start/1, determine_dealer/2, stop/1]).
 
 %% gen_fsm callbacks
 -export([init/1, state_name/2, state_name/3, handle_event/3,
@@ -47,6 +47,9 @@
 %% ====================================================================
 start(TablePid) ->
   gen_fsm:start(?MODULE, [TablePid], []).
+
+stop(GamePid) ->
+  gen_fsm:send_all_state_event(GamePid, stop).
 
 call_trump(Game, Seat, Suit) ->
   gen_fsm:sync_send_event(Game, {call_trump, Seat, Suit}).
@@ -260,6 +263,9 @@ state_name(_Event, _From, State) ->
 %%          {next_state, NextStateName, NextStateData, Timeout} |
 %%          {stop, Reason, NewStateData}
 %% --------------------------------------------------------------------
+handle_event(stop, _StateName, StateData) ->
+      {stop, normal, StateData};
+
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 

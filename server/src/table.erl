@@ -96,9 +96,10 @@ handle_call({part, ClientName}, _From, State) ->
       {reply, ok, NewState};
     {ok, #person{seat=SeatNum} = _Person} ->
       send_event_all(Event, State),
+      cancel_game(State),
       NewMembers = orddict:erase(ClientName, State#state.members),
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
-      NewState = State#state{members=NewMembers, seats=NewSeats},
+      NewState = State#state{members=NewMembers, seats=NewSeats, game=none},
       update_server(NewState),
       {reply, ok, NewState};
     error ->
@@ -145,13 +146,14 @@ handle_call({stand, ClientName}, _From, State) ->
       {reply, {error, not_seated}, State};
     {ok, #person{seat=SeatNum} = Person} ->
       send_event_all(Event, State),
+      cancel_game(State),
       NewPerson = Person#person{seat=none},
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
       NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
       NewObservers = [ClientName|State#state.observers],
 
       NewState = State#state{members=NewMembers, seats=NewSeats,
-        observers=NewObservers},
+        observers=NewObservers, game=none},
       update_server(NewState),
       {reply, ok, NewState};
     error ->
@@ -238,6 +240,14 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % private:
+cancel_game(#state{game=none}) ->
+  ok;
+
+cancel_game(#state{game=Game} = State) ->
+  Event = #event{type=?tarabish_EventType_GAME_CANCEL},
+  game:stop(Game),
+  send_event_all(Event, State).
+
 send_event_all(Event, State) ->
   send_event(State#state.id, Event, State#state.members).
 

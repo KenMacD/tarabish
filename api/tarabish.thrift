@@ -53,7 +53,6 @@ enum BaitType {
 }
 
 # Thrift doesn't allow different types, so only some fields populated.
-# TODO: need commands for PART/STAND
 enum EventType {
   JOIN,		# table, name
   PART,		# table, name
@@ -76,6 +75,7 @@ enum EventType {
   HAND_DONE,	# table, hand_score, score, bait
 
   GAME_DONE,	# table, score, seat(0,1)=winner
+  GAME_CANCEL,  # table
 
 }
 
