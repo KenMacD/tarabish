@@ -61,6 +61,7 @@ deal3(Table, Dealer, Cards) ->
 % gen_server:
 
 init([Id]) ->
+  process_flag(trap_exit, true),
   Seats = {empty, empty, empty, empty},
   State = #state{id=Id, seats=Seats, observers=[], members=orddict:new(),
                  game=none},
@@ -171,7 +172,7 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
     {ok, _Person} ->
       Event = #event{type=?tarabish_EventType_NEW_GAME},
       send_event_all(Event, State),
-      {ok, Game} = game:start(self()),
+      {ok, Game} = game:start_link(self()),
       {reply, ok, State#state{game=Game}};
     error ->
       {reply, {error, not_at_table}, State}
@@ -231,6 +232,14 @@ handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
     [?MODULE, Msg]),
   {stop, "Bad Cast", State}.
+
+% Game sends a done message on normal exits
+handle_info({'EXIT', Game, normal}, #state{game=Game} = State) ->
+  {noreply, State#state{game=none}};
+
+handle_info({'EXIT', Game, Reason}, #state{game=Game} = State) ->
+  cancel_game(Game),
+  {noreply, State#state{game=none}};
 
 handle_info(Info, State) ->
   io:format("~w recieved unknown info ~p~n",
