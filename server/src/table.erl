@@ -106,7 +106,8 @@ handle_call({part, ClientName}, _From, State) ->
       {reply, {error, no_at_table}, State}
   end;
 
-handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
+handle_call({sit, ClientName, Client, SeatNum}, _From, State)
+  when SeatNum >= 0, SeatNum < 4 ->
   Seat = get_seat(State, SeatNum),
   if Seat == empty ->
     ClientRec = #client{name=ClientName, pid=Client},
@@ -137,6 +138,9 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State) ->
   true ->
     {reply, {error, seat_taken}, State}
   end;
+
+handle_call({sit, _ClientName, _Client, _SeatNum}, _From, State) ->
+    {reply, {error, invalid_seat}, State};
 
 handle_call({stand, ClientName}, _From, State) ->
   Event = #event{type=?tarabish_EventType_STAND,
