@@ -21,14 +21,13 @@ create_account(Name, Email, Password) ->
 login(Name, Password) ->
   login(Name, Password, get(client)).
 
-login(Name, Password, undefined) ->
-  case account:validate(Name, Password) of
-    {ok, Id} ->
-      {ok, Client, Cookie} = tarabish_server:get_client(Id),
+login(Name, _Password, undefined) ->
+  case tarabish_server:get_client_if_new(Name) of
+    {ok, Client, Cookie} ->
       put(client, Client),
       Cookie;
-    {error, Reason} -> throw(#invalidOperation{why=atom_to_list(Reason)});
-    _ -> throw(#invalidOperation{why="Unknown"})
+    error ->
+      throw(#invalidOperation{why="Client exists, use cookie"})
   end;
 
 login(_Name, _Password, _) ->
