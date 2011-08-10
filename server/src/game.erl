@@ -398,6 +398,9 @@ deal3(State) ->
 create_order(First) when First > 3 ->
   create_order(First rem 4);
 
+create_order(0) ->
+  lists:seq(0, 3);
+
 create_order(First) ->
   lists:seq(First, 3) ++ lists:seq(0, First - 1).
 
@@ -476,7 +479,7 @@ best_hand_test_() ->
   Hands3 = [{#card{value=8,  suit=?tarabish_SPADES},   3},
             {#card{value=8,  suit=?tarabish_DIAMONDS}, 0},
             {#card{value=9,  suit=?tarabish_DIAMONDS}, 1},
-            {?J#card{suit=?tarabish_DIAMONDS}, 2}],
+            {#card{value=?tarabish_JACK, suit=?tarabish_DIAMONDS}, 2}],
 
   [
     ?_assertEqual(0, best_hand(Hands1, ?tarabish_SPADES)),
