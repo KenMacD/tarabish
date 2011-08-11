@@ -163,6 +163,13 @@ class LoginFrame(QFrame):
         except Exception as exc: # TODO: better exception
             self.logger.append("<b>Failed: %s</b>"%(str(exc)))
 
+class TableSeatCell(QTableWidgetItem):
+    def __init__(self, string, tableId, seat):
+        super(TableSeatCell, self).__init__(string)
+
+        self.tableId = tableId
+        self.seat = seat
+
 class TablesTable(QTableWidget):
     def __init__(self, server, logger, refreshButton, parent=None):
         super(TablesTable, self).__init__(parent)
@@ -206,9 +213,11 @@ class TablesTable(QTableWidget):
             self.setItem(row, 0, item)
 
             for col, seat in enumerate(table.seats):
-                item = QTableWidgetItem(seat.name)
                 if not seat.isOpen:
                     item.setFlags(QtCore.Qt.NoItemFlags)
+                    item = QTableWidgetItem(seat.name)
+                else:
+                    item = TableSeatCell("", table.tableId, col)
                 self.setItem(row, col + 1, item)
 
 #        self.tables.resizeColumnsToContents()
@@ -222,14 +231,14 @@ class MainForm(QDialog):
     def __init__(self, server, parent=None):
         super(MainForm, self).__init__(parent)
 
-        self.log = QTextBrowser()
-        self.login = LoginFrame(server, self.log)
+        self.logger = QTextBrowser()
+        self.login = LoginFrame(server, self.logger)
 
         line = QFrame()
         line.setFrameStyle(QFrame.HLine|QFrame.Sunken)
 
         tableRefreshButton = QPushButton("Refresh")
-        tables = TablesTable(server, self.log, tableRefreshButton)
+        tables = TablesTable(server, self.logger, tableRefreshButton)
 
         tableLabel = QLabel("Tables:")
         tableLabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -249,7 +258,7 @@ class MainForm(QDialog):
         bottomLayout.addLayout(tablesLayout, 0, 0)
         bottomLayout.addWidget(tables, 0, 1)
         bottomLayout.addWidget(logLabel, 1, 0)
-        bottomLayout.addWidget(self.log, 1, 1)
+        bottomLayout.addWidget(self.logger, 1, 1)
 
         layout = QVBoxLayout()
         layout.addWidget(self.login)
@@ -259,6 +268,13 @@ class MainForm(QDialog):
 
         self.setWindowTitle("Tarabish Test Client")
 
+        self.connect(tables,
+                SIGNAL("itemDoubleClicked(QTableWidgetItem*)"),
+                self.handleSit)
+
+    def handleSit(self, tableSeatCell):
+        self.logger.append("Join %d -- %d"%(tableSeatCell.tableId,
+            tableSeatCell.seat))
 
 # TODO: handle SIGINT, ctrl+c then closing the window doesn't disconnect
 app = QApplication(sys.argv)
