@@ -4,7 +4,7 @@
 
 -behaviour(gen_server).
 
--export([start/1, quit/1]).
+-export([start/1, start_link/1, quit/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -25,6 +25,9 @@
 % Public:
 start(Id) ->
   gen_server:start(?MODULE, [Id], []).
+
+start_link(Id) ->
+  gen_server:start_link(?MODULE, [Id], []).
 
 quit(Client) ->
   gen_server:call(Client, {stop}).

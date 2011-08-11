@@ -49,6 +49,7 @@ update_table_image(TableId, #tableView{} = TableView) ->
 
 % gen_server:
 init([]) ->
+  process_flag(trap_exit, true),
   {ok, #state{id=orddict:new(),
               cookie=orddict:new(),
               tables=orddict:new(),
@@ -61,7 +62,7 @@ handle_call({get_new_client, Id}, _From, State) ->
     {ok, {_Client, _Cookie}} ->
       {reply, error, State};
     error ->
-      {ok, Client} = client:start(Id),
+      {ok, Client} = client:start_link(Id),
       Cookie = new_cookie(),
       NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
@@ -74,7 +75,7 @@ handle_call({get_client, Id}, _From, State) ->
     {ok, {Client, Cookie}} ->
       {reply, {ok, Client, Cookie}, State};
     error ->
-      {ok, Client} = client:start(Id),
+      {ok, Client} = client:start_link(Id),
       Cookie = new_cookie(),
       NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
@@ -122,6 +123,25 @@ handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
     [?MODULE, Msg]),
   {stop, "Bad Cast", State}.
+
+match_client(Client, Client) ->
+  true;
+
+match_client(Client, {Client, _Cookie}) ->
+  true;
+
+match_client(_Client, _Anything) ->
+  false.
+
+not_client(Client) -> fun(_K, V) -> not match_client(Client, V) end.
+
+% TODO: on non-normal exit let all tables know?
+handle_info({'EXIT', Client, _Reason}, State) ->
+  io:format("Client gone. Before ~w~n", [State#state.id]),
+  NewId = orddict:filter(not_client(Client), State#state.id),
+  io:format("Client gone. After ~w~n", [NewId]),
+  NewCookie = orddict:filter(not_client(Client), State#state.cookie),
+  {noreply, State#state{id=NewId, cookie=NewCookie}};
 
 handle_info(Info, State) ->
   io:format("~w recieved unknown info ~p~n",
