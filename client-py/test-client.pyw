@@ -45,6 +45,8 @@ class ServerEvents(QThread):
                 if not events:
                     continue
                 self.emit(SIGNAL("events(PyQt_PyObject)"), events)
+        except InvalidOperation:
+            pass # Client down.
         except Exception as exc:
             print "Exception from eclient: " + str(exc)
         finally:
@@ -161,24 +163,22 @@ class LoginFrame(QFrame):
         except Exception as exc: # TODO: better exception
             self.logger.append("<b>Failed: %s</b>"%(str(exc)))
 
-class TableListFrame(QFrame):
-    def __init__(self, server, logger, parent=None):
-        super(TableListFrame, self).__init__(parent)
+class TablesTable(QTableWidget):
+    def __init__(self, server, logger, refreshButton, parent=None):
+        super(TablesTable, self).__init__(parent)
 
         self.server = server
         self.logger = logger
         self.timer = QTimer()
 
-        self.tables = QTableWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(self.tables)
-        self.setLayout(layout)
-
+#        self.connect(self.server, SIGNAL("connected()"),
+#                self.startUpdating)
+#        self.connect(self.server, SIGNAL("disconnected()"),
+#                self.stopUpdating)
         self.connect(self.server, SIGNAL("connected()"),
-                self.startUpdating)
-        self.connect(self.server, SIGNAL("disconnected()"),
-                self.stopUpdating)
+                self.updating)
         self.connect(self.timer, SIGNAL("timeout()"), self.updating)
+        self.connect(refreshButton, SIGNAL("clicked()"), self.updating)
 
     def startUpdating(self):
         self.logger.append("Start Updating")
@@ -186,26 +186,31 @@ class TableListFrame(QFrame):
         self.updating()
 
     def updating(self):
+        self.logger.append("Updating Tables")
         tableList = self.server.getTables()
 
-        self.tables.clear()
-        self.tables.setRowCount(len(tableList))
-        self.tables.setColumnCount(5)
-        self.tables.setHorizontalHeaderLabels(
+        self.clear()
+        self.setRowCount(len(tableList))
+        self.setColumnCount(5)
+        self.setHorizontalHeaderLabels(
                 ["Table", "Seat 1", "Seat 2", "Seat 3", "Seat 4"])
-        self.tables.setAlternatingRowColors(True)
-        self.tables.verticalHeader().hide()
+        self.verticalHeader().hide()
+        self.setAlternatingRowColors(True)
+        self.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.setSelectionMode(QTableWidget.SingleSelection)
+        self.setSelectionBehavior(QTableWidget.SelectItems)
 
         for row, table in enumerate(tableList):
             item = QTableWidgetItem(str(table.tableId))
-            item.setFlags(QtCore.Qt.NoItemFlags)
             item.setTextAlignment(QtCore.Qt.AlignCenter)
-            self.tables.setItem(row, 0, item)
+            self.setItem(row, 0, item)
 
             for col, seat in enumerate(table.seats):
                 item = QTableWidgetItem(seat.name)
-                item.setFlags(QtCore.Qt.NoItemFlags)
-                self.tables.setItem(row, col + 1, item)
+                if not seat.isOpen:
+                    item.setFlags(QtCore.Qt.NoItemFlags)
+                self.setItem(row, col + 1, item)
+
 #        self.tables.resizeColumnsToContents()
 
     def stopUpdating(self):
@@ -218,20 +223,38 @@ class MainForm(QDialog):
         super(MainForm, self).__init__(parent)
 
         self.log = QTextBrowser()
-        self.log.append("Event Log")
-
         self.login = LoginFrame(server, self.log)
 
         line = QFrame()
         line.setFrameStyle(QFrame.HLine|QFrame.Sunken)
 
-        tables = TableListFrame(server, self.log)
+        tableRefreshButton = QPushButton("Refresh")
+        tables = TablesTable(server, self.log, tableRefreshButton)
+
+        tableLabel = QLabel("Tables:")
+        tableLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        tablesLayout = QVBoxLayout()
+        tablesLayout.setContentsMargins(0, 0, 0, 0);
+        tablesLayout.addStretch()
+        tablesLayout.addWidget(tableLabel)
+        tablesLayout.addWidget(tableRefreshButton)
+        tablesLayout.addStretch()
+
+        logLabel = QLabel("Log:")
+        logLabel.setAlignment(QtCore.Qt.AlignCenter)
+
+        bottomLayout = QGridLayout()
+        bottomLayout.setContentsMargins(0, 0, 0, 0);
+        bottomLayout.addLayout(tablesLayout, 0, 0)
+        bottomLayout.addWidget(tables, 0, 1)
+        bottomLayout.addWidget(logLabel, 1, 0)
+        bottomLayout.addWidget(self.log, 1, 1)
 
         layout = QVBoxLayout()
         layout.addWidget(self.login)
         layout.addWidget(line)
-        layout.addWidget(tables)
-        layout.addWidget(self.log)
+        layout.addLayout(bottomLayout)
         self.setLayout(layout)
 
         self.setWindowTitle("Tarabish Test Client")
@@ -243,7 +266,7 @@ app = QApplication(sys.argv)
 serverEvents = ServerEvents()
 server = ServerConnection(app, serverEvents)
 main = MainForm(server)
-main.resize(400, 600)
+main.resize(600, 600)
 main.show()
 main.raise_()
 app.exec_()
