@@ -9,6 +9,7 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
+from PyQt4 import QtCore
 from PyQt4.QtCore import (Qt, QObject, QThread, QTimer, SIGNAL)
 # from PyQt4.QtGui import (QApplication, QFrame, QLabel, QDialog, QLineEdit, QTextBrowser,
 #                QVBoxLayout, QHBoxLayout, QGridLayout)
@@ -162,6 +163,11 @@ class TableListFrame(QFrame):
         self.logger = logger
         self.timer = QTimer()
 
+        self.tables = QTableWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(self.tables)
+        self.setLayout(layout)
+
         self.connect(self.server, SIGNAL("connected()"),
                 self.startUpdating)
         self.connect(self.server, SIGNAL("disconnected()"),
@@ -171,12 +177,30 @@ class TableListFrame(QFrame):
     def startUpdating(self):
         self.logger.append("Start Updating")
         self.timer.start(5000)
+        self.updating()
 
     def updating(self):
-        # TODO: Update a table or table-like widget
-        self.logger.append("Updating:")
         tableList = self.server.getTables()
-        self.logger.append("Tables: " + str(tableList))
+
+        self.tables.clear()
+        self.tables.setRowCount(len(tableList))
+        self.tables.setColumnCount(5)
+        self.tables.setHorizontalHeaderLabels(
+                ["Table", "Seat 1", "Seat 2", "Seat 3", "Seat 4"])
+        self.tables.setAlternatingRowColors(True)
+        self.tables.verticalHeader().hide()
+
+        for row, table in enumerate(tableList):
+            item = QTableWidgetItem(str(table.tableId))
+            item.setFlags(QtCore.Qt.NoItemFlags)
+            item.setTextAlignment(QtCore.Qt.AlignCenter)
+            self.tables.setItem(row, 0, item)
+
+            for col, seat in enumerate(table.seats):
+                item = QTableWidgetItem(seat.name)
+                item.setFlags(QtCore.Qt.NoItemFlags)
+                self.tables.setItem(row, col + 1, item)
+#        self.tables.resizeColumnsToContents()
 
     def stopUpdating(self):
         self.logger.append("Stop Updating")
