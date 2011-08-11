@@ -9,7 +9,7 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-from PyQt4.QtCore import (Qt, QObject, QThread, SIGNAL)
+from PyQt4.QtCore import (Qt, QObject, QThread, QTimer, SIGNAL)
 # from PyQt4.QtGui import (QApplication, QFrame, QLabel, QDialog, QLineEdit, QTextBrowser,
 #                QVBoxLayout, QHBoxLayout, QGridLayout)
 from PyQt4.QtGui import *
@@ -96,6 +96,10 @@ class ServerConnection(QObject):
             if notify:
                 self.emit(SIGNAL("disconnected()"))
 
+    def getTables(self):
+        if not self.connected:
+            return []
+        return self.client.getTables()
 
 class LoginFrame(QFrame):
     def __init__(self, server, logger, parent=None):
@@ -150,6 +154,34 @@ class LoginFrame(QFrame):
         except Exception as exc: # TODO: better exception
             self.logger.append("<b>Failed: %s</b>"%(str(exc)))
 
+class TableListFrame(QFrame):
+    def __init__(self, server, logger, parent=None):
+        super(TableListFrame, self).__init__(parent)
+
+        self.server = server
+        self.logger = logger
+        self.timer = QTimer()
+
+        self.connect(self.server, SIGNAL("connected()"),
+                self.startUpdating)
+        self.connect(self.server, SIGNAL("disconnected()"),
+                self.stopUpdating)
+        self.connect(self.timer, SIGNAL("timeout()"), self.updating)
+
+    def startUpdating(self):
+        self.logger.append("Start Updating")
+        self.timer.start(5000)
+
+    def updating(self):
+        # TODO: Update a table or table-like widget
+        self.logger.append("Updating:")
+        tableList = self.server.getTables()
+        self.logger.append("Tables: " + str(tableList))
+
+    def stopUpdating(self):
+        self.logger.append("Stop Updating")
+        self.timer.stop()
+
 class MainForm(QDialog):
 
     def __init__(self, server, parent=None):
@@ -158,14 +190,17 @@ class MainForm(QDialog):
         self.log = QTextBrowser()
         self.log.append("Event Log")
 
+        self.login = LoginFrame(server, self.log)
+
         line = QFrame()
         line.setFrameStyle(QFrame.HLine|QFrame.Sunken)
 
-        self.login = LoginFrame(server, self.log)
+        tables = TableListFrame(server, self.log)
 
         layout = QVBoxLayout()
         layout.addWidget(self.login)
         layout.addWidget(line)
+        layout.addWidget(tables)
         layout.addWidget(self.log)
         self.setLayout(layout)
 
