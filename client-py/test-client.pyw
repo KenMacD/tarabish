@@ -226,11 +226,23 @@ class TablesTable(QTableWidget):
         self.logger.append("Stop Updating")
         self.timer.stop()
 
+class Table(QDialog):
+    def __init__(self, tableId, parent=None):
+        super(Table, self).__init__(parent)
+
+        self.setWindowTitle("Tarabish Table %d"%(tableId))
+        self.resize(800, 600)
+
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("TESTING"))
+        self.setLayout(layout)
+
 class MainForm(QDialog):
 
     def __init__(self, server, parent=None):
         super(MainForm, self).__init__(parent)
 
+        self.tables = []
         self.logger = QTextBrowser()
         self.login = LoginFrame(server, self.logger)
 
@@ -275,6 +287,9 @@ class MainForm(QDialog):
     def handleSit(self, tableSeatCell):
         self.logger.append("Join %d -- %d"%(tableSeatCell.tableId,
             tableSeatCell.seat))
+        table = Table(tableSeatCell.tableId, self)
+        self.tables.append(table)
+        table.show()
 
 # TODO: handle SIGINT, ctrl+c then closing the window doesn't disconnect
 app = QApplication(sys.argv)
