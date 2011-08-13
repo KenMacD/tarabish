@@ -110,10 +110,15 @@ class ServerConnection(QObject):
             if notify:
                 self.disconnected.emit()
 
-    def getTables(self):
-        if not self.is_connected:
-            return []
-        return self.client.getTables()
+    # Handle calls to client.Method()
+    def __getattr__(self, attr):
+        def not_connected():
+            raise InvalidOperation("Not Connected")
+
+        if self.is_connected:
+            return getattr(self.client, attr)
+        else:
+            return lambda *args, **kwargs: not_connected()
 
 class LoginFrame(QFrame):
     def __init__(self, server, logger, parent=None):
@@ -190,7 +195,11 @@ class TablesTable(QTableWidget):
 
     def updating(self):
         self.logger.append("Updating Tables")
-        tableList = self.server.getTables()
+        try:
+            tableList = self.server.getTables()
+        except InvalidOperation as exc:
+            self.logger.append("<b>Failed: %s</b>"%(str(exc)))
+            return
 
         self.clear()
         self.setRowCount(len(tableList))
