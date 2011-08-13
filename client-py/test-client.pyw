@@ -10,7 +10,7 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
 from PyQt4 import QtCore
-from PyQt4.QtCore import (Qt, QObject, QThread, QTimer, SIGNAL)
+from PyQt4.QtCore import (Qt, QObject, QThread, QTimer, SIGNAL, pyqtSignal)
 # from PyQt4.QtGui import (QApplication, QFrame, QLabel, QDialog, QLineEdit, QTextBrowser,
 #                QVBoxLayout, QHBoxLayout, QGridLayout)
 from PyQt4.QtGui import *
@@ -18,6 +18,9 @@ from PyQt4.QtGui import *
 CLIENT_PROTO_VERSION = 1
 
 class ServerEvents(QThread):
+    event = pyqtSignal('PyQt_PyObject')
+    finished = pyqtSignal()
+
     def __init__(self, parent=None):
         super(ServerEvents, self).__init__(parent)
         self.stopped = False
@@ -42,9 +45,8 @@ class ServerEvents(QThread):
             self.eclient.login(self.cookie)
             while not self.stopped:
                 events = self.eclient.getEventsTimeout(1000)
-                if not events:
-                    continue
-                self.emit(SIGNAL("events(PyQt_PyObject)"), events)
+                for event in events:
+                    self.event.emit(event)
         except InvalidOperation:
             pass # Client down.
         except Exception as exc:
@@ -53,13 +55,16 @@ class ServerEvents(QThread):
             self.transport.close()
             del self.eclient
 
-        self.emit(SIGNAL("finished()"))
+        self.finished.emit()
 
 class ServerConnection(QObject):
+    connected = pyqtSignal()
+    disconnected = pyqtSignal()
+
     def __init__(self, app, serverEvents, parent=None):
         super(ServerConnection, self).__init__(parent)
 
-        self.connected = False
+        self.is_connected = False
         self.hasEvents = False
         self.serverEvents = serverEvents
 
@@ -71,7 +76,7 @@ class ServerConnection(QObject):
 
         try:
             self.transport = TTransport.TBufferedTransport(TSocket.TSocket(host, 42745))
-            self.connected = True
+            self.is_connected = True
             protocol = TBinaryProtocol.TBinaryProtocol(self.transport)
             self.client  = Tarabish.Client(protocol)
             self.transport.open()
@@ -85,7 +90,7 @@ class ServerConnection(QObject):
             self.serverEvents.start()
             self.hasEvents = True
 
-            self.emit(SIGNAL("connected()"))
+            self.connected.emit()
 
         except:
             # Close possibly half-open connections
@@ -93,20 +98,20 @@ class ServerConnection(QObject):
             raise
 
     def disconnect(self, notify=True):
-        if self.connected:
+        if self.is_connected:
             try:
                 self.client.quit()
             except InvalidOperation:
                 pass
             self.serverEvents.stop()
             self.transport.close()
-            self.connected = False
+            self.is_connected = False
 
             if notify:
-                self.emit(SIGNAL("disconnected()"))
+                self.disconnected.emit()
 
     def getTables(self):
-        if not self.connected:
+        if not self.is_connected:
             return []
         return self.client.getTables()
 
@@ -133,14 +138,10 @@ class LoginFrame(QFrame):
 
         self.setLayout(layout)
 
-        self.connect(self.connectButton, SIGNAL("clicked()"),
-                self.pressConnectButton)
+        self.connectButton.clicked.connect(self.pressConnectButton)
 
-        self.connect(self.server, SIGNAL("connected()"),
-                self.handleConnected)
-
-        self.connect(self.server, SIGNAL("disconnected()"),
-                self.handleDisconnected)
+        self.server.connected.connect(self.handleConnected)
+        self.server.disconnected.connect(self.handleDisconnected)
 
     def handleConnected(self):
         self.logger.append("<b>Connected</b>")
@@ -178,14 +179,9 @@ class TablesTable(QTableWidget):
         self.logger = logger
         self.timer = QTimer()
 
-#        self.connect(self.server, SIGNAL("connected()"),
-#                self.startUpdating)
-#        self.connect(self.server, SIGNAL("disconnected()"),
-#                self.stopUpdating)
-        self.connect(self.server, SIGNAL("connected()"),
-                self.updating)
-        self.connect(self.timer, SIGNAL("timeout()"), self.updating)
-        self.connect(refreshButton, SIGNAL("clicked()"), self.updating)
+        self.server.connected.connect(self.updating)
+        self.timer.timeout.connect(self.updating)
+        refreshButton.clicked.connect(self.updating)
 
     def startUpdating(self):
         self.logger.append("Start Updating")
@@ -250,7 +246,7 @@ class MainForm(QDialog):
         line.setFrameStyle(QFrame.HLine|QFrame.Sunken)
 
         tableRefreshButton = QPushButton("Refresh")
-        tables = TablesTable(server, self.logger, tableRefreshButton)
+        tablesTable = TablesTable(server, self.logger, tableRefreshButton)
 
         tableLabel = QLabel("Tables:")
         tableLabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -268,7 +264,7 @@ class MainForm(QDialog):
         bottomLayout = QGridLayout()
         bottomLayout.setContentsMargins(0, 0, 0, 0);
         bottomLayout.addLayout(tablesLayout, 0, 0)
-        bottomLayout.addWidget(tables, 0, 1)
+        bottomLayout.addWidget(tablesTable, 0, 1)
         bottomLayout.addWidget(logLabel, 1, 0)
         bottomLayout.addWidget(self.logger, 1, 1)
 
@@ -280,9 +276,7 @@ class MainForm(QDialog):
 
         self.setWindowTitle("Tarabish Test Client")
 
-        self.connect(tables,
-                SIGNAL("itemDoubleClicked(QTableWidgetItem*)"),
-                self.handleSit)
+        tablesTable.itemDoubleClicked.connect(self.handleSit)
 
     def handleSit(self, tableSeatCell):
         self.logger.append("Join %d -- %d"%(tableSeatCell.tableId,
