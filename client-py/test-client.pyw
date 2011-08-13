@@ -18,7 +18,7 @@ from PyQt4.QtGui import *
 CLIENT_PROTO_VERSION = 1
 
 class ServerEvents(QThread):
-    event = pyqtSignal('PyQt_PyObject')
+    event = pyqtSignal(Event)
     finished = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -67,6 +67,7 @@ class ServerConnection(QObject):
         self.is_connected = False
         self.hasEvents = False
         self.serverEvents = serverEvents
+        self.event = serverEvents.event
 
         app.aboutToQuit.connect(lambda: self.disconnect(False))
 
@@ -232,21 +233,30 @@ class TablesTable(QTableWidget):
         self.timer.stop()
 
 class Table(QDialog):
-    def __init__(self, tableId, parent=None):
+    def __init__(self, tableId, eventSignal, parent=None):
         super(Table, self).__init__(parent)
 
         self.setWindowTitle("Tarabish Table %d"%(tableId))
         self.resize(800, 600)
+        self.logger = QTextBrowser()
 
         layout = QVBoxLayout()
         layout.addWidget(QLabel("TESTING"))
+        layout.addWidget(self.logger)
         self.setLayout(layout)
+
+        eventSignal.connect(self.handleEvent)
+
+    def handleEvent(self, event):
+        self.logger.append("Received Event: " + str(event))
+
 
 class MainForm(QDialog):
 
     def __init__(self, server, parent=None):
         super(MainForm, self).__init__(parent)
 
+        self.server = server
         self.tables = []
         self.logger = QTextBrowser()
         self.login = LoginFrame(server, self.logger)
@@ -288,11 +298,17 @@ class MainForm(QDialog):
         tablesTable.itemDoubleClicked.connect(self.handleSit)
 
     def handleSit(self, tableSeatCell):
-        self.logger.append("Join %d -- %d"%(tableSeatCell.tableId,
+        self.logger.append("Joining table %d, seat %d"%(tableSeatCell.tableId,
             tableSeatCell.seat))
-        table = Table(tableSeatCell.tableId, self)
-        self.tables.append(table)
-        table.show()
+
+        try:
+            self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
+            table = Table(tableSeatCell.tableId, self.server.event, self)
+            self.tables.append(table)
+            table.show()
+        except InvalidOperation as exc:
+            self.logger.append("<b>Failed: %s</b>"%(str(exc)))
+
 
 # TODO: handle SIGINT, ctrl+c then closing the window doesn't disconnect
 app = QApplication(sys.argv)
