@@ -219,8 +219,8 @@ class TablesTable(QTableWidget):
 
             for col, seat in enumerate(table.seats):
                 if not seat.isOpen:
-                    item.setFlags(QtCore.Qt.NoItemFlags)
                     item = QTableWidgetItem(seat.name)
+                    item.setFlags(QtCore.Qt.NoItemFlags)
                 else:
                     item = TableSeatCell("", table.tableId, col)
                 self.setItem(row, col + 1, item)
