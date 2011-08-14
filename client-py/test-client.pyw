@@ -9,17 +9,14 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-from PyQt4 import QtCore
-from PyQt4.QtCore import (Qt, QObject, QThread, QTimer, SIGNAL, pyqtSignal)
-# from PyQt4.QtGui import (QApplication, QFrame, QLabel, QDialog, QLineEdit, QTextBrowser,
-#                QVBoxLayout, QHBoxLayout, QGridLayout)
-from PyQt4.QtGui import *
+from PySide import QtCore
+from PySide.QtCore import (QObject, QThread, QTimer, Signal)
+from PySide.QtGui import *
 
 CLIENT_PROTO_VERSION = 1
 
 class ServerEvents(QThread):
-    event = pyqtSignal(Event)
-    finished = pyqtSignal()
+    eventSignal = Signal(Event)
 
     def __init__(self, parent=None):
         super(ServerEvents, self).__init__(parent)
@@ -46,7 +43,7 @@ class ServerEvents(QThread):
             while not self.stopped:
                 events = self.eclient.getEventsTimeout(1000)
                 for event in events:
-                    self.event.emit(event)
+                    self.eventSignal.emit(event)
         except InvalidOperation:
             pass # Client down.
         except Exception as exc:
@@ -55,11 +52,9 @@ class ServerEvents(QThread):
             self.transport.close()
             del self.eclient
 
-        self.finished.emit()
-
 class ServerConnection(QObject):
-    connected = pyqtSignal()
-    disconnected = pyqtSignal()
+    connected = Signal()
+    disconnected = Signal()
 
     def __init__(self, app, serverEvents, parent=None):
         super(ServerConnection, self).__init__(parent)
@@ -67,11 +62,11 @@ class ServerConnection(QObject):
         self.is_connected = False
         self.hasEvents = False
         self.serverEvents = serverEvents
-        self.event = serverEvents.event
+        self.eventSignal = serverEvents.eventSignal
 
-        app.aboutToQuit.connect(lambda: self.disconnect(False))
+        app.aboutToQuit.connect(lambda: self.disconnectFromServer(False))
 
-    def connect(self, host, name):
+    def connectToServer(self, host, name):
         if not name or not host:
             raise Exception("Needs name and host")
 
@@ -95,16 +90,17 @@ class ServerConnection(QObject):
 
         except:
             # Close possibly half-open connections
-            self.disconnect(notify=False)
+            self.disconnectFromServer(notify=False)
             raise
 
-    def disconnect(self, notify=True):
+    def disconnectFromServer(self, notify=True):
         if self.is_connected:
             try:
                 self.client.quit()
             except InvalidOperation:
                 pass
             self.serverEvents.stop()
+            self.serverEvents.wait()
             self.transport.close()
             self.is_connected = False
 
@@ -162,11 +158,11 @@ class LoginFrame(QFrame):
     def pressConnectButton(self):
         try:
             if self.connected:
-                self.server.disconnect()
+                self.server.disconnectFromServer()
             else:
                 host = unicode(self.host.text())
                 name = unicode(self.name.text())
-                self.server.connect(host, name)
+                self.server.connectToServer(host, name)
         except Exception as exc: # TODO: better exception
             self.logger.append("<b>Failed: %s</b>"%(str(exc)))
 
@@ -303,7 +299,7 @@ class MainForm(QDialog):
 
         try:
             self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.server.event, self)
+            table = Table(tableSeatCell.tableId, self.server.eventSignal, self)
             self.tables.append(table)
             table.show()
         except InvalidOperation as exc:
