@@ -22,7 +22,7 @@ login(Name, Password) ->
   login(Name, Password, get(client)).
 
 login(Name, _Password, undefined) ->
-  case tarabish_server:get_client_if_new(Name) of
+  case tarabish_server:get_client_if_new(Name, self()) of
     {ok, Client, Cookie} ->
       put(client, Client),
       Cookie;

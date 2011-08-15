@@ -6,7 +6,7 @@
 
 %% Public:
 -export([start/0, get_client/1, get_client_by_cookie/1, create_table/0,
-    get_table/1, get_tables/0, get_client_if_new/1]).
+    get_table/1, get_tables/0, get_client_if_new/2]).
 
 %% From tables
 -export([update_table_image/2]).
@@ -31,8 +31,8 @@ get_client(Id) ->
 get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
 
-get_client_if_new(Id) ->
-  gen_server:call({global, ?MODULE}, {get_new_client, Id}).
+get_client_if_new(Id, CmdPid) ->
+  gen_server:call({global, ?MODULE}, {get_new_client, Id, CmdPid}).
 
 create_table() ->
   gen_server:call({global, ?MODULE}, {create_table}).
@@ -57,19 +57,18 @@ init([]) ->
               table_cnt = 0}}.
 
 % TODO: remove when using authentication again
-handle_call({get_new_client, Id}, _From, State) ->
+handle_call({get_new_client, Id, CmdPid}, _From, State) ->
   case orddict:find(Id, State#state.id) of
     {ok, {_Client, _Cookie}} ->
       {reply, error, State};
     error ->
-      {ok, Client} = client:start_link(Id),
+      {ok, Client} = client:start_link(Id, CmdPid),
       Cookie = new_cookie(),
       NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
       {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
   end;
 
-% TODO: Set monitor on client, clear cookie when dies.
 handle_call({get_client, Id}, _From, State) ->
   case orddict:find(Id, State#state.id) of
     {ok, {Client, Cookie}} ->
@@ -137,9 +136,7 @@ not_client(Client) -> fun(_K, V) -> not match_client(Client, V) end.
 
 % TODO: on non-normal exit let all tables know?
 handle_info({'EXIT', Client, _Reason}, State) ->
-  io:format("Client gone. Before ~w~n", [State#state.id]),
   NewId = orddict:filter(not_client(Client), State#state.id),
-  io:format("Client gone. After ~w~n", [NewId]),
   NewCookie = orddict:filter(not_client(Client), State#state.cookie),
   {noreply, State#state{id=NewId, cookie=NewCookie}};
 

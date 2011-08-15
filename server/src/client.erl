@@ -4,7 +4,7 @@
 
 -behaviour(gen_server).
 
--export([start/1, start_link/1, quit/1]).
+-export([start/2, start_link/2, quit/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -20,14 +20,14 @@
 % From Game:
 -export([recv_event/2]).
 
--record(state, {id, tables, events, subscriber}).
+-record(state, {id, tables, events, subscriber, cmdRef}).
 
 % Public:
-start(Id) ->
-  gen_server:start(?MODULE, [Id], []).
+start(Id, CmdPid) ->
+  gen_server:start(?MODULE, [Id, CmdPid], []).
 
-start_link(Id) ->
-  gen_server:start_link(?MODULE, [Id], []).
+start_link(Id, CmdPid) ->
+  gen_server:start_link(?MODULE, [Id, CmdPid], []).
 
 quit(Client) ->
   gen_server:call(Client, {stop}).
@@ -102,10 +102,12 @@ clear_new_event() ->
       ok
   end.
 
-init([Id]) ->
+init([Id, CmdPid]) ->
+  Ref = erlang:monitor(process, CmdPid),
   {ok, #state{id=Id,
               tables=orddict:new(),
-              events=[]}}.
+              events=[],
+              cmdRef=Ref}}.
 
 handle_call({stop}, _From, State) ->
   {stop, normal, ok, State};
@@ -222,6 +224,9 @@ handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
     [?MODULE, Msg]),
   {stop, "Bad Cast", State}.
+
+handle_info({'DOWN',Ref,process,_,_}, #state{cmdRef=Ref} = State) ->
+  {stop, normal, State};
 
 handle_info(Info, State) ->
   io:format("~w recieved unknown info ~p~n",
