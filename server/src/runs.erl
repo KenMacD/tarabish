@@ -14,12 +14,17 @@ new(Hands, TrumpSuit) ->
   Runs = lists:map(fun (Hand) -> new_run_record(Hand, TrumpSuit) end, Hands),
   Runs.
 
+% TODO: could use split_runs before score_suit to make it cleaner
+% TODO: move score out of best_run, add new record with cards
 new_run_record(Cards, TrumpSuit) ->
   SortedCards = sort_cards_by_value(Cards),
   SplitBySuit = split_by_suit(SortedCards),
   {CardsBySuit, Suits} = lists:unzip(SplitBySuit),
 
-  % {suit, {type, high, score}}
+  _CardsToShow = lists:flatten(lists:foldl(fun lists:append/2,
+      lists:map(fun split_runs/1, CardsBySuit))),
+
+  % {suit, #best_fun{}}
   Runs = lists:zip(Suits, lists:map(fun score_suit/1, CardsBySuit)),
 
   Folder = fun({Suit, Run}, Acc) -> fold_runs(Suit, Run, Acc, TrumpSuit) end,
@@ -59,6 +64,35 @@ split_by_suit([Card|Rest]) ->
 
 make_best_run(Type, High, Score) ->
   #best_run{type=Type, high=High, score=Score, trump=false}.
+
+% Split them into 4's and 3's:
+
+% Count last run:
+split_runs([], ThisRun, Runs) when length(ThisRun) > 2 ->
+  lists:reverse([lists:reverse(ThisRun)|Runs]);
+
+split_runs([], _ThisRun, Runs) ->
+  lists:reverse(Runs);
+
+% Have 4
+split_runs([Card|Rest], ThisRun, Runs) when length(ThisRun) == 4 ->
+  split_runs(Rest, [Card], [lists:reverse(ThisRun)|Runs]);
+
+split_runs([#card{value=Value1} = Card|Rest],
+         [#card{value=Value2}|_Rest2] = ThisRun, Runs) when Value1 == Value2 - 1 ->
+    split_runs(Rest, [Card|ThisRun], Runs);
+
+split_runs([Card|Rest], ThisRun, Runs) when length(ThisRun) == 3 ->
+  split_runs(Rest, [Card], [lists:reverse(ThisRun)|Runs]);
+
+split_runs([Card|Rest], _ThisRun, Runs) ->
+  split_runs(Rest, [Card], Runs).
+
+split_runs([]) ->
+  [];
+
+split_runs([Card|Rest]) ->
+    split_runs(Rest, [Card], []).
 
 % The last run, if it was a fifty, would be counted already
 % Count the last run, it's the best twenty:
@@ -150,6 +184,19 @@ sort_by_value_test() ->
 
   [#card{value=?tarabish_ACE, suit=1}|Rest] = Sorted,
   [#card{value=?tarabish_KING, suit=1}|_Rest2] = Rest.
+
+split_runs_test_() ->
+  M = fun (Value) -> #card{value=Value} end,
+  ML = fun (VList) -> lists:map(M, VList) end,
+
+  [
+    ?_assertEqual([ML([12, 11, 10]), ML([8, 7, 6])],
+      split_runs(ML([14, 12, 11, 10, 8, 7, 6]))),
+    ?_assertEqual([ML([14, 13, 12, 11]), ML([9, 8, 7, 6])],
+      split_runs(ML([14, 13, 12, 11, 9, 8, 7, 6]))),
+    ?_assertEqual([],
+      split_runs(ML([14, 13, 11, 10, 8, 7])))
+  ].
 
 % J, Q, K, A --> 11, 12, 13, 14
 score_suit_test_() ->
