@@ -5,8 +5,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--record(best_run, {type, high, score, trump}).
--record(run_record, {twenty, fifty, bella, best_run, score}).
+-record(best_run, {type, high, trump}).
+-record(run_record, {best_run, score, to_show}).
 
 -export([new/2]).
 
@@ -14,29 +14,19 @@ new(Hands, TrumpSuit) ->
   Runs = lists:map(fun (Hand) -> new_run_record(Hand, TrumpSuit) end, Hands),
   Runs.
 
-% TODO: could use split_runs before score_suit to make it cleaner
-% TODO: move score out of best_run, add new record with cards
 new_run_record(Cards, TrumpSuit) ->
   SortedCards = sort_cards_by_value(Cards),
-  SplitBySuit = split_by_suit(SortedCards),
-  {CardsBySuit, Suits} = lists:unzip(SplitBySuit),
+  CardsBySuit = split_by_suit(SortedCards),
 
-  _CardsToShow = lists:flatten(lists:foldl(fun lists:append/2,
-      lists:map(fun split_runs/1, CardsBySuit))),
+  SplitByRuns = lists:reverse(lists:foldl(fun lists:append/2, [],
+    lists:map(fun split_runs/1, CardsBySuit))),
 
-  % {suit, #best_fun{}}
-  Runs = lists:zip(Suits, lists:map(fun score_suit/1, CardsBySuit)),
+  SortBySize = sort_runs(SplitByRuns, TrumpSuit),
 
-  Folder = fun({Suit, Run}, Acc) -> fold_runs(Suit, Run, Acc, TrumpSuit) end,
-  NoRun = {nosuit, #best_run{type=none, high=0, score=0, trump=false}},
-
-  _BestRun = lists:foldl(Folder, NoRun, Runs),
-
-  #run_record{twenty=false,
-              fifty=false,
-              bella=false,
-              best_run=none,
-              score=0}.
+  CardsToShow = lists:flatten(SortBySize),
+  Score = score_runs(SplitByRuns),
+  BestRun = make_best(SortBySize, TrumpSuit),
+  #run_record{best_run=BestRun, score=Score, to_show=CardsToShow}.
 
 % This sorts top to bottom by values to make run finding easier
 sort_cards_by_value2(#card{suit=Suit, value=V1},
@@ -49,21 +39,53 @@ sort_cards_by_value2(#card{suit=Suit1}, #card{suit=Suit2}) ->
 sort_cards_by_value(Cards) ->
   lists:sort(fun sort_cards_by_value2/2, Cards).
 
-split_by_suit([], Cards, Suit, Lists) ->
-  lists:reverse([{lists:reverse(Cards), Suit}|Lists]);
+sort_runs(Run1, Run2, _Trump)
+  when length(Run1) =/= length(Run2) ->
+    not(length(Run1) =< length(Run2));
+
+sort_runs([#card{value=V1}|_], [#card{value=V2}|_], _Trump)
+  when V1 =/= V2 ->
+    not(V1 =< V2);
+
+sort_runs(_Run1, [#card{suit=S1}|_], Trump) ->
+  not(S1 == Trump).
+
+sort_runs(Runs, Trump) ->
+  lists:sort(fun (X, Y) -> sort_runs(X, Y, Trump) end, Runs).
+
+make_best([], _Trump) ->
+  #best_run{type=none, high=0, trump=false};
+
+make_best([[#card{value=V1, suit=S1}|_] = Run |_], Trump) when length(Run) == 4 ->
+  #best_run{type=fifty, high=V1, trump=(S1 == Trump)};
+
+make_best([[#card{value=V1, suit=S1}|_]|_], Trump) ->
+  #best_run{type=twenty, high=V1, trump=(S1 == Trump)}.
+
+score_runs([], Score) ->
+  Score;
+
+score_runs([Run|Rest], Score) when length(Run) == 4 ->
+  score_runs(Rest, Score + 50);
+
+score_runs([_Run|Rest], Score) ->
+  score_runs(Rest, Score + 20).
+
+score_runs(Runs) ->
+  score_runs(Runs, 0).
+
+split_by_suit([], Cards, _Suit, Lists) ->
+  lists:reverse([lists:reverse(Cards)|Lists]);
 
 split_by_suit([#card{suit=Suit} = Card|Rest], Cards, Suit, Lists) ->
   split_by_suit(Rest, [Card|Cards], Suit, Lists);
 
-split_by_suit([Card|Rest], Cards, Suit, Lists) ->
-  split_by_suit(Rest, [Card], Card#card.suit, [{Cards, Suit}|Lists]).
+split_by_suit([Card|Rest], Cards, _Suit, Lists) ->
+  split_by_suit(Rest, [Card], Card#card.suit, [lists:reverse(Cards)|Lists]).
 
 % Stable split to keep sorted
 split_by_suit([Card|Rest]) ->
   split_by_suit(Rest, [Card], Card#card.suit, []).
-
-make_best_run(Type, High, Score) ->
-  #best_run{type=Type, high=High, score=Score, trump=false}.
 
 % Split them into 4's and 3's:
 
@@ -94,84 +116,6 @@ split_runs([]) ->
 split_runs([Card|Rest]) ->
     split_runs(Rest, [Card], []).
 
-% The last run, if it was a fifty, would be counted already
-% Count the last run, it's the best twenty:
-score_suit(_ExpectedValue, FirstValue, [], 3, none, _High, Score) ->
-  make_best_run(twenty, FirstValue, Score + 20);
-
-% Count the last twenty, but it's not the bext:
-score_suit(_ExpectedValue, _FirstValue, [], 3, Other, High, Score) ->
-  make_best_run(Other, High, Score + 20);
-
-% No last run, return bests:
-score_suit(_ExpectedValue, _FirstValue, [], _NoCount, Run, High, Score) ->
-  make_best_run(Run, High, Score);
-
-% Start of new run:
-score_suit(_ExpectedValue, _FirstValue, [NewCard|Rest], 0, Run, High, Score) ->
-  score_suit(NewCard#card.value - 1, NewCard#card.value, Rest, 1, Run, High, Score);
-
-% New fifty, must be smaller (due to high-low sort):
-score_suit(ExpectedValue, _FirstValue,
-           [#card{value=ExpectedValue}|Rest], 3, fifty, High, Score) ->
-  score_suit(none, none, Rest, 0, fifty, High, Score + 50);
-
-% First fifty, doesn't matter if there's twenties:
-score_suit(ExpectedValue, FirstValue,
-           [#card{value=ExpectedValue}|Rest],
-           3, _NotFifty, _High, Score) ->
-    score_suit(none, none, Rest, 0, fifty, FirstValue, Score + 50);
-
-% First twenty, and it's the best:
-score_suit(_ExpectedValue, FirstValue, Cards, 3, none, _High, Score) ->
-  score_suit(none, none, Cards, 0, twenty, FirstValue, Score + 20);
-
-% Higher twenty or fifty, but count the score:
-score_suit(_ExpectedValue, _FirstValue, Cards, 3, Run, High, Score) ->
-  score_suit(none, none, Cards, 0, Run, High, Score + 20);
-
-% Building a run:
-score_suit(ExpectedValue, FirstValue,
-           [#card{value=ExpectedValue}|Rest], Count,
-           Run, High, Score) ->
-    score_suit(ExpectedValue - 1, FirstValue, Rest, Count + 1, Run, High, Score);
-
-% No run, start again, doesn't matter the count:
-score_suit(_ExpectedValue, _FirstValue, Cards, _Count, Run, High, Score) ->
-  score_suit(none, none, Cards, 0, Run, High, Score).
-
-% Must be all the same suit:
-score_suit(Cards) ->
-  score_suit(none, none, Cards, 0, none, 0, 0).
-
-% fifty better than other:
-fold_runs(ThisSuit, #best_run{type=fifty, high=High, score=Score1},
-          #best_run{type=Type, score=Score} = Best, Trump) when Type =/= fifty ->
-  Best#best_run{type=fifty, score=Score + Score1, high=High,
-    trump=(ThisSuit==Trump)};
-
-% twenty when no other run:
-fold_runs(ThisSuit, #best_run{type=twenty, high=High, score=Score1},
-          #best_run{type=none, score=Score} = Best, Trump) ->
-  Best#best_run{type=twenty, score=Score + Score1, high=High,
-    trump=(ThisSuit==Trump)};
-
-% Same high card, same type, but this is trump:
-fold_runs(Trump, #best_run{type=Type, high=High, score=Score1},
-          #best_run{type=Type, high=High, score=Score} = Best, Trump) ->
-  Best#best_run{score=Score + Score1, trump=true};
-
-% Better high card, same type:
-fold_runs(_AnySuit, #best_run{type=Type, high=High, score=Score1},
-          #best_run{type=Type, high=High2, score=Score} = Best, _Trump) when
-          High > High2 ->
-  Best#best_run{score=Score + Score1, high=High};
-
-% Worse run:
-fold_runs(_AnySuit, #best_run{score=Score1},
-          #best_run{score=Score} = Best, _Trump) ->
-  Best#best_run{score=Score + Score1}.
-
 %%
 %% Tests
 %%
@@ -185,6 +129,54 @@ sort_by_value_test() ->
   [#card{value=?tarabish_ACE, suit=1}|Rest] = Sorted,
   [#card{value=?tarabish_KING, suit=1}|_Rest2] = Rest.
 
+sort_runs_test_() ->
+  M  = fun (Value) -> #card{value=Value, suit=1} end,
+  MT = fun (Value) -> #card{value=Value, suit=2} end,
+  ML = fun (VList) -> lists:map(M, VList) end,
+  MLT= fun (VList) -> lists:map(MT, VList) end,
+
+  [
+    ?_assertEqual([ML([10, 9, 8, 7]), ML([9, 8, 7, 6]), ML([14, 13, 12])],
+      sort_runs([ML([14, 13, 12]), ML([9, 8, 7, 6]), ML([10, 9, 8, 7])], 2)),
+    ?_assertEqual([MLT([10, 9, 8, 7]), ML([10, 9, 8, 7]), ML([14, 13, 12])],
+      sort_runs([ML([14, 13, 12]), ML([10, 9, 8, 7]), MLT([10, 9, 8, 7])], 2))
+  ].
+
+new_run_record_test_() ->
+  C = fun(V, S) -> #card{value=V, suit=S} end,
+
+  NoBest = #best_run{type=none, high=0, trump=false},
+
+  Twenty = #best_run{type=twenty, high=14, trump=false},
+  TwentyCards = [C(14, 0), C(13, 0), C(12,0),
+                 C(14, 1), C(13, 1), C(12,1),
+                 C(14, 2), C(13, 2), C(12,2)],
+
+  Fifty = #best_run{type=fifty, high=13, trump=false},
+  FiftyCards = [C(13, 1), C(12, 1), C(11, 1), C(10,1),
+                C(14, 2), C(13, 2), C(12, 2)],
+
+  FiftyT = Fifty#best_run{trump=true},
+  [
+    ?_assertEqual(#run_record{best_run=NoBest, score=0, to_show=[]},
+      new_run_record([C(14, 0), C(14, 1), C(14, 2), C(14, 3),
+                      C(12, 0), C(12, 1), C(12, 2), C(12, 3),
+                      C(10, 0), C(10, 1), C(10, 2), C(10, 3)], 0)),
+    ?_assertEqual(#run_record{best_run=Twenty, score=60, to_show=TwentyCards},
+      new_run_record([C(14, 0), C(14, 1), C(14, 2), C(14, 3),
+                      C(13, 0), C(13, 1), C(13, 2), C(12, 3),
+                      C(12, 0), C(12, 1), C(12, 2), C(10, 3)], 3)),
+    % The twenty is trump, but the fifty still wins:
+    ?_assertEqual(#run_record{best_run=Fifty, score=70, to_show=FiftyCards},
+      new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
+                      C(12, 0), C(13, 1), C(10, 1), C(12, 2),
+                      C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 2)),
+    ?_assertEqual(#run_record{best_run=FiftyT, score=70, to_show=FiftyCards},
+      new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
+                      C(12, 0), C(13, 1), C(10, 1), C(12, 2),
+                      C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 1))
+  ].
+
 split_runs_test_() ->
   M = fun (Value) -> #card{value=Value} end,
   ML = fun (VList) -> lists:map(M, VList) end,
@@ -196,61 +188,4 @@ split_runs_test_() ->
       split_runs(ML([14, 13, 12, 11, 9, 8, 7, 6]))),
     ?_assertEqual([],
       split_runs(ML([14, 13, 11, 10, 8, 7])))
-  ].
-
-% J, Q, K, A --> 11, 12, 13, 14
-score_suit_test_() ->
-  M = fun (Value) -> #card{value=Value} end,
-  ML = fun (VList) -> lists:map(M, VList) end,
-  MB = fun ({Type, High, Score}) -> make_best_run(Type, High, Score) end,
-
-  [
-    ?_assertEqual(MB({none, 0, 0}), score_suit(ML([12, 10, 9, 7, 6]))),
-    ?_assertEqual(MB({none, 0, 0}), score_suit(ML([12]))),
-
-    ?_assertEqual(MB({twenty, 8, 20}), score_suit(ML([8, 7, 6]))),
-    ?_assertEqual(MB({twenty, 8, 20}), score_suit(ML([13, 12, 10, 8, 7, 6]))),
-    ?_assertEqual(MB({twenty, 13, 20}), score_suit(ML([13, 12, 11, 9, 7, 6]))),
-
-    % Double twenty:
-    ?_assertEqual(MB({twenty, 14, 40}), score_suit(ML([14, 13, 12, 10, 9, 8, 6]))),
-
-    ?_assertEqual(MB({fifty, 9,  50}), score_suit(ML([9, 8, 7, 6]))),
-    ?_assertEqual(MB({fifty, 12, 70}), score_suit(ML([12, 11, 10, 9, 8, 7, 6]))),
-
-    % Double fifty:
-    ?_assertEqual(MB({fifty, 14, 100}),
-      score_suit(ML([14, 13, 12, 11, 10, 9, 8, 7, 6])))
-  ].
-
-fold_runs_test_() ->
-  FiftyA50 = #best_run{type=fifty, high=14, score=50, trump=false},
-  FiftyJ50 = #best_run{type=fifty, high=11, score=50, trump=false},
-
-  TwentyA  = #best_run{type=twenty, high=14, score=20, trump=false},
-
-  Best50NT = #best_run{type=fifty, high=14, score=50, trump=false},
-  Best20NT = #best_run{type=twenty, high=14, score=40, trump=false},
-
-%-record(best_run, {type, high, score, trump}).
-  [
-    % Test Trump equal beats non-trump:
-    ?_assertEqual(Best50NT#best_run{score=100, trump=true},
-      fold_runs(trump, FiftyA50, Best50NT, trump)),
-
-    ?_assertEqual(Best20NT#best_run{score=60, trump=true},
-      fold_runs(trump, TwentyA, Best20NT, trump)),
-
-    % Test lower trump does not:
-    ?_assertEqual(Best50NT#best_run{score=100},
-      fold_runs(trump, FiftyJ50, Best50NT, trump)),
-
-    % Fifty beats twenty, even if twenty was trump and had a high card
-    ?_assertEqual(Best50NT#best_run{high=11, score=90},
-      fold_runs(nontrump, FiftyJ50, Best20NT#best_run{trump=true}, trump)),
-
-    % Twenty doesn't beat fifty, even trump with higher card:
-    ?_assertEqual(Best50NT#best_run{high=11, score=70},
-      fold_runs(trump, TwentyA, Best50NT#best_run{high=11}, trump))
-
   ].
