@@ -6,13 +6,29 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -record(best_run, {type, high, trump}).
--record(run_record, {best_run, score, to_show}).
+-record(run_record, {best_run, score, to_show, called}).
 
--export([new/2]).
+-export([new/2, call_run/2]).
 
 new(Hands, TrumpSuit) ->
-  Runs = lists:map(fun (Hand) -> new_run_record(Hand, TrumpSuit) end, Hands),
-  Runs.
+  {_Count, Dict} = lists:foldl(fun(Hand, {Count, Dict}) -> {Count + 1,
+          orddict:store(Count, new_run_record(Hand, TrumpSuit), Dict)} end,
+          {0, orddict:new()}, Hands),
+  Dict.
+
+call_run(Runs, Seat) ->
+  Record = orddict:fetch(Seat, Runs),
+  {Reply, Record1} = call_run(Record),
+  {Reply, orddict:store(Seat, Record1, Runs)}.
+
+call_run(#run_record{called=true} = Record) ->
+  {{error, alread_called}, Record};
+
+call_run(#run_record{best_run=#best_run{type=none}} = Record) ->
+  {{error, no_run}, Record};
+
+call_run(#run_record{best_run=#best_run{type=Type}} = Record) ->
+  {Type, Record#run_record{called=true}}.
 
 new_run_record(Cards, TrumpSuit) ->
   SortedCards = sort_cards_by_value(Cards),
@@ -26,7 +42,7 @@ new_run_record(Cards, TrumpSuit) ->
   CardsToShow = lists:flatten(SortBySize),
   Score = score_runs(SplitByRuns),
   BestRun = make_best(SortBySize, TrumpSuit),
-  #run_record{best_run=BestRun, score=Score, to_show=CardsToShow}.
+  #run_record{best_run=BestRun, score=Score, to_show=CardsToShow, called=false}.
 
 % This sorts top to bottom by values to make run finding easier
 sort_cards_by_value2(#card{suit=Suit, value=V1},
@@ -156,22 +172,23 @@ new_run_record_test_() ->
   FiftyCards = [C(13, 1), C(12, 1), C(11, 1), C(10,1),
                 C(14, 2), C(13, 2), C(12, 2)],
 
+  EmptyRR = #run_record{best_run=NoBest, score=0, to_show=[], called=false},
   FiftyT = Fifty#best_run{trump=true},
   [
-    ?_assertEqual(#run_record{best_run=NoBest, score=0, to_show=[]},
+    ?_assertEqual(EmptyRR,
       new_run_record([C(14, 0), C(14, 1), C(14, 2), C(14, 3),
                       C(12, 0), C(12, 1), C(12, 2), C(12, 3),
                       C(10, 0), C(10, 1), C(10, 2), C(10, 3)], 0)),
-    ?_assertEqual(#run_record{best_run=Twenty, score=60, to_show=TwentyCards},
+    ?_assertEqual(EmptyRR#run_record{best_run=Twenty, score=60, to_show=TwentyCards},
       new_run_record([C(14, 0), C(14, 1), C(14, 2), C(14, 3),
                       C(13, 0), C(13, 1), C(13, 2), C(12, 3),
                       C(12, 0), C(12, 1), C(12, 2), C(10, 3)], 3)),
     % The twenty is trump, but the fifty still wins:
-    ?_assertEqual(#run_record{best_run=Fifty, score=70, to_show=FiftyCards},
+    ?_assertEqual(EmptyRR#run_record{best_run=Fifty, score=70, to_show=FiftyCards},
       new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
                       C(12, 0), C(13, 1), C(10, 1), C(12, 2),
                       C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 2)),
-    ?_assertEqual(#run_record{best_run=FiftyT, score=70, to_show=FiftyCards},
+    ?_assertEqual(EmptyRR#run_record{best_run=FiftyT, score=70, to_show=FiftyCards},
       new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
                       C(12, 0), C(13, 1), C(10, 1), C(12, 2),
                       C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 1))

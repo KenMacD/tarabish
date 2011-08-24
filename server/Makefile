@@ -7,7 +7,9 @@ test: all
 	erl -pz ebin -noshell -s account test \
 	                      -s deck test \
 			      -s rules test \
-	                      -s game test -s init stop
+	                      -s game test \
+			      -s runs test \
+			      -s init stop
 
 test_ct:
 	mkdir -p test_log

@@ -12,7 +12,7 @@
    terminate/2, code_change/3]).
 
 -export([chat/3, join/3, part/2, sit/4, stand/2,
-    start_game/2, call_trump/3, play_card/3]).
+    start_game/2, call_trump/3, play_card/3, call_run/2, show_run/2]).
 
 %% From game
 -export([broadcast/2, deal3/3]).
@@ -50,6 +50,12 @@ call_trump(Table, ClientName, Suit) ->
 
 play_card(Table, ClientName, Card) ->
   gen_server:call(Table, {play_card, ClientName, Card}).
+
+call_run(Table, ClientName) ->
+  gen_server:call(Table, {call_run, ClientName}).
+
+show_run(Table, ClientName) ->
+  gen_server:call(Table, {show_run, ClientName}).
 
 % From Game:
 broadcast(Table, Event) ->
@@ -210,6 +216,34 @@ handle_call({play_card, ClientName, Card}, _From, State) ->
         {reply, {error, not_at_table}, State}
     end;
 
+handle_call({call_run, _ClientName}, _From, #state{game=none} = State) ->
+  {reply, {error, no_game}, State};
+
+handle_call({call_run, ClientName}, _From, State) ->
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none}} ->
+      {reply, {error, not_authorized}, State};
+    {ok, Person} ->
+      Reply = game:call_run(State#state.game, Person#person.seat),
+      {reply, Reply, State};
+    error ->
+      {reply, {error, not_at_table}, State}
+  end;
+
+handle_call({show_run, _ClientName}, _From, #state{game=none} = State) ->
+  {reply, {error, no_game}, State};
+
+handle_call({show_run, ClientName}, _From, State) ->
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none}} ->
+      {reply, {error, not_authorized}, State};
+    {ok, Person} ->
+      Reply = game:show_run(State#state.game, Person#person.seat),
+      {reply, Reply, State};
+    error ->
+      {reply, {error, not_at_table}, State}
+  end;
+
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
@@ -237,9 +271,14 @@ handle_cast(Msg, State) ->
 handle_info({'EXIT', Game, normal}, #state{game=Game} = State) ->
   {noreply, State#state{game=none}};
 
-handle_info({'EXIT', Game, Reason}, #state{game=Game} = State) ->
+handle_info({'EXIT', Game, _Reason}, #state{game=Game} = State) ->
   cancel_game(Game),
   {noreply, State#state{game=none}};
+
+% Old games are still linked, but we don't care when they die.
+% If we later monitor other processes this will have to change.
+handle_info({'EXIT', _OldGame, normal}, State) ->
+  {noreply, State};
 
 handle_info(Info, State) ->
   io:format("~w recieved unknown info ~p~n",

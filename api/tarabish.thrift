@@ -52,6 +52,12 @@ enum BaitType {
   FULL,
 }
 
+enum RunType {
+  NONE,
+  TWENTY,
+  FIFTY,
+}
+
 # Thrift doesn't allow different types, so only some fields populated.
 enum EventType {
   JOIN,		# table, name
@@ -67,6 +73,10 @@ enum EventType {
   DEAL,		# table, seat=first-dealt, dealt (to you)
   ASK_TRUMP,	# table, seat
   CALL_TRUMP,	# table, seat, suit
+
+  CALL_RUN,	# table, seat, run_type
+  SHOW_RUN,	# table, seat, run_type, cards, value
+  NOSHOW_RUN,	# table, seat, better (0=equal, 1=better),  better_seat
 
   ASK_CARD,	# table, seat
   PLAY_CARD,	# table, seat, card
@@ -98,6 +108,11 @@ struct Event {
   9: list<i32>  hand_score,
  10: list<i32>  score,
  11: BaitType	bait,
+
+ 12: RunType	run,
+ 13: list<Card> cards,
+ 14: byte	value,
+ 15: byte	better_seat,
 }
 
 service Tarabish
@@ -141,6 +156,12 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	void callTrump(1: i32 table_id, 2: byte suit)
+		throws (1:InvalidOperation invalid)
+
+	void callRun(1: i32 table_id)
+		throws (1:InvalidOperation invalid)
+
+	void showRun(1: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
 	void playCard(1: i32 table_id, 2: Card card)

@@ -21,13 +21,14 @@
 -export([wait_trump/3, wait_card/3]).
 
 %% from table:
--export([call_trump/3, play_card/3]).
+-export([call_trump/3, play_card/3, call_run/2, show_run/2]).
 
 -record(state, {table,
                 score,    % Two scores { , } (0,2 -- 1,3)
 
                 % Set per hand:
                 hands,    % What the players are holding{[], [], [], []}
+                runs,     % What runs/bella each player has
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
@@ -59,6 +60,12 @@ call_trump(Game, Seat, Suit) ->
 
 play_card(Game, Seat, Card) ->
   gen_fsm:sync_send_event(Game, {play_card, Seat, Card}).
+
+call_run(Game, Seat) ->
+  gen_fsm:sync_send_event(Game, {call_run, Seat}).
+
+show_run(Game, Seat) ->
+  gen_fsm:sync_send_event(Game, {show_run, Seat}).
 
 %% ====================================================================
 %% Server functions
@@ -113,8 +120,10 @@ wait_trump({call_trump, Seat, Suit}, _From,
   Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
   table:broadcast(State#state.table, Event),
   State1 = deal3(State),
+  Runs = runs:new(tuple_to_list(State1#state.hands), Suit),
+
   State2 = new_trick(State1#state.dealer + 1,
-      State1#state{trick=1, trump=Suit, caller=(Seat rem 2)}),
+      State1#state{trick=1, trump=Suit, caller=(Seat rem 2), runs=Runs}),
 
   AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD,
     seat=hd(State2#state.order)},
@@ -212,6 +221,24 @@ process_card(Seat, Card, Rest, State) ->
 
       InPlay = [{Card, Seat}|State#state.inplay],
       {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}.
+
+% Call run in the first trick only:
+wait_card({call_run, Seat}, _From,
+          #state{order=[Seat|_Rest], trick=1, runs=Runs} = State) ->
+  case runs:call_run(Runs, Seat) of
+    {fifty, Runs2} ->
+      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat,
+                     run=?tarabish_RunType_FIFTY},
+      table:broadcast(State#state.table, Event),
+      {reply, ok, wait_card, State#state{runs=Runs2}};
+    {twenty, Runs2} ->
+      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat,
+                     run=?tarabish_RunType_TWENTY},
+      table:broadcast(State#state.table, Event),
+      {reply, ok, wait_card, State#state{runs=Runs2}};
+    {{error, Reason}, Runs2} ->
+      {reply, {error, Reason}, wait_card, State#state{runs=Runs2}}
+  end;
 
 wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
     #state{order=[Seat|Rest], ledin=LedIn, trump=Trump, htrump=HighTrump} = State) ->

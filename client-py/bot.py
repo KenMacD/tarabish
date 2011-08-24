@@ -121,6 +121,8 @@ def print_event(event, seat):
             EventType.ASK_CARD: lambda e: format_ask_card(e, seat),
             EventType.PLAY_CARD: lambda e: "Card: %d played %s at %d"%(
                 event.seat, str(event.card), event.table),
+            EventType.CALL_RUN: lambda e: "Run: %d called run type %d"%(
+                event.seat, event.run),
             EventType.TAKE_TRICK: lambda e: "Trick: %d took trick at %d"%(
                 event.seat, event.table),
             EventType.HAND_DONE: lambda e: \
@@ -138,12 +140,14 @@ def print_event(event, seat):
 game = 0
 ec = join_event(cookie)
 cards = []
+trick = 0
 while True:
     events = ec.getEventsTimeout(300000)
     for event in events:
         print_event(event, seatnum)
         if event.type == EventType.DEAL:
             cards += event.dealt
+            trick = 0
         if event.type == EventType.ASK_TRUMP and event.seat == seatnum:
             try:
                 client.callTrump(tableid, PASS)
@@ -151,6 +155,12 @@ while True:
                 # Forced
                 client.callTrump(tableid, SPADES)
         if event.type == EventType.ASK_CARD and event.seat == seatnum:
+            if trick == 0:
+                try:
+                    client.callRun(tableid)
+                    print "Called Run!"
+                except InvalidOperation, e:
+                    pass # expected
             played = 0
             for card in cards[:]:
                 try:
@@ -162,6 +172,7 @@ while True:
                     pass # expected
             if not played:
                 print "!!! No valid cards in hand: " + str(cards)
+            trick = trick + 1
         if event.type == EventType.GAME_DONE:
             game = game + 1
             if game < 5 and seatnum == 3:

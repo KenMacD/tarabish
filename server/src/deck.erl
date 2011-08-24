@@ -137,7 +137,6 @@ trump_higher(_Value, 9) ->
 trump_higher(Value1, Value2) ->
   nontrump_higher(Value1, Value2).
 
-
 %%
 %% Local Functions
 %%
