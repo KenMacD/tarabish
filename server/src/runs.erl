@@ -43,8 +43,8 @@ show_run(#run_record{called=false}, _Other) ->
   {error, didnt_call};
 
 % No one to left that could be better
-show_run(#run_record{best_run=#best_run{type=Type}, to_show=Cards}, []) ->
-  {Type, Cards};
+show_run(#run_record{best_run=#best_run{type=Type}, score=Score, to_show=Cards}, []) ->
+  {Type, Cards, Score};
 
 show_run(#run_record{best_run=Best} = Record,
          [{OSeat, #run_record{best_run=BestOther}}|Rest]) ->

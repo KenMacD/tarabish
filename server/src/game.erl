@@ -245,13 +245,13 @@ wait_card({show_run, Seat}, _From,
   case runs:show_run(Runs, Seat, Rest) of
     {{error, Reason}, Runs2} ->
       {reply, {error, Reason}, wait_card, State#state{runs=Runs2}};
-    {{Type, Cards}, Runs2} ->
+    {{Type, Cards, Score}, Runs2} ->
       EType = to_RunType(Type),
       Event = #event{type=?tarabish_EventType_SHOW_RUN, seat=Seat,
                      run=EType, cards=Cards},
       table:broadcast(State#state.table, Event),
-      % TODO: add to score
-      {reply, ok, wait_card, State#state{runs=Runs2, runShown=true}};
+      State1 = add_hscore(Seat, Score, State),
+      {reply, ok, wait_card, State1#state{runs=Runs2, runShown=true}};
     {{equal, Type, High, Trump, OtherSeat}, Runs2} ->
       EType = to_RunType(Type),
       Event = #event{type=?tarabish_EventType_NOSHOW_RUN, seat=Seat,
