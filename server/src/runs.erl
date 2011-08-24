@@ -8,7 +8,7 @@
 -record(best_run, {type, high, trump}).
 -record(run_record, {best_run, score, to_show, called}).
 
--export([new/2, call_run/2]).
+-export([new/2, call_run/2, show_run/3]).
 
 new(Hands, TrumpSuit) ->
   {_Count, Dict} = lists:foldl(fun(Hand, {Count, Dict}) -> {Count + 1,
@@ -29,6 +29,60 @@ call_run(#run_record{best_run=#best_run{type=none}} = Record) ->
 
 call_run(#run_record{best_run=#best_run{type=Type}} = Record) ->
   {Type, Record#run_record{called=true}}.
+
+show_run(Runs, Seat, AfterSeats) ->
+  Record = orddict:fetch(Seat, Runs),
+  OtherRecords = lists:map(fun (Num) -> {Num, orddict:fetch(Num, Runs)} end, AfterSeats),
+  Reply = show_run(Record, OtherRecords),
+  {Reply, Runs}.
+
+show_run(#run_record{best_run=#best_run{type=none}}, _Other) ->
+  {error, no_run};
+
+show_run(#run_record{called=false}, _Other) ->
+  {error, didnt_call};
+
+% No one to left that could be better
+show_run(#run_record{best_run=#best_run{type=Type}, to_show=Cards}, []) ->
+  {Type, Cards};
+
+show_run(#run_record{best_run=Best} = Record,
+         [{OSeat, #run_record{best_run=BestOther}}|Rest]) ->
+  case compare_best(BestOther, Best) of
+    worse ->
+      show_run(Record, Rest);
+    better ->
+      {better, Best#best_run.type, Best#best_run.high, Best#best_run.trump, OSeat};
+    equal ->
+      {equal, Best#best_run.type, Best#best_run.high, Best#best_run.trump, OSeat}
+  end.
+
+% Same, both non-trump
+compare_best(#best_run{type=Type, high=High, trump=false},
+             #best_run{type=Type, high=High, trump=false}) ->
+  equal;
+
+% Same, one trump
+compare_best(#best_run{type=Type, high=High, trump=Trump},
+             #best_run{type=Type, high=High}) ->
+  case Trump of
+    true -> better;
+    false -> worse
+  end;
+
+% Same type, higher card
+compare_best(#best_run{type=Type, high=High},
+             #best_run{type=Type, high=High2}) ->
+  case High > High2 of
+    true -> better;
+    false -> worse
+  end;
+
+% different type - same type handled above
+compare_best(#best_run{type=fifty}, _Other) -> better;
+compare_best(_Other, #best_run{type=fifty}) -> worse;
+compare_best(#best_run{type=twenty}, _Other) -> better;
+compare_best(_Other, #best_run{type=twenty}) -> worse.
 
 new_run_record(Cards, TrumpSuit) ->
   SortedCards = sort_cards_by_value(Cards),

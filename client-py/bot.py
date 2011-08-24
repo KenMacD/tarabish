@@ -123,6 +123,8 @@ def print_event(event, seat):
                 event.seat, str(event.card), event.table),
             EventType.CALL_RUN: lambda e: "Run: %d called run type %d"%(
                 event.seat, event.run),
+            EventType.SHOW_RUN: lambda e: "Show: %d showed run"%(event.seat),
+            EventType.NOSHOW_RUN: lambda e: "Show: %d couldn't show run"%(event.seat),
             EventType.TAKE_TRICK: lambda e: "Trick: %d took trick at %d"%(
                 event.seat, event.table),
             EventType.HAND_DONE: lambda e: \
@@ -159,6 +161,12 @@ while True:
                 try:
                     client.callRun(tableid)
                     print "Called Run!"
+                except InvalidOperation, e:
+                    pass # expected
+            if trick == 1:
+                try:
+                    client.showRun(tableid)
+                    print "Showed Run!"
                 except InvalidOperation, e:
                     pass # expected
             played = 0

@@ -58,6 +58,11 @@ enum RunType {
   FIFTY,
 }
 
+enum BetterType {
+  EQUAL,
+  BETTER,
+}
+
 # Thrift doesn't allow different types, so only some fields populated.
 enum EventType {
   JOIN,		# table, name
@@ -74,9 +79,9 @@ enum EventType {
   ASK_TRUMP,	# table, seat
   CALL_TRUMP,	# table, seat, suit
 
-  CALL_RUN,	# table, seat, run_type
-  SHOW_RUN,	# table, seat, run_type, cards, value
-  NOSHOW_RUN,	# table, seat, better (0=equal, 1=better),  better_seat
+  CALL_RUN,	# table, seat, run
+  SHOW_RUN,	# table, seat, run, cards
+  NOSHOW_RUN,	# table, seat, run, better, high_value, is_trump, other_seat
 
   ASK_CARD,	# table, seat
   PLAY_CARD,	# table, seat, card
@@ -111,8 +116,10 @@ struct Event {
 
  12: RunType	run,
  13: list<Card> cards,
- 14: byte	value,
- 15: byte	better_seat,
+ 14: BetterType	better,
+ 15: byte	high_value,
+ 16: bool	is_trump,
+ 17: byte	other_seat,
 }
 
 service Tarabish

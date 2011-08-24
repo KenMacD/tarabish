@@ -29,6 +29,7 @@
                 % Set per hand:
                 hands,    % What the players are holding{[], [], [], []}
                 runs,     % What runs/bella each player has
+                runShown, % If a run has been shown
                 deck,     % What's left of the deck
                 dealer,   % Which seat is dealing
                 trick,    % Trick number (for runs/done)
@@ -222,22 +223,52 @@ process_card(Seat, Card, Rest, State) ->
       InPlay = [{Card, Seat}|State#state.inplay],
       {reply, ok, wait_card, State#state{order=Rest, inplay=InPlay}}.
 
+to_RunType(twenty) -> ?tarabish_RunType_TWENTY;
+to_RunType(fifty)  -> ?tarabish_RunType_FIFTY.
+
 % Call run in the first trick only:
 wait_card({call_run, Seat}, _From,
           #state{order=[Seat|_Rest], trick=1, runs=Runs} = State) ->
   case runs:call_run(Runs, Seat) of
-    {fifty, Runs2} ->
-      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat,
-                     run=?tarabish_RunType_FIFTY},
-      table:broadcast(State#state.table, Event),
-      {reply, ok, wait_card, State#state{runs=Runs2}};
-    {twenty, Runs2} ->
-      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat,
-                     run=?tarabish_RunType_TWENTY},
-      table:broadcast(State#state.table, Event),
-      {reply, ok, wait_card, State#state{runs=Runs2}};
     {{error, Reason}, Runs2} ->
-      {reply, {error, Reason}, wait_card, State#state{runs=Runs2}}
+      {reply, {error, Reason}, wait_card, State#state{runs=Runs2}};
+    {Type, Runs2} ->
+      EType = to_RunType(Type),
+      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat, run=EType},
+      table:broadcast(State#state.table, Event),
+      {reply, ok, wait_card, State#state{runs=Runs2}}
+  end;
+
+% TODO: no way to show run in 3ed if missed in 2nd
+wait_card({show_run, Seat}, _From,
+          #state{order=[Seat|Rest], trick=2, runs=Runs, runShown=false} = State) ->
+  case runs:show_run(Runs, Seat, Rest) of
+    {{error, Reason}, Runs2} ->
+      {reply, {error, Reason}, wait_card, State#state{runs=Runs2}};
+    {{Type, Cards}, Runs2} ->
+      EType = to_RunType(Type),
+      Event = #event{type=?tarabish_EventType_SHOW_RUN, seat=Seat,
+                     run=EType, cards=Cards},
+      table:broadcast(State#state.table, Event),
+      % TODO: add to score
+      {reply, ok, wait_card, State#state{runs=Runs2, runShown=true}};
+    {{equal, Type, High, Trump, OtherSeat}, Runs2} ->
+      EType = to_RunType(Type),
+      Event = #event{type=?tarabish_EventType_NOSHOW_RUN, seat=Seat,
+                     better=?tarabish_BetterType_EQUAL, run=EType,
+                     high_value=High, is_trump=Trump, other_seat=OtherSeat},
+      table:broadcast(State#state.table, Event),
+      % Run counts for no one:
+      {reply, ok, wait_card, State#state{runs=Runs2, runShown=true}};
+    % TODO: should we always announce trump, or only when same high?
+    {{better, Type, High, Trump, OtherSeat}, Runs2} ->
+      EType = to_RunType(Type),
+      Event = #event{type=?tarabish_EventType_NOSHOW_RUN, seat=Seat,
+                     better=?tarabish_BetterType_BETTER, run=EType,
+                     high_value=High, is_trump=Trump, other_seat=OtherSeat},
+      table:broadcast(State#state.table, Event),
+      % Not Shown, the better can still show:
+      {reply, ok, wait_card, State#state{runs=Runs2}}
   end;
 
 wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
@@ -347,6 +378,8 @@ new_hand(Dealer, #state{table=Table} = State) ->
   Deck = deck:shuffle(deck:new()),
 
   State1 = State#state{hands={[], [], [], []},
+                 runs=undefined,
+                 runShown=false,
                  deck=Deck,
                  dealer=Dealer,
                  trick=0,
