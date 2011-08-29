@@ -21,7 +21,7 @@
 -export([wait_trump/3, wait_card/3]).
 
 %% from table:
--export([call_trump/3, play_card/3, call_run/2, show_run/2]).
+-export([call_trump/3, play_card/3, play_bella/3, call_run/2, show_run/2]).
 
 -record(state, {table,
                 score,    % Two scores { , } (0,2 -- 1,3)
@@ -61,6 +61,9 @@ call_trump(Game, Seat, Suit) ->
 
 play_card(Game, Seat, Card) ->
   gen_fsm:sync_send_event(Game, {play_card, Seat, Card}).
+
+play_bella(Game, Seat, Card) ->
+  gen_fsm:sync_send_event(Game, {play_bella, Seat, Card}).
 
 call_run(Game, Seat) ->
   gen_fsm:sync_send_event(Game, {call_run, Seat}).
@@ -275,7 +278,7 @@ wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
     #state{order=[Seat|Rest], ledin=LedIn, trump=Trump, htrump=HighTrump} = State) ->
   Hand = element(Seat + 1, State#state.hands),
 
-  case rules:valid_play(Card, Hand, LedIn, trump, HighTrump) of
+  case rules:valid_play(Card, Hand, LedIn, Trump, HighTrump) of
     true ->
 
       Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
@@ -292,6 +295,40 @@ wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
         end;
     false ->
       {reply, {error, invalid}, wait_card, State}
+  end;
+
+% TODO: refactor this and play_card together. Add tests
+wait_card({play_bella, Seat, #card{suit=Suit, value=Value} = Card}, _From,
+          #state{order=[Seat|Rest], ledin=LedIn, trump=Trump, htrump=HighTrump,
+                 runs=Runs} = State) ->
+
+  case runs:has_bella(Runs, Seat) of
+    false ->
+      {reply, {error, invalid}, wait_card, State};
+    true ->
+      Hand = element(Seat + 1, State#state.hands),
+      case rules:valid_bella(Card, Hand, LedIn, Trump, HighTrump) of
+        true ->
+          EventB = #event{type=?tarabish_EventType_CALL_BELLA, seat=Seat},
+          table:broadcast(State#state.table, EventB),
+
+          Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
+          table:broadcast(State#state.table, Event),
+
+          State1 = add_hscore(Seat, 20, State),
+
+          NewHand = lists:delete(Card, Hand),
+          NewHands = setelement(Seat + 1, State#state.hands, NewHand),
+          case Suit == Trump of
+              true ->
+                process_card(Seat, Card, Rest, State1#state{hands=NewHands,
+                    htrump=Value});
+              false ->
+                process_card(Seat, Card, Rest, State1#state{hands=NewHands})
+            end;
+        false ->
+          {reply, {error, invalid}, wait_card, State}
+      end
   end;
 
 wait_card(_Event, _From, State) ->

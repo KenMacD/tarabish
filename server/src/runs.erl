@@ -6,9 +6,9 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -record(best_run, {type, high, trump}).
--record(run_record, {best_run, score, to_show, called}).
+-record(run_record, {best_run, score, to_show, called, bella}).
 
--export([new/2, call_run/2, show_run/3]).
+-export([new/2, call_run/2, show_run/3, has_bella/2]).
 
 new(Hands, TrumpSuit) ->
   {_Count, Dict} = lists:foldl(fun(Hand, {Count, Dict}) -> {Count + 1,
@@ -57,6 +57,10 @@ show_run(#run_record{best_run=Best} = Record,
       {equal, Best#best_run.type, Best#best_run.high, Best#best_run.trump, OSeat}
   end.
 
+has_bella(Runs, Seat) ->
+  Record = orddict:fetch(Seat, Runs),
+  Record#run_record.bella == true.
+
 % Same, both non-trump
 compare_best(#best_run{type=Type, high=High, trump=false},
              #best_run{type=Type, high=High, trump=false}) ->
@@ -84,6 +88,24 @@ compare_best(_Other, #best_run{type=fifty}) -> worse;
 compare_best(#best_run{type=twenty}, _Other) -> better;
 compare_best(_Other, #best_run{type=twenty}) -> worse.
 
+bella_in_hand([], _Trump, 2) ->
+  true;
+
+bella_in_hand([], _Trump, _Other) ->
+  false;
+
+bella_in_hand([#card{suit=Trump, value=?tarabish_KING}|Rest], Trump, Count) ->
+  bella_in_hand(Rest, Trump, Count + 1);
+
+bella_in_hand([#card{suit=Trump, value=?tarabish_QUEEN}|Rest], Trump, Count) ->
+  bella_in_hand(Rest, Trump, Count + 1);
+
+bella_in_hand([_Card|Rest], Trump, Count) ->
+  bella_in_hand(Rest, Trump, Count).
+
+bella_in_hand(Cards, Trump) ->
+  bella_in_hand(Cards, Trump, 0).
+
 new_run_record(Cards, TrumpSuit) ->
   SortedCards = sort_cards_by_value(Cards),
   CardsBySuit = split_by_suit(SortedCards),
@@ -96,7 +118,15 @@ new_run_record(Cards, TrumpSuit) ->
   CardsToShow = lists:flatten(SortBySize),
   Score = score_runs(SplitByRuns),
   BestRun = make_best(SortBySize, TrumpSuit),
-  #run_record{best_run=BestRun, score=Score, to_show=CardsToShow, called=false}.
+
+  Bella = bella_in_hand(Cards, TrumpSuit),
+  % TODO: look for bella in CardsToShow to see if you can count early
+
+  #run_record{best_run=BestRun,
+              score=Score,
+              to_show=CardsToShow,
+              called=false,
+              bella=Bella}.
 
 % This sorts top to bottom by values to make run finding easier
 sort_cards_by_value2(#card{suit=Suit, value=V1},
@@ -226,7 +256,7 @@ new_run_record_test_() ->
   FiftyCards = [C(13, 1), C(12, 1), C(11, 1), C(10,1),
                 C(14, 2), C(13, 2), C(12, 2)],
 
-  EmptyRR = #run_record{best_run=NoBest, score=0, to_show=[], called=false},
+  EmptyRR = #run_record{best_run=NoBest, score=0, to_show=[], called=false, bella=false},
   FiftyT = Fifty#best_run{trump=true},
   [
     ?_assertEqual(EmptyRR,
@@ -237,12 +267,14 @@ new_run_record_test_() ->
       new_run_record([C(14, 0), C(14, 1), C(14, 2), C(14, 3),
                       C(13, 0), C(13, 1), C(13, 2), C(12, 3),
                       C(12, 0), C(12, 1), C(12, 2), C(10, 3)], 3)),
-    % The twenty is trump, but the fifty still wins:
-    ?_assertEqual(EmptyRR#run_record{best_run=Fifty, score=70, to_show=FiftyCards},
+    % The twenty is trump, but the fifty still wins (and we have bells):
+    ?_assertEqual(EmptyRR#run_record{best_run=Fifty, score=70,
+        to_show=FiftyCards, bella=true},
       new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
                       C(12, 0), C(13, 1), C(10, 1), C(12, 2),
                       C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 2)),
-    ?_assertEqual(EmptyRR#run_record{best_run=FiftyT, score=70, to_show=FiftyCards},
+    ?_assertEqual(EmptyRR#run_record{best_run=FiftyT, score=70,
+        to_show=FiftyCards, bella=true },
       new_run_record([C(14, 0), C(08, 0), C(11, 1), C(13, 2),
                       C(12, 0), C(13, 1), C(10, 1), C(12, 2),
                       C(10, 0), C(12, 1), C(14, 2), C(10, 3)], 1))

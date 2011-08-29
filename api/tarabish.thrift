@@ -86,6 +86,8 @@ enum EventType {
   ASK_CARD,	# table, seat
   PLAY_CARD,	# table, seat, card
 
+  CALL_BELLA,	# table, seat
+
   TAKE_TRICK,	# table, seat
   HAND_DONE,	# table, hand_score, score, bait
 
@@ -172,6 +174,9 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	void playCard(1: i32 table_id, 2: Card card)
+		throws (1:InvalidOperation invalid)
+
+	void playBella(1: i32 table_id, 2: Card card)
 		throws (1:InvalidOperation invalid)
 }
 

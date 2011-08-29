@@ -121,6 +121,8 @@ def print_event(event, seat):
             EventType.ASK_CARD: lambda e: format_ask_card(e, seat),
             EventType.PLAY_CARD: lambda e: "Card: %d played %s at %d"%(
                 event.seat, str(event.card), event.table),
+            EventType.CALL_BELLA: lambda e: "Bella: %d called bella at %d"%(
+                event.seat, event.table),
             EventType.CALL_RUN: lambda e: "Run: %d called run type %d"%(
                 event.seat, event.run),
             EventType.SHOW_RUN: lambda e: "Show: %d showed run"%(event.seat),
@@ -170,14 +172,22 @@ while True:
                 except InvalidOperation, e:
                     pass # expected
             played = 0
+            # try playing each card a bells first:
             for card in cards[:]:
                 try:
-                    client.playCard(tableid, card)
+                    client.playBella(tableid, card)
                     cards.remove(card)
+                    print "Played Bella!"
                     played = 1
                     break;
                 except InvalidOperation, e:
-                    pass # expected
+                    try:
+                        client.playCard(tableid, card)
+                        cards.remove(card)
+                        played = 1
+                        break;
+                    except InvalidOperation, e:
+                        pass # expected
             if not played:
                 print "!!! No valid cards in hand: " + str(cards)
             trick = trick + 1
