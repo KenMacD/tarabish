@@ -1,3 +1,5 @@
 erl_crash.dump
 server/ebin
 api/target
+*.pyc
+
