@@ -1,6 +1,7 @@
 from PySide import QtCore
 from PySide.QtGui import *
-from widgets import TablesTable
+from widgets import TablesTable, ChatWidget
+from tarabish.ttypes import InvalidOperation
 
 class LoginFrame(QFrame):
     def __init__(self, server, logger, parent=None):
@@ -56,14 +57,16 @@ class Table(QDialog):
     def __init__(self, tableId, eventSignal, parent=None):
         super(Table, self).__init__(parent)
 
-        self.setWindowTitle("Tarabish Table %d" % (tableId))
+        self.setWindowTitle("Tarabish Table %d"%(tableId))
         self.resize(800, 600)
-        self.logger = QTextBrowser()
 
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("TESTING"))
-        layout.addWidget(self.logger)
-        self.setLayout(layout)
+        hbox = QHBoxLayout()
+        hbox.addWidget(ChatWidget())
+
+        vbox = QVBoxLayout()
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
 
         eventSignal.connect(self.handleEvent)
 

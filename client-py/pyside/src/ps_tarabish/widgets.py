@@ -63,3 +63,27 @@ class TablesTable(QTableWidget):
     def stopUpdating(self):
         self.logger.append("Stop Updating")
         self.timer.stop()
+
+
+class ChatWidget(QWidget):
+    def __init__(self):
+        super(ChatWidget, self).__init__()
+        send_button = QPushButton("Send")
+        self.message_box = QLineEdit()
+        self.messages = QTextBrowser()
+
+        chat_widgets = QHBoxLayout()
+        chat_widgets.addWidget(self.message_box)
+        chat_widgets.addWidget(send_button)
+
+        chat_container = QVBoxLayout()
+        chat_container.addWidget(self.messages)
+        chat_container.addLayout(chat_widgets)
+        self.setLayout(chat_container)
+
+        send_button.clicked.connect(self._send_message)
+
+    def _send_message(self):
+        # TODO [mstead] Send message via server
+        self.messages.append(self.message_box.text())
+        self.message_box.clear()
