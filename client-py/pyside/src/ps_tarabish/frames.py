@@ -1,4 +1,5 @@
 from PySide import QtCore
+from PySide.QtCore import Qt
 from PySide.QtGui import *
 from widgets import TablesTable, ChatWidget
 from tarabish.ttypes import InvalidOperation
@@ -22,7 +23,11 @@ class LoginFrame(QFrame):
         layout.addWidget(self.name, 1, 1)
 
         self.connectButton = QPushButton("Connect")
-        layout.addWidget(self.connectButton, 2, 0, 1, 2)
+        buttonLayout = QDialogButtonBox(Qt.Horizontal)
+        buttonLayout.addButton(self.connectButton, QDialogButtonBox.ActionRole)
+        buttonLayout.setCenterButtons(True)
+
+        layout.addWidget(buttonLayout, 2, 0, 1, 0)
 
         self.setLayout(layout)
 
