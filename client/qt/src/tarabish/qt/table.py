@@ -24,8 +24,11 @@ class ChatWidget(QWidget):
         self.message_box.clear()
 
 class Table(QDialog):
-    def __init__(self, tableId, eventSignal, parent=None):
+    def __init__(self, tableId, eventSignal, logger, parent=None):
         super(Table, self).__init__(parent)
+
+        self.tableId = tableId
+        self.logger = logger
 
         self.setWindowTitle("Tarabish Table %d"%(tableId))
         self.resize(800, 600)
@@ -41,4 +44,5 @@ class Table(QDialog):
         eventSignal.connect(self.handleEvent)
 
     def handleEvent(self, event):
-        self.logger.append("Received Event: " + str(event))
+        self.logger.append("Table %d Received Event: %s" % (self.tableId,
+            str(event)))
