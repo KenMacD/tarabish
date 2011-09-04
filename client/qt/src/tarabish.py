@@ -4,7 +4,7 @@ import sys
 
 from PySide.QtGui import QApplication
 from tarabish.qt.connection import ServerEvents, ServerConnection
-from tarabish.qt.frames import MainForm
+from tarabish.qt.lobby import MainForm
 
 print "Running tarabish..."
 
