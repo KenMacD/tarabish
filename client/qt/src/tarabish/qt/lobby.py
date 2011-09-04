@@ -174,7 +174,8 @@ class MainForm(QDialog):
 
         try:
             self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.server.eventSignal, self)
+            table = Table(tableSeatCell.tableId, self.server.eventSignal,
+                    self.logger, self)
             self.tables.append(table)
             table.show()
         except InvalidOperation as exc:
