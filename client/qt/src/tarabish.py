@@ -3,8 +3,8 @@
 import sys
 
 from PySide.QtGui import QApplication
-from ps_tarabish.connection import ServerEvents, ServerConnection
-from ps_tarabish.frames import MainForm
+from tarabish.qt.connection import ServerEvents, ServerConnection
+from tarabish.qt.frames import MainForm
 
 print "Running tarabish..."
 
