@@ -3,8 +3,8 @@
 import sys
 #sys.path.append('target/generated-sources/gen-py')
 
-from tarabish import TarabishMsg
-from tarabish.ttypes import *
+from tarabish.thrift import TarabishMsg
+from tarabish.thrfit.ttypes import *
 
 from thrift import Thrift
 from thrift.transport import TSocket

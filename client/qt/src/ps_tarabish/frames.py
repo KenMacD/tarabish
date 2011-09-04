@@ -2,7 +2,7 @@ from PySide import QtCore
 from PySide.QtCore import Qt
 from PySide.QtGui import *
 from widgets import TablesTable, ChatWidget
-from tarabish.ttypes import InvalidOperation
+from tarabish.thrift.ttypes import InvalidOperation
 
 class LoginFrame(QFrame):
     def __init__(self, server, logger, parent=None):

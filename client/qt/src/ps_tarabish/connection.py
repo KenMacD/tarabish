@@ -1,8 +1,8 @@
 import sys
 
 sys.path.append('api/target/gen-py')
-from tarabish import Tarabish, TarabishMsg
-from tarabish.ttypes import *
+from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift.ttypes import *
 
 from thrift import Thrift
 from thrift.transport import TSocket

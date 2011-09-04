@@ -8,9 +8,9 @@ import string
 from time import sleep
 sys.path.append('api/target/gen-py')
 
-from tarabish import Tarabish, TarabishMsg
-from tarabish.ttypes import *
-from tarabish.constants import *
+from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift.ttypes import *
+from tarabish.thrift.constants import *
 
 from thrift import Thrift
 from thrift.transport import TSocket

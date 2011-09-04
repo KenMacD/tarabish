@@ -1,5 +1,7 @@
 #!/usr/bin/env thrift --gen java:beans --gen py:new_style
 
+namespace py tarabish.thrift
+
 const i32	PROTOCOL_VERSION = 1
 
 exception InvalidOperation {
