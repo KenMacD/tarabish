@@ -124,4 +124,4 @@ class Table(QDialog):
         self.cardBox.del_card(0)
         
     def handle_sit_event(self, name, table, seat):
-        self.logger.append("User %s sat at table %d in seat %d" % (name, table, seat))
+        self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))

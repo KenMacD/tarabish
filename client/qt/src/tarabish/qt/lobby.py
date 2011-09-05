@@ -1,9 +1,8 @@
 from PySide import QtCore
 from PySide.QtCore import Qt, QTimer
 from PySide.QtGui import *
-from tarabish.thrift.ttypes import InvalidOperation
+from tarabish.thrift.ttypes import InvalidOperation, EventType
 from table import Table
-from events import EventDispatcher
 
 
 class TableSeatCell(QTableWidgetItem):
@@ -24,6 +23,8 @@ class TablesTable(QTableWidget):
         self.server.connected.connect(self.updating)
         self.timer.timeout.connect(self.updating)
         refreshButton.clicked.connect(self.updating)
+        
+        server.eventDispatcher.connect(EventType.SIT, self.handle_player_sat_down)
 
     def startUpdating(self):
         self.logger.append("Start Updating")
@@ -68,6 +69,9 @@ class TablesTable(QTableWidget):
         self.logger.append("Stop Updating")
         self.timer.stop()
 
+    def handle_player_sat_down(self, name, table, seat):
+        self.logger.append("LOBBY: User %s takes seat #%d at table #%d" % (name, seat, table))
+        self.updating()
 
 class LoginFrame(QFrame):
     def __init__(self, server, logger, parent=None):
@@ -129,7 +133,6 @@ class MainForm(QDialog):
         super(MainForm, self).__init__(parent)
 
         self.server = server
-        self.eventDispatcher = EventDispatcher(server.eventSignal)
         self.tables = []
         self.logger = QTextBrowser()
         self.login = LoginFrame(server, self.logger)
@@ -138,7 +141,7 @@ class MainForm(QDialog):
         line.setFrameStyle(QFrame.HLine | QFrame.Sunken)
 
         tableRefreshButton = QPushButton("Refresh")
-        tablesTable = TablesTable(server, self.logger, tableRefreshButton)
+        self.tablesTable = TablesTable(server, self.logger, tableRefreshButton)
 
         tableLabel = QLabel("Tables:")
         tableLabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -156,7 +159,7 @@ class MainForm(QDialog):
         bottomLayout = QGridLayout()
         bottomLayout.setContentsMargins(0, 0, 0, 0);
         bottomLayout.addLayout(tablesLayout, 0, 0)
-        bottomLayout.addWidget(tablesTable, 0, 1)
+        bottomLayout.addWidget(self.tablesTable, 0, 1)
         bottomLayout.addWidget(logLabel, 1, 0)
         bottomLayout.addWidget(self.logger, 1, 1)
 
@@ -168,7 +171,7 @@ class MainForm(QDialog):
 
         self.setWindowTitle("Tarabish Test Client")
 
-        tablesTable.itemDoubleClicked.connect(self.handleSit)
+        self.tablesTable.itemDoubleClicked.connect(self.handleSit)
 
     def handleSit(self, tableSeatCell):
         self.logger.append("Joining table %d, seat %d" % (tableSeatCell.tableId,
@@ -176,9 +179,10 @@ class MainForm(QDialog):
 
         try:
             self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.eventDispatcher,
+            table = Table(tableSeatCell.tableId, self.server.eventDispatcher,
                           self.logger, self)
             self.tables.append(table)
             table.show()
+            self.tablesTable.updating()
         except InvalidOperation as exc:
             self.logger.append("<b>Failed: %s</b>" % (str(exc)))

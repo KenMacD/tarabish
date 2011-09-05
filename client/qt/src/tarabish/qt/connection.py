@@ -3,6 +3,7 @@ import sys
 sys.path.append('api/target/gen-py')
 from tarabish.thrift import Tarabish, TarabishMsg
 from tarabish.thrift.ttypes import *
+from events import EventDispatcher
 
 from thrift import Thrift
 from thrift.transport import TSocket
@@ -60,7 +61,7 @@ class ServerConnection(QObject):
         self.is_connected = False
         self.hasEvents = False
         self.serverEvents = serverEvents
-        self.eventSignal = serverEvents.eventSignal
+        self.eventDispatcher = EventDispatcher(self.serverEvents.eventSignal)
 
         app.aboutToQuit.connect(lambda: self.disconnectFromServer(False))
 
