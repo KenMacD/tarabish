@@ -61,26 +61,28 @@ class CardBoxWidget(QWidget):
     def __init__(self, cards=None, trump=None, parent=None):
         super(CardBoxWidget, self).__init__(parent)
 
-        self.cardLayout = QHBoxLayout()
         self.resize(200, 100)
 
-        if not cards:
-            self.cards = []
-        else:
-            self.cards = cards
-            self.add_cards(cards)
+        self.cardLayout = QHBoxLayout()
+        self.cardLayout.addStretch()
+        self.setLayout(self.cardLayout)
+
+        self.cards = []
+        self.add_cards(cards)
 
         self.trump = trump
-        self.cardLayout.addStretch()
-
-        self.setLayout(self.cardLayout)
 
     def add_cards(self, cards):
         for card in cards:
             item = CardWidget(card)
-            self.cardLayout.addWidget(item)
+            self.cards.append(item)
 
-        self.cards = self.cards.append(cards)
+            self.cardLayout.insertWidget(self.cardLayout.count() - 1, item)
+
+    def del_card(self, index):
+        self.cards.pop(index)
+        card = self.cardLayout.takeAt(index)
+        card.widget().setParent(None)
 
 
 class Table(QDialog):
@@ -98,14 +100,29 @@ class Table(QDialog):
 
         vbox = QVBoxLayout()
 
+        testButton = QPushButton("Create cards")
+        testButton2 = QPushButton("Remove first card")
+        vbox.addWidget(testButton)
+        vbox.addWidget(testButton2)
+
         cards = [Card(10, CLUBS), Card(ACE, HEARTS)]
-        vbox.addWidget(CardBoxWidget(cards))
+        self.cardBox = CardBoxWidget(cards)
+        vbox.addWidget(self.cardBox)
         vbox.addLayout(hbox)
 
         self.setLayout(vbox)
 
         eventSignal.connect(self.handleEvent)
 
+        testButton.clicked.connect(self.testNewCard)
+        testButton2.clicked.connect(self.testDelCard)
+
     def handleEvent(self, event):
         self.logger.append("Table %d Received Event: %s" % (self.tableId,
             str(event)))
+
+    def testNewCard(self):
+        self.cardBox.add_cards([Card(JACK, SPADES), Card(9, DIAMONDS)])
+
+    def testDelCard(self):
+        self.cardBox.del_card(0)
