@@ -1,6 +1,7 @@
 from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
-from tarabish.thrift.ttypes import (Card)
+from tarabish.thrift.ttypes import (Card, EventType)
+
 from PySide.QtCore import QSize
 from PySide.QtGui import *
 
@@ -86,12 +87,11 @@ class CardBoxWidget(QWidget):
 
 
 class Table(QDialog):
-    def __init__(self, tableId, eventSignal, logger, parent=None):
+    def __init__(self, tableId, eventDispatcher, logger, parent=None):
         super(Table, self).__init__(parent)
-
         self.tableId = tableId
         self.logger = logger
-
+        self.logger.append("Test")
         self.setWindowTitle("Tarabish Table %d"%(tableId))
         self.resize(800, 600)
 
@@ -112,17 +112,16 @@ class Table(QDialog):
 
         self.setLayout(vbox)
 
-        eventSignal.connect(self.handleEvent)
+        eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
 
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
-
-    def handleEvent(self, event):
-        self.logger.append("Table %d Received Event: %s" % (self.tableId,
-            str(event)))
 
     def testNewCard(self):
         self.cardBox.add_cards([Card(JACK, SPADES), Card(9, DIAMONDS)])
 
     def testDelCard(self):
         self.cardBox.del_card(0)
+        
+    def handle_sit_event(self, name, table, seat):
+        self.logger.append("User %s sat at table %d in seat %d" % (name, table, seat))

@@ -3,6 +3,7 @@ from PySide.QtCore import Qt, QTimer
 from PySide.QtGui import *
 from tarabish.thrift.ttypes import InvalidOperation
 from table import Table
+from events import EventDispatcher
 
 
 class TableSeatCell(QTableWidgetItem):
@@ -128,6 +129,7 @@ class MainForm(QDialog):
         super(MainForm, self).__init__(parent)
 
         self.server = server
+        self.eventDispatcher = EventDispatcher(server.eventSignal)
         self.tables = []
         self.logger = QTextBrowser()
         self.login = LoginFrame(server, self.logger)
@@ -174,8 +176,8 @@ class MainForm(QDialog):
 
         try:
             self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.server.eventSignal,
-                    self.logger, self)
+            table = Table(tableSeatCell.tableId, self.eventDispatcher,
+                          self.logger, self)
             self.tables.append(table)
             table.show()
         except InvalidOperation as exc:
