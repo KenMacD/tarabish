@@ -45,11 +45,11 @@ class Dispatchable(object):
         
         calling_args = []
         for prop in self.event_props:
-            if not hasattr(event, prop):
+            try:
+                value = getattr(event, prop)
+                calling_args.append(value)
+            except AttributeError:
                 raise DispatchError("Event does not have attribute %s." % (prop))
-            value = getattr(event, prop)
-            calling_args.append(value)
-        
         self.method(*tuple(calling_args))
     
     def _extract_event_props(self, method):

@@ -91,7 +91,6 @@ class Table(QDialog):
         super(Table, self).__init__(parent)
         self.tableId = tableId
         self.logger = logger
-        self.logger.append("Test")
         self.setWindowTitle("Tarabish Table %d"%(tableId))
         self.resize(800, 600)
 
@@ -124,4 +123,4 @@ class Table(QDialog):
         self.cardBox.del_card(0)
         
     def handle_sit_event(self, name, table, seat):
-        self.logger.append("User %s sat at table %d in seat %d" % (name, table, seat))
+        self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
