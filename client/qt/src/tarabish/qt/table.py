@@ -4,7 +4,7 @@ from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card)
 
-from PySide.QtCore import (Signal, QSize)
+from PySide.QtCore import (Signal, QSize, QPoint)
 from PySide.QtGui import *
 
 # General cards seem to be 2.5" by 3.5", so match that ratio
@@ -33,6 +33,42 @@ class ChatWidget(QWidget):
         # TODO [mstead] Send message via server
         self.messages.append(self.message_box.text())
         self.message_box.clear()
+
+class TableTop(QWidget):
+    MARGIN = 6
+
+    def __init__(self, parent=None):
+        super(TableTop, self).__init__(parent)
+
+        self.width = CARD_WIDTH * 2 + CARD_HEIGHT * 2 + self.MARGIN * 2
+        self.height = self.width
+        self.setFixedSize(self.width, self.height)
+
+        self.north_position = QPoint(CARD_WIDTH + self.MARGIN, 0)
+        self.west_position = QPoint(0, CARD_HEIGHT + self.MARGIN)
+        self.south_position = QPoint(CARD_WIDTH + self.MARGIN,
+                CARD_HEIGHT * 2+ self.MARGIN * 2)
+        self.east_position = QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
+                CARD_HEIGHT + self.MARGIN)
+
+        n = CardWidget(Card(2, SPADES), self)
+        n.move(self.north_position)
+
+        s = CardWidget(Card(4, SPADES), self)
+        s.move(self.south_position)
+
+        e = CardWidget(Card(3, SPADES), self)
+        e.move(self.east_position)
+
+        w = CardWidget(Card(5, SPADES), self)
+        w.move(self.west_position)
+
+    def sizeHint(self):
+        return self.minimumSizeHint()
+
+    def minimumSizeHint(self):
+        return QSize(self.width, self.height)
+
 
 class CardWidget(QWidget):
     doubleclicked = Signal()
@@ -116,6 +152,9 @@ class Table(QDialog):
         hbox.addWidget(ChatWidget())
 
         vbox = QVBoxLayout()
+
+        table_top = TableTop()
+        vbox.addWidget(table_top)
 
         testButton = QPushButton("Create cards")
         testButton2 = QPushButton("Remove first card")
