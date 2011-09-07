@@ -7,6 +7,10 @@ from tarabish.thrift.ttypes import (Card)
 from PySide.QtCore import (Signal, QSize)
 from PySide.QtGui import *
 
+# General cards seem to be 2.5" by 3.5", so match that ratio
+CARD_WIDTH = 64
+CARD_HEIGHT = 90
+
 class ChatWidget(QWidget):
     def __init__(self, parent=None):
         super(ChatWidget, self).__init__(parent)
@@ -42,7 +46,7 @@ class CardWidget(QWidget):
         self.card = pyCard
         frame = QFrame(self)
         frame.setFrameStyle(QFrame.Box);
-        frame.setFixedSize(70, 90)
+        frame.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
 
         suit = CardWidget.suit[pyCard.suit]
         if pyCard.value > 10:
@@ -59,7 +63,7 @@ class CardWidget(QWidget):
         return self.minimumSizeHint()
 
     def minimumSizeHint(self):
-        return QSize(70, 90)
+        return QSize(CARD_WIDTH, CARD_HEIGHT)
 
     def mouseDoubleClickEvent(self, event):
         self.doubleclicked.emit()
