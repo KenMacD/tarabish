@@ -1,7 +1,10 @@
+from functools import partial
+
 from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card)
-from PySide.QtCore import QSize
+
+from PySide.QtCore import (Signal, QSize)
 from PySide.QtGui import *
 
 class ChatWidget(QWidget):
@@ -28,6 +31,8 @@ class ChatWidget(QWidget):
         self.message_box.clear()
 
 class CardWidget(QWidget):
+    doubleclicked = Signal()
+
     suit = {CLUBS: "C", SPADES: "S", HEARTS: "H", DIAMONDS: "D"}
     value = {JACK: "J", QUEEN: "Q", KING: "K", ACE: "A"}
 
@@ -56,8 +61,12 @@ class CardWidget(QWidget):
     def minimumSizeHint(self):
         return QSize(70, 90)
 
+    def mouseDoubleClickEvent(self, event):
+        self.doubleclicked.emit()
 
 class CardBoxWidget(QWidget):
+    doubleclicked = Signal(Card)
+
     def __init__(self, cards=None, trump=None, parent=None):
         super(CardBoxWidget, self).__init__(parent)
 
@@ -75,9 +84,13 @@ class CardBoxWidget(QWidget):
     def add_cards(self, cards):
         for card in cards:
             item = CardWidget(card)
+            item.doubleclicked.connect(partial(self.cardDoubleClickEvent, card))
             self.cards.append(item)
 
             self.cardLayout.insertWidget(self.cardLayout.count() - 1, item)
+
+    def cardDoubleClickEvent(self, card):
+        self.doubleclicked.emit(card)
 
     def del_card(self, index):
         self.cards.pop(index)
@@ -107,6 +120,7 @@ class Table(QDialog):
 
         cards = [Card(10, CLUBS), Card(ACE, HEARTS)]
         self.cardBox = CardBoxWidget(cards)
+        self.cardBox.doubleclicked.connect(self.play_card)
         vbox.addWidget(self.cardBox)
         vbox.addLayout(hbox)
 
@@ -116,6 +130,10 @@ class Table(QDialog):
 
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
+
+    def play_card(self, card):
+        self.logger.append("Table %d Playing card %s %s" % (self.tableId,
+            str(card.value), str(card.suit)))
 
     def handleEvent(self, event):
         self.logger.append("Table %d Received Event: %s" % (self.tableId,
