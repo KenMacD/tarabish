@@ -8,8 +8,8 @@ from PySide.QtCore import (Signal, QSize)
 from PySide.QtGui import *
 
 class ChatWidget(QWidget):
-    def __init__(self):
-        super(ChatWidget, self).__init__()
+    def __init__(self, parent=None):
+        super(ChatWidget, self).__init__(parent)
         send_button = QPushButton("Send")
         self.message_box = QLineEdit()
         self.messages = QTextBrowser()
