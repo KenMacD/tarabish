@@ -4,7 +4,7 @@ from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card)
 
-from PySide.QtCore import (Signal, QSize, QPoint)
+from PySide.QtCore import (Signal, QSize, QPoint, Qt)
 from PySide.QtGui import *
 
 # General cards seem to be 2.5" by 3.5", so match that ratio
@@ -153,8 +153,28 @@ class Table(QDialog):
 
         vbox = QVBoxLayout()
 
+        top_grid = QGridLayout()
+
+        self.north_label = QLabel("<empty>")
+        self.north_label.setAlignment(Qt.AlignCenter)
+        top_grid.addWidget(self.north_label, 0, 1)
+
+        self.west_label = QLabel("<empty>")
+        self.west_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        top_grid.addWidget(self.west_label, 1, 0)
+
+        self.east_label = QLabel("<empty>")
+        self.east_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        top_grid.addWidget(self.east_label, 1, 2)
+
+        self.south_label = QLabel("<empty>")
+        self.south_label.setAlignment(Qt.AlignCenter)
+        top_grid.addWidget(self.south_label, 2, 1)
+
         table_top = TableTopWidget()
-        vbox.addWidget(table_top)
+        top_grid.addWidget(table_top, 1, 1)
+
+        vbox.addLayout(top_grid)
 
         testButton = QPushButton("Create cards")
         testButton2 = QPushButton("Remove first card")
