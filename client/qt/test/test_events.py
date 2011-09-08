@@ -7,23 +7,28 @@ from tarabish.qt.events import *
 from tarabish.thrift.ttypes import EventType, Event
 
 
+class StubSignal(object):
+    def connect(self, method):
+        pass
+
+
 class EventRegistryTests(unittest.TestCase):
     
     def test_connect_adds_new_type(self):
-        dispatcher = EventDispatcher()
+        dispatcher = EventDispatcher(StubSignal())
         self.assertFalse(EventType.CHAT in dispatcher.event_connections)
         dispatcher.connect(EventType.CHAT, self.a_method)
         self.assertTrue(EventType.CHAT in dispatcher.event_connections)
         
     def test_connect_adds_dispatchable(self):
-        dispatcher = EventDispatcher()
+        dispatcher = EventDispatcher(StubSignal())
         dispatcher.connect(EventType.CHAT, self.a_method)
         self.assertTrue(EventType.CHAT in dispatcher.event_connections)
         self.assertEquals(1, len(dispatcher.event_connections[EventType.CHAT]))      
         self.assertEquals(self.a_method, dispatcher.event_connections[EventType.CHAT][0].method)
         
     def test_connect_adds_multiple_displatchables(self):
-        dispatcher = EventDispatcher()
+        dispatcher = EventDispatcher(StubSignal())
         dispatcher.connect(EventType.CHAT, self.a_method)
         dispatcher.connect(EventType.CHAT, self.b_method)
         self.assertTrue(EventType.CHAT in dispatcher.event_connections)
@@ -37,7 +42,7 @@ class EventRegistryTests(unittest.TestCase):
         def update_count(type):
             self.calls += 1
         
-        dispatcher = EventDispatcher()
+        dispatcher = EventDispatcher(StubSignal())
         dispatcher.connect(EventType.CHAT, update_count)
         dispatcher.connect(EventType.CHAT, update_count)
         dispatcher.connect(EventType.SIT, update_count)
