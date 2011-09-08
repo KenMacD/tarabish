@@ -34,14 +34,14 @@ class ChatWidget(QWidget):
         self.messages.append(self.message_box.text())
         self.message_box.clear()
 
-class TableTop(QWidget):
+class TableTopWidget(QWidget):
     MARGIN = 6
 
     def __init__(self, parent=None):
-        super(TableTop, self).__init__(parent)
+        super(TableTopWidget, self).__init__(parent)
 
-        self.width = CARD_WIDTH * 2 + CARD_HEIGHT * 2 + self.MARGIN * 2
-        self.height = self.width
+        self.width = CARD_WIDTH * 3 + self.MARGIN * 2
+        self.height = CARD_HEIGHT * 3 + self.MARGIN * 2
         self.setFixedSize(self.width, self.height)
 
         self.north_position = QPoint(CARD_WIDTH + self.MARGIN, 0)
@@ -153,7 +153,7 @@ class Table(QDialog):
 
         vbox = QVBoxLayout()
 
-        table_top = TableTop()
+        table_top = TableTopWidget()
         vbox.addWidget(table_top)
 
         testButton = QPushButton("Create cards")
