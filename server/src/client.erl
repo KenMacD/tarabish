@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Cmd Socket:
--export([send_chat/3, join_table/2, part_table/2, sit/3, stand/2,
+-export([chat/3, join_table/2, part_table/2, sit/3, stand/2,
     start_game/2, call_trump/3, play_card/3, play_bella/3,
     call_run/2, show_run/2]).
 
@@ -37,7 +37,7 @@ quit(Client) ->
 subscribe(Client, Pid) ->
   gen_server:cast(Client, {subscribe, Pid}).
 
-send_chat(Client, TableId, Message) ->
+chat(Client, TableId, Message) ->
   gen_server:call(Client, {chat, TableId, Message}).
 
 join_table(Client, TableId) ->
