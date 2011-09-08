@@ -11,8 +11,11 @@ CARD_WIDTH = 64
 CARD_HEIGHT = 90
 
 class ChatWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, server, table_id, parent=None):
         super(ChatWidget, self).__init__(parent)
+        self.server = server
+        self.table_id = table_id
+        
         send_button = QPushButton("Send")
         self.message_box = QLineEdit()
         self.messages = QTextBrowser()
@@ -27,10 +30,18 @@ class ChatWidget(QWidget):
         self.setLayout(chat_container)
 
         send_button.clicked.connect(self._send_message)
+        
+        self.server.eventDispatcher.connect(EventType.CHAT, self._handle_chat_message)
+        
+    def _handle_chat_message(self, message):
+        self.messages.append(message)
 
     def _send_message(self):
-        # TODO [mstead] Send message via server
-        self.messages.append(self.message_box.text())
+        message = self.message_box.text()
+        if not message:
+            return
+
+        self.server.chat(self.table_id, message)
         self.message_box.clear()
 
 class TableTopWidget(QWidget):
@@ -138,7 +149,7 @@ class CardBoxWidget(QWidget):
 
 
 class Table(QDialog):
-    def __init__(self, tableId, eventDispatcher, logger, parent=None):
+    def __init__(self, tableId, server, logger, parent=None):
         super(Table, self).__init__(parent)
         self.tableId = tableId
         self.logger = logger
@@ -146,7 +157,7 @@ class Table(QDialog):
         self.resize(800, 600)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(ChatWidget())
+        hbox.addWidget(ChatWidget(server, self.tableId))
 
         vbox = QVBoxLayout()
 
@@ -186,7 +197,7 @@ class Table(QDialog):
 
         self.setLayout(vbox)
 
-        eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
+        server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
 
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)

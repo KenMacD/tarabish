@@ -179,8 +179,7 @@ class MainForm(QDialog):
 
         try:
             self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.server.eventDispatcher,
-                          self.logger, self)
+            table = Table(tableSeatCell.tableId, self.server, self.logger, self)
             self.tables.append(table)
             table.show()
             self.tablesTable.updating()
