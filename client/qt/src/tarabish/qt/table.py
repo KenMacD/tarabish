@@ -194,15 +194,16 @@ class Table(QDialog):
 
         vbox = QVBoxLayout()
 
-        top_grid = QGridLayout()
+        seat_grid = QGridLayout()
 
         for seat in self.mapping.values():
-            top_grid.addWidget(seat.make_label(), seat.x, seat.y)
+            seat_grid.addWidget(seat.make_label(), seat.x, seat.y)
 
         table_top = TableTopWidget()
-        top_grid.addWidget(table_top, 1, 1)
+        seat_grid.addWidget(table_top, 1, 1)
+        self.seat_grid = seat_grid
 
-        vbox.addLayout(top_grid)
+        vbox.addLayout(seat_grid)
 
         testButton = QPushButton("Create cards")
         testButton2 = QPushButton("Remove first card")
@@ -233,4 +234,11 @@ class Table(QDialog):
         self.cardBox.del_card(0)
         
     def handle_sit_event(self, name, table, seat):
+        mapping = self.mapping[seat]
+        old_label = self.seat_grid.itemAtPosition(mapping.x, mapping.y).widget()
+        old_label.hide()
+        old_label.setParent(None)
+        mapping.set_name(name)
+        self.seat_grid.addWidget(mapping.make_label(), mapping.x, mapping.y)
+
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
