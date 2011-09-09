@@ -31,7 +31,9 @@ class ChatWidget(QWidget):
 
         send_button.clicked.connect(self._send_message)
         
-        self.server.eventDispatcher.connect(EventType.CHAT, self._handle_chat_message)
+        self.server.eventDispatcher.connect(EventType.CHAT,
+                                            self._handle_chat_message,
+                                            self.table_id)
         
     def _handle_chat_message(self, table, name, message):
         display = "%s: %s" % (name, message)
