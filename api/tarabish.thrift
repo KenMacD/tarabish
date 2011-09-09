@@ -146,7 +146,7 @@ service Tarabish
 	list<TableView> getTables()
 		throws (1:InvalidOperation invalid)
 
-	void sit(1: i32 table_id, 2: byte seat)
+	TableView sit(1: i32 table_id, 2: byte seat)
 		throws (1:InvalidOperation invalid)
 
 	void stand(1: i32 table_id)
