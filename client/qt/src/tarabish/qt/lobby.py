@@ -177,9 +177,13 @@ class MainForm(QDialog):
         self.logger.append("Joining table %d, seat %d" % (tableSeatCell.tableId,
             tableSeatCell.seat))
 
+        table_id = tableSeatCell.tableId
+        seat_num = tableSeatCell.seat
+
         try:
-            self.server.sit(tableSeatCell.tableId, tableSeatCell.seat)
-            table = Table(tableSeatCell.tableId, self.server, self.logger, self)
+            table_view = self.server.sit(table_id, seat_num)
+            table = Table(table_id, seat_num, table_view, self.server,
+                    self.logger, self)
             self.tables.append(table)
             table.show()
             self.tablesTable.updating()

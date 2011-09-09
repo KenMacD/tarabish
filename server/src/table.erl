@@ -135,7 +135,7 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
         NewObservers = lists:delete(ClientName, State#state.observers),
         NewState = State#state{members=NewMembers, seats=NewSeats, observers=NewObservers},
         update_server(NewState),
-        {reply, ok, NewState};
+        {reply, {ok, make_table_view(NewState)}, NewState};
       {ok, _Person} ->
           {reply, {error, already_seated}, State};
       error -> % Not at table, join
@@ -144,7 +144,7 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewState = State#state{members=NewMembers, seats=NewSeats},
         update_server(NewState),
-        {reply, ok, NewState}
+        {reply, {ok, make_table_view(NewState)}, NewState}
     end;
   true ->
     {reply, {error, seat_taken}, State}
