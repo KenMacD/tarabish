@@ -2,7 +2,7 @@ from functools import partial
 
 from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
-from tarabish.thrift.ttypes import (Card, EventType)
+from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation)
 from PySide.QtCore import (Signal, QSize, QPoint, Qt)
 from PySide.QtGui import *
 
@@ -158,9 +158,13 @@ class Table(QDialog):
             self.y = y
             self.align = align
             self.name = "<empty>"
+            self.occupied = False
 
         def set_name(self, name):
             self.name = name
+
+        def set_occupied(self, is_occupied):
+            self.occupied = is_occupied
 
         def make_label(self):
             widget = QLabel(self.name)
@@ -171,11 +175,10 @@ class Table(QDialog):
         super(Table, self).__init__(parent)
         self.table_id = table_id
         self.logger = logger
+        self.server = server
+        
         self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
-
-        hbox = QHBoxLayout()
-        hbox.addWidget(ChatWidget(server, self.table_id))
 
         self.mapping = {}
         # North
@@ -191,8 +194,13 @@ class Table(QDialog):
                 Qt.AlignRight | Qt.AlignVCenter, 1, 0)
 
         for (num, seat) in enumerate(table_view.seats):
+            self.mapping[num].set_occupied(not seat.isOpen)
             if not seat.isOpen:
                 self.mapping[num].set_name(seat.name)
+
+        self.start_game_button = QPushButton("Start Game")
+        self.start_game_button.setEnabled(self.is_full())
+        self.start_game_button.clicked.connect(self._start_game)
 
         vbox = QVBoxLayout()
 
@@ -216,7 +224,16 @@ class Table(QDialog):
         self.cardBox = CardBoxWidget(cards)
         self.cardBox.doubleclicked.connect(self.play_card)
         vbox.addWidget(self.cardBox)
-        vbox.addLayout(hbox)
+        
+        game_button_layout = QDialogButtonBox(Qt.Horizontal)
+        game_button_layout.addButton(self.start_game_button, QDialogButtonBox.ActionRole)
+        game_button_layout.setFixedWidth(120)
+        game_button_layout.setCenterButtons(True)
+        
+        chat_and_buttons_box = QHBoxLayout()
+        chat_and_buttons_box.addWidget(ChatWidget(server, self.table_id))
+        chat_and_buttons_box.addWidget(game_button_layout)
+        vbox.addLayout(chat_and_buttons_box)
 
         self.setLayout(vbox)
 
@@ -224,6 +241,12 @@ class Table(QDialog):
 
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
+
+    def is_full(self):
+        for seat_map in self.mapping.itervalues():
+            if not seat_map.occupied:
+                return False
+        return True
 
     def play_card(self, card):
         self.logger.append("Table %d Playing card %s %s" % (self.table_id,
@@ -241,6 +264,16 @@ class Table(QDialog):
         old_label.hide()
         old_label.setParent(None)
         mapping.set_name(name)
+        mapping.set_occupied(True)
         self.seat_grid.addWidget(mapping.make_label(), mapping.x, mapping.y)
 
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
+        
+        self.start_game_button.setEnabled(self.is_full())
+
+    def _start_game(self):
+        try:
+            self.server.startGame(self.table_id)
+            self.logger.append("Game started at table %d." % (self.table_id))
+        except InvalidOperation, e:
+            self.logger.append("Could not start game at table %d: %s" % (self.table_id, e.why))
