@@ -150,35 +150,54 @@ class CardBoxWidget(QWidget):
 
 
 class Table(QDialog):
-    def __init__(self, tableId, server, logger, parent=None):
+    class SeatMapping(object):
+        def __init__(self, align, x, y):
+            self.x = x
+            self.y = y
+            self.align = align
+            self.name = "<empty>"
+
+        def set_name(self, name):
+            self.name = name
+
+        def make_label(self):
+            widget = QLabel(self.name)
+            widget.setAlignment(self.align)
+            return widget
+
+    def __init__(self, table_id, seat_num, table_view, server, logger, parent=None):
         super(Table, self).__init__(parent)
-        self.tableId = tableId
+        self.table_id = table_id
         self.logger = logger
-        self.setWindowTitle("Tarabish Table %d"%(tableId))
+        self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
 
         hbox = QHBoxLayout()
-        hbox.addWidget(ChatWidget(server, self.tableId))
+        hbox.addWidget(ChatWidget(server, self.table_id))
+
+        self.mapping = {}
+        # North
+        self.mapping[(seat_num + 2) % 4] = self.SeatMapping(
+                Qt.AlignCenter, 0, 1)
+        # South
+        self.mapping[seat_num] = self.SeatMapping(Qt.AlignCenter, 2, 1)
+        # East
+        self.mapping[(seat_num - 1) % 4] = self.SeatMapping(
+                Qt.AlignLeft | Qt.AlignVCenter, 1, 2)
+        # West
+        self.mapping[(seat_num + 1) % 4] = self.SeatMapping(
+                Qt.AlignRight | Qt.AlignVCenter, 1, 0)
+
+        for (num, seat) in enumerate(table_view.seats):
+            if not seat.isOpen:
+                self.mapping[num].set_name(seat.name)
 
         vbox = QVBoxLayout()
 
         top_grid = QGridLayout()
 
-        self.north_label = QLabel("<empty>")
-        self.north_label.setAlignment(Qt.AlignCenter)
-        top_grid.addWidget(self.north_label, 0, 1)
-
-        self.west_label = QLabel("<empty>")
-        self.west_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        top_grid.addWidget(self.west_label, 1, 0)
-
-        self.east_label = QLabel("<empty>")
-        self.east_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        top_grid.addWidget(self.east_label, 1, 2)
-
-        self.south_label = QLabel("<empty>")
-        self.south_label.setAlignment(Qt.AlignCenter)
-        top_grid.addWidget(self.south_label, 2, 1)
+        for seat in self.mapping.values():
+            top_grid.addWidget(seat.make_label(), seat.x, seat.y)
 
         table_top = TableTopWidget()
         top_grid.addWidget(table_top, 1, 1)
@@ -204,7 +223,7 @@ class Table(QDialog):
         testButton2.clicked.connect(self.testDelCard)
 
     def play_card(self, card):
-        self.logger.append("Table %d Playing card %s %s" % (self.tableId,
+        self.logger.append("Table %d Playing card %s %s" % (self.table_id,
             str(card.value), str(card.suit)))
 
     def testNewCard(self):
