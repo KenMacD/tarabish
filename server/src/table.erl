@@ -27,8 +27,8 @@ start(Id) ->
 
 %% TODO: check if table is still alive
 chat(Table, From, Message) ->
-  ExpandedMessage = bjoin([From, <<" --> ">>, Message]),
-  Event = #event{type=?tarabish_EventType_CHAT, message=ExpandedMessage},
+  Event = #event{type=?tarabish_EventType_CHAT, table=Table,
+    name=From, message=Message},
   broadcast(Table, Event).
 
 join(Table, ClientName, Client) ->
@@ -348,10 +348,6 @@ send_cards(TableId, Dealer, Cards, MembersDict) ->
                  table=TableId,
                  seat=Dealer},
   send_cards1(Event, Cards, Persons).
-
-bjoin(List) ->
-  F = fun(A, B) -> <<A/binary, B/binary>> end,
-  lists:foldr(F, <<>>, List).
 
 % Passes a list, but returns a tuple.
 get_seat(State, SeatNum) ->

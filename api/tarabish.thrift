@@ -72,7 +72,7 @@ enum EventType {
   SIT,		# table, name, seat
   STAND,	# table, name, seat
 
-  CHAT,		# table, message TODO: update to contain name?
+  CHAT,		# table, name, message
 
   NEW_GAME,	# table
 
