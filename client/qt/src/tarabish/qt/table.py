@@ -33,8 +33,9 @@ class ChatWidget(QWidget):
         
         self.server.eventDispatcher.connect(EventType.CHAT, self._handle_chat_message)
         
-    def _handle_chat_message(self, message):
-        self.messages.append(message)
+    def _handle_chat_message(self, table, name, message):
+        display = "%s: %s" % (name, message)
+        self.messages.append(display)
 
     def _send_message(self):
         message = self.message_box.text()
