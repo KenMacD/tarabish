@@ -95,6 +95,8 @@ handle_call({join, ClientName, Client}, _From, State) ->
   end;
 
 handle_call({part, ClientName}, _From, State) ->
+  StandEvent = #event{type=?tarabish_EventType_STAND,
+                      name=ClientName},
   Event = #event{type=?tarabish_EventType_PART,
                  name=ClientName},
   case orddict:find(ClientName, State#state.members) of
@@ -106,6 +108,7 @@ handle_call({part, ClientName}, _From, State) ->
       update_server(NewState),
       {reply, ok, NewState};
     {ok, #person{seat=SeatNum} = _Person} ->
+      send_event_all(StandEvent#event{seat=SeatNum}, State),
       send_event_all(Event, State),
       cancel_game(State),
       NewMembers = orddict:erase(ClientName, State#state.members),
