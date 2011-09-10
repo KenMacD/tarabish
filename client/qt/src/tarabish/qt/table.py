@@ -219,6 +219,7 @@ class Table(QDialog):
         self.setLayout(vbox)
 
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
+        server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event)
 
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
@@ -233,7 +234,7 @@ class Table(QDialog):
     def testDelCard(self):
         self.cardBox.del_card(0)
         
-    def handle_sit_event(self, name, table, seat):
+    def _change_seat_label(self, seat, name):
         mapping = self.mapping[seat]
         old_label = self.seat_grid.itemAtPosition(mapping.x, mapping.y).widget()
         old_label.hide()
@@ -241,4 +242,11 @@ class Table(QDialog):
         mapping.set_name(name)
         self.seat_grid.addWidget(mapping.make_label(), mapping.x, mapping.y)
 
+    def handle_sit_event(self, name, table, seat):
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
+        self._change_seat_label(seat, name)
+
+    def handle_stand_event(self, name, table, seat):
+        self.logger.append("TABLE: User %s stood from table %d seat %d" %(name,
+            table, seat))
+        self._change_seat_label(seat, "<empty>")
