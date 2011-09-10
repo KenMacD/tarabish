@@ -160,7 +160,7 @@ handle_call({stand, ClientName}, _From, State) ->
     {ok, #person{seat=none} = _Person} ->
       {reply, {error, not_seated}, State};
     {ok, #person{seat=SeatNum} = Person} ->
-      send_event_all(Event, State),
+      send_event_all(Event#event{seat=SeatNum}, State),
       cancel_game(State),
       NewPerson = Person#person{seat=none},
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
