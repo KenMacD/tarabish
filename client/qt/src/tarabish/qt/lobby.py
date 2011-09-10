@@ -4,7 +4,6 @@ from PySide.QtGui import *
 from tarabish.thrift.ttypes import InvalidOperation, EventType
 from table import Table
 
-
 class TableSeatCell(QTableWidgetItem):
     def __init__(self, string, tableId, seat):
         super(TableSeatCell, self).__init__(string)
@@ -129,9 +128,10 @@ class LoginFrame(QFrame):
 
 class MainForm(QDialog):
 
-    def __init__(self, server, parent=None):
+    def __init__(self, server, resource_path, parent=None):
         super(MainForm, self).__init__(parent)
 
+        self.resource_path = resource_path
         self.server = server
         self.tables = []
         self.logger = QTextBrowser()
@@ -183,7 +183,7 @@ class MainForm(QDialog):
         try:
             table_view = self.server.sit(table_id, seat_num)
             table = Table(table_id, seat_num, table_view, self.server,
-                    self.logger, self)
+                    self.logger, self.resource_path, self)
             self.tables.append(table)
             table.show()
             self.tablesTable.updating()

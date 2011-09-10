@@ -6,9 +6,7 @@ from tarabish.thrift.ttypes import (Card, EventType)
 from PySide.QtCore import (Signal, QSize, QPoint, Qt)
 from PySide.QtGui import *
 
-# General cards seem to be 2.5" by 3.5", so match that ratio
-CARD_WIDTH = 64
-CARD_HEIGHT = 90
+from cardlib import (get_card, CARD_WIDTH, CARD_HEIGHT)
 
 class ChatWidget(QWidget):
     def __init__(self, server, table_id, parent=None):
@@ -48,7 +46,7 @@ class ChatWidget(QWidget):
 class TableTopWidget(QWidget):
     MARGIN = 6
 
-    def __init__(self, parent=None):
+    def __init__(self, resource_path, parent=None):
         super(TableTopWidget, self).__init__(parent)
 
         self.width = CARD_WIDTH * 3 + self.MARGIN * 2
@@ -62,16 +60,16 @@ class TableTopWidget(QWidget):
         self.east_position = QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
                 CARD_HEIGHT + self.MARGIN)
 
-        n = CardWidget(Card(2, SPADES), self)
+        n = CardWidget(resource_path, Card(6, SPADES), self)
         n.move(self.north_position)
 
-        s = CardWidget(Card(4, SPADES), self)
+        s = CardWidget(resource_path, Card(7, SPADES), self)
         s.move(self.south_position)
 
-        e = CardWidget(Card(3, SPADES), self)
+        e = CardWidget(resource_path, Card(8, SPADES), self)
         e.move(self.east_position)
 
-        w = CardWidget(Card(5, SPADES), self)
+        w = CardWidget(resource_path, Card(9, SPADES), self)
         w.move(self.west_position)
 
     def sizeHint(self):
@@ -87,24 +85,18 @@ class CardWidget(QWidget):
     suit = {CLUBS: "C", SPADES: "S", HEARTS: "H", DIAMONDS: "D"}
     value = {JACK: "J", QUEEN: "Q", KING: "K", ACE: "A"}
 
-    def __init__(self, pyCard, parent=None):
+    def __init__(self, resource_path, pyCard, parent=None):
         super(CardWidget, self).__init__(parent)
 
         self.card = pyCard
-        frame = QFrame(self)
-        frame.setFrameStyle(QFrame.Box);
-        frame.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
 
-        suit = CardWidget.suit[pyCard.suit]
-        if pyCard.value > 10:
-            value = CardWidget.value[pyCard.value]
-        else:
-            value = str(pyCard.value)
+        card_pixels = get_card(resource_path, pyCard.value, pyCard.suit)
 
-        value = "%s %s" %(value, suit)
-
-        valueLabel = QLabel(value, self)
-        valueLabel.move(1, 0)
+        img = QLabel(self)
+        img.setPixmap(card_pixels)
+        img.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        img.move(0,0)
+        img.show()
 
     def sizeHint(self):
         return self.minimumSizeHint()
@@ -118,8 +110,10 @@ class CardWidget(QWidget):
 class CardBoxWidget(QWidget):
     doubleclicked = Signal(Card)
 
-    def __init__(self, cards=None, trump=None, parent=None):
+    def __init__(self, resource_path, cards=None, trump=None, parent=None):
         super(CardBoxWidget, self).__init__(parent)
+
+        self.resource_path = resource_path
 
         self.resize(200, 100)
 
@@ -134,7 +128,7 @@ class CardBoxWidget(QWidget):
 
     def add_cards(self, cards):
         for card in cards:
-            item = CardWidget(card)
+            item = CardWidget(self.resource_path, card)
             item.doubleclicked.connect(partial(self.cardDoubleClickEvent, card))
             self.cards.append(item)
 
@@ -165,7 +159,8 @@ class Table(QDialog):
             widget.setAlignment(self.align)
             return widget
 
-    def __init__(self, table_id, seat_num, table_view, server, logger, parent=None):
+    def __init__(self, table_id, seat_num, table_view, server, logger,
+            resource_path, parent=None):
         super(Table, self).__init__(parent)
         self.table_id = table_id
         self.logger = logger
@@ -199,19 +194,19 @@ class Table(QDialog):
         for seat in self.mapping.values():
             seat_grid.addWidget(seat.make_label(), seat.x, seat.y)
 
-        table_top = TableTopWidget()
+        table_top = TableTopWidget(resource_path)
         seat_grid.addWidget(table_top, 1, 1)
         self.seat_grid = seat_grid
 
         vbox.addLayout(seat_grid)
 
-        testButton = QPushButton("Create cards")
+        testButton = QPushButton("Create card")
         testButton2 = QPushButton("Remove first card")
         vbox.addWidget(testButton)
         vbox.addWidget(testButton2)
 
         cards = [Card(10, CLUBS), Card(ACE, HEARTS)]
-        self.cardBox = CardBoxWidget(cards)
+        self.cardBox = CardBoxWidget(resource_path, cards)
         self.cardBox.doubleclicked.connect(self.play_card)
         vbox.addWidget(self.cardBox)
         vbox.addLayout(hbox)
@@ -221,6 +216,8 @@ class Table(QDialog):
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
         server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event)
 
+        self.testsuit = 1
+        self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
 
@@ -229,7 +226,15 @@ class Table(QDialog):
             str(card.value), str(card.suit)))
 
     def testNewCard(self):
-        self.cardBox.add_cards([Card(JACK, SPADES), Card(9, DIAMONDS)])
+        self.cardBox.add_cards([Card(self.testvalue, self.testsuit)])
+        if self.testvalue == ACE and self.testsuit == 4:
+            self.testvalue = 6
+            self.testsuit = 1
+        elif self.testvalue == ACE:
+            self.testvalue = 6
+            self.testsuit = self.testsuit + 1
+        else:
+            self.testvalue = self.testvalue + 1
 
     def testDelCard(self):
         self.cardBox.del_card(0)

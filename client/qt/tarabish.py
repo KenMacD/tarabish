@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 import sys
+import os
+
+our_path = os.path.dirname(__file__)
+resource_path = os.path.dirname(__file__) + "/resources/"
+sys.path.insert(0,our_path + "/src/")
 
 from PySide.QtGui import QApplication
 from tarabish.qt.connection import ServerEvents, ServerConnection
@@ -13,7 +18,7 @@ app = QApplication(sys.argv)
 
 serverEvents = ServerEvents()
 server = ServerConnection(app, serverEvents)
-main = MainForm(server)
+main = MainForm(server, resource_path)
 main.resize(600, 600)
 main.show()
 main.raise_()
