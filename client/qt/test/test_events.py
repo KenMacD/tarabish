@@ -85,9 +85,26 @@ class DispatchableTests(unittest.TestCase):
         chat_event = Event(EventType.CHAT, message=expected_message)
         dispatchable = Dispatchable(EventType.CHAT, self.invalid_parameter)
         self.assertRaises(DispatchError, dispatchable.dispatch, chat_event)
+
+    def test_dispatch_filters_by_table_id(self):
+        expected_message = "Test Message"
+        table_id = 1123
+        chat_event = Event(EventType.CHAT, message=expected_message, table=2222)
+        dispatchable = Dispatchable(EventType.CHAT, self.say_message, table_id=table_id)
+        dispatchable.dispatch(chat_event)
+        self.assertEquals(None, self.message_after_say_message)
+
+    def test_dispatch_runs_on_table_id_match(self):
+        expected_message = "Test Message"
+        table_id = 1123
+        chat_event = Event(EventType.CHAT, message=expected_message, table=table_id)
+        dispatchable = Dispatchable(EventType.CHAT, self.say_message, table_id=table_id)
+        dispatchable.dispatch(chat_event)
+        self.assertEquals(expected_message, self.message_after_say_message)
     
     def say_message(self, message):
         self.message_after_say_message = message
     
     def invalid_parameter(self, this_param_is_not_an_event_field):
         pass
+
