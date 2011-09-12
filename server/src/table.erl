@@ -183,10 +183,15 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, _Person} ->
-      Event = #event{type=?tarabish_EventType_NEW_GAME},
-      send_event_all(Event, State),
-      {ok, Game} = game:start_link(self()),
-      {reply, ok, State#state{game=Game}};
+      case is_full(State#state.seats) of
+        true ->
+          Event = #event{type=?tarabish_EventType_NEW_GAME},
+          send_event_all(Event, State),
+          {ok, Game} = game:start_link(self()),
+          {reply, ok, State#state{game=Game}};
+        false ->
+          {reply, {error, need_full_table}, State}
+      end;
     error ->
       {reply, {error, not_at_table}, State}
   end;
@@ -384,3 +389,14 @@ make_one_seat_view(empty) ->
 make_one_seat_view(Seat) ->
   #seatView{isOpen=false, name=Seat#client.name}.
 
+is_full(Seats) when is_tuple(Seats) ->
+  is_full(tuple_to_list(Seats));
+
+is_full([]) ->
+  true;
+
+is_full([empty|_Rest]) ->
+  false;
+
+is_full([_Seat|Rest]) ->
+  is_full(Rest).
