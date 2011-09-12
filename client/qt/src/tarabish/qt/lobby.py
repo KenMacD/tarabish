@@ -174,6 +174,10 @@ class MainForm(QDialog):
         self.tablesTable.itemDoubleClicked.connect(self.handleSit)
 
     def handleSit(self, tableSeatCell):
+        # Not a seat column
+        if tableSeatCell.column() == 0:
+            return
+        
         self.logger.append("Joining table %d, seat %d" % (tableSeatCell.tableId,
             tableSeatCell.seat))
 
