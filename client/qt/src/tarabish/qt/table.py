@@ -172,6 +172,7 @@ class Table(QDialog):
         self.logger = logger
         self.server = server
         
+        
         self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
 
@@ -239,6 +240,26 @@ class Table(QDialog):
         self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
+
+    def closeEvent(self, event):
+        # TODO For now we assume that if you are looking at a table,
+        # then you are sitting. When observers are allowed
+        message_box = self._create_warning_box()
+        answer = message_box.exec_()
+        
+        if answer == QMessageBox.Ok:
+            event.accept()
+        else:
+            event.ignore()
+
+    def _create_warning_box(self):
+        message_box = QMessageBox(self)
+        message_box.setText("You are about to leave this table, and quit the game.")
+        message_box.setInformativeText("Are you sure you would like to leave the game?")
+        message_box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        message_box.setDefaultButton(QMessageBox.Cancel)
+        message_box.setIcon(QMessageBox.Warning)
+        return message_box
 
     def is_full(self):
         for seat_map in self.mapping.itervalues():
