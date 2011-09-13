@@ -248,6 +248,7 @@ class Table(QDialog):
         answer = message_box.exec_()
         
         if answer == QMessageBox.Ok:
+            self.server.stand(self.table_id)
             event.accept()
         else:
             event.ignore()

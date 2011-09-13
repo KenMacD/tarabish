@@ -24,6 +24,7 @@ class TablesTable(QTableWidget):
         refreshButton.clicked.connect(self.updating)
         
         server.eventDispatcher.connect(EventType.SIT, self.handle_player_sat_down)
+        server.eventDispatcher.connect(EventType.STAND, self.handle_player_stands)
 
     def startUpdating(self):
         self.logger.append("Start Updating")
@@ -70,6 +71,10 @@ class TablesTable(QTableWidget):
 
     def handle_player_sat_down(self, name, table, seat):
         self.logger.append("LOBBY: User %s takes seat #%d at table #%d" % (name, seat, table))
+        self.updating()
+
+    def handle_player_stands(self, table, seat, name):
+        self.logger.append("LOBBY: User %s stands from seat #%d at table #%d" % (name, seat, table))
         self.updating()
 
 class LoginFrame(QFrame):
