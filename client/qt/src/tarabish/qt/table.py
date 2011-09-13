@@ -120,7 +120,6 @@ class CardBoxWidget(QWidget):
         self.resize(200, 100)
 
         self.cardLayout = QHBoxLayout()
-        self.cardLayout.addStretch()
         self.setLayout(self.cardLayout)
 
         self.cards = []
@@ -128,13 +127,46 @@ class CardBoxWidget(QWidget):
 
         self.trump = trump
 
+    # TODO: sort J, 9, A, 10 if trump.
+    def _compare_card(self, card_item1, card_item2):
+        card1 = card_item1.card
+        card2 = card_item2.card
+        if card1.suit != card2.suit:
+            return card1.suit - card2.suit
+        else:
+            if card1.value == ACE:
+                return 1
+            elif card2.value == ACE:
+                return -1
+            elif card1.value == 10:
+                return 1
+            elif card2.value == 10:
+                return -1
+            else:
+                return card1.value - card2.value
+
+    def _reset_layout(self):
+        while True:
+            rm_card = self.cardLayout.takeAt(0)
+            if not rm_card:
+                break
+        self.cardLayout.addStretch()
+
     def add_cards(self, cards):
         for card in cards:
             item = CardWidget(self.resource_path, card)
             item.doubleclicked.connect(partial(self.cardDoubleClickEvent, card))
             self.cards.append(item)
 
-            self.cardLayout.insertWidget(self.cardLayout.count() - 1, item)
+        # Remove all the cards:
+        self._reset_layout()
+
+        # Sort
+        self.cards = sorted(self.cards, cmp=self._compare_card)
+
+        # And add them back in:
+        for card_item in self.cards:
+            self.cardLayout.insertWidget(self.cardLayout.count() - 1, card_item)
 
     def cardDoubleClickEvent(self, card):
         self.doubleclicked.emit(card)
@@ -215,10 +247,9 @@ class Table(QDialog):
         vbox.addWidget(testButton)
         vbox.addWidget(testButton2)
 
-        cards = [Card(10, CLUBS), Card(ACE, HEARTS)]
-        self.cardBox = CardBoxWidget(resource_path, cards)
-        self.cardBox.doubleclicked.connect(self.play_card)
-        vbox.addWidget(self.cardBox)
+        self.card_box = CardBoxWidget(resource_path, [])
+        self.card_box.doubleclicked.connect(self.play_card)
+        vbox.addWidget(self.card_box)
         
         game_button_layout = QDialogButtonBox(Qt.Horizontal)
         game_button_layout.addButton(self.start_game_button, QDialogButtonBox.ActionRole)
@@ -234,6 +265,7 @@ class Table(QDialog):
 
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
         server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event)
+        server.eventDispatcher.connect(EventType.DEAL, self.handle_deal)
 
         self.testsuit = 1
         self.testvalue = 6
@@ -251,7 +283,7 @@ class Table(QDialog):
             str(card.value), str(card.suit)))
 
     def testNewCard(self):
-        self.cardBox.add_cards([Card(self.testvalue, self.testsuit)])
+        self.card_box.add_cards([Card(self.testvalue, self.testsuit)])
         if self.testvalue == ACE and self.testsuit == 4:
             self.testvalue = 6
             self.testsuit = 1
@@ -262,7 +294,7 @@ class Table(QDialog):
             self.testvalue = self.testvalue + 1
 
     def testDelCard(self):
-        self.cardBox.del_card(0)
+        self.card_box.del_card(0)
         
     def _change_seat_label(self, seat, name):
         mapping = self.mapping[seat]
@@ -282,6 +314,9 @@ class Table(QDialog):
         self.logger.append("TABLE: User %s stood from table %d seat %d" %(name,
             table, seat))
         self._change_seat_label(seat, "<empty>")
+
+    def handle_deal(self, dealt): # Ignore seat (first deal seat), not used yet
+        self.card_box.add_cards(dealt)
 
     def _start_game(self):
         try:
