@@ -145,7 +145,7 @@ class CardBoxWidget(QWidget):
         card.widget().setParent(None)
 
 
-class Table(QDialog):
+class Table(QMainWindow):
     class SeatMapping(object):
         def __init__(self, align, x, y):
             self.x = x
@@ -231,7 +231,9 @@ class Table(QDialog):
         chat_and_buttons_box.addWidget(game_button_layout)
         vbox.addLayout(chat_and_buttons_box)
 
-        self.setLayout(vbox)
+        main = QFrame()
+        main.setLayout(vbox)
+        self.setCentralWidget(main)
 
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
         server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event)

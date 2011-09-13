@@ -131,7 +131,7 @@ class LoginFrame(QFrame):
             self.logger.append("<b>Failed: %s</b>" % (str(exc)))
 
 
-class MainForm(QDialog):
+class MainForm(QMainWindow):
 
     def __init__(self, server, resource_path, parent=None):
         super(MainForm, self).__init__(parent)
@@ -172,7 +172,10 @@ class MainForm(QDialog):
         layout.addWidget(self.login)
         layout.addWidget(line)
         layout.addLayout(bottomLayout)
-        self.setLayout(layout)
+
+        main = QFrame()
+        main.setLayout(layout)
+        self.setCentralWidget(main)
 
         self.setWindowTitle("Tarabish Test Client")
 
