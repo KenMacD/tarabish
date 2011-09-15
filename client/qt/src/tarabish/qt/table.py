@@ -266,8 +266,8 @@ class Table(QMainWindow):
         main.setLayout(vbox)
         self.setCentralWidget(main)
 
-        server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event)
-        server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event)
+        server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event, table_id)
+        server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event, table_id)
         server.eventDispatcher.connect(EventType.DEAL, self.handle_deal)
 
         self.testsuit = 1
