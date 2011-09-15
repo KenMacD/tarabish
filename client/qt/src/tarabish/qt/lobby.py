@@ -109,15 +109,22 @@ class LoginFrame(QFrame):
         self.server.connected.connect(self.handleConnected)
         self.server.disconnected.connect(self.handleDisconnected)
 
+    def _enable_connection_widgets(self, enabled):
+        self.host.setEnabled(enabled)
+        self.name.setEnabled(enabled)
+
     def handleConnected(self):
         self.logger.append("<b>Connected</b>")
         self.connected = True
         self.connectButton.setText("Disconnect")
+        self._enable_connection_widgets(False)
 
     def handleDisconnected(self):
         self.logger.append("<b>Disconnected</b>")
         self.connected = False
         self.connectButton.setText("Connect")
+        self._enable_connection_widgets(True)
+        self.name.clear()
 
     def pressConnectButton(self):
         try:
