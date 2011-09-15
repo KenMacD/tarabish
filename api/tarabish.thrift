@@ -23,10 +23,10 @@ const byte QUEEN  = 12
 const byte KING   = 13
 const byte ACE    = 14
 
-const byte SPADES   = 1
-const byte HEARTS   = 2
-const byte DIAMONDS = 3
-const byte CLUBS    = 4
+const byte CLUBS    = 1
+const byte DIAMONDS = 2
+const byte SPADES   = 3
+const byte HEARTS   = 4
 
 struct Card {
   1: byte value,
