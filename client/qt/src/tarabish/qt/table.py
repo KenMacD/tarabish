@@ -200,6 +200,8 @@ class Table(QMainWindow):
     def __init__(self, table_id, seat_num, table_view, server, logger,
             resource_path, parent=None):
         super(Table, self).__init__(parent)
+
+        self.setAttribute(Qt.WA_QuitOnClose, False)
         self.table_id = table_id
         self.logger = logger
         self.server = server

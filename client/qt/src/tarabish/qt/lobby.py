@@ -202,7 +202,7 @@ class MainForm(QMainWindow):
         try:
             table_view = self.server.sit(table_id, seat_num)
             table = Table(table_id, seat_num, table_view, self.server,
-                    self.logger, self.resource_path, self)
+                    self.logger, self.resource_path)
             self.tables.append(table)
             table.show()
             self.tablesTable.updating()
