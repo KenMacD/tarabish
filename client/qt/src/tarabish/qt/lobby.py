@@ -177,7 +177,7 @@ class MainForm(QMainWindow):
         main.setLayout(layout)
         self.setCentralWidget(main)
 
-        self.setWindowTitle("Tarabish Test Client")
+        self.setWindowTitle("Tarabish")
 
         self.tablesTable.itemDoubleClicked.connect(self.handleSit)
 
