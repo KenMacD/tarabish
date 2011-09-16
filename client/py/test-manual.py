@@ -12,11 +12,14 @@ import string
 
 from tarabish.thrift import Tarabish, TarabishMsg
 from tarabish.thrift.ttypes import *
+from tarabish.thrift.constants import *
 
 from thrift import Thrift
 from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
+
+from event import print_event
 
 # Make socket
 transport = TSocket.TSocket('localhost', 42745)
@@ -67,7 +70,8 @@ def event_loop(cookie):
     while True:
         try:
             events = ec.getEventsTimeout(300000)
-            print "Event: " + str(events)
+            for event in events:
+                print_event(event, -1)
         except InvalidOperation:
             print "Bad getEventsTimeout call"
             return 0
