@@ -325,8 +325,7 @@ class Table(QMainWindow):
     def _change_seat_label(self, seat, name):
         mapping = self.mapping[seat]
         old_label = self.seat_grid.itemAtPosition(mapping.x, mapping.y).widget()
-        old_label.hide()
-        old_label.setParent(None)
+        old_label.close()
         mapping.set_name(name)
         mapping.set_occupied(True)
         self.seat_grid.addWidget(mapping.make_label(), mapping.x, mapping.y)
