@@ -49,6 +49,7 @@ class ChatWidget(QWidget):
 
 class TableTopWidget(QWidget):
     MARGIN = 6
+    trump_selected = Signal(int)
 
     def __init__(self, resource_path, parent=None):
         super(TableTopWidget, self).__init__(parent)
@@ -78,6 +79,7 @@ class TableTopWidget(QWidget):
 
         self.trump_select = TrumpWidget(resource_path, self)
         self.trump_select.setAutoFillBackground(True)
+        self.trump_select.selected.connect(self.trump_selected)
 
         rect = self.trump_select.frameGeometry()
         mid_point = self.geometry().center()
@@ -231,6 +233,7 @@ class Table(QMainWindow):
         self.table_id = table_id
         self.logger = logger
         self.server = server
+        self.seat_num = seat_num
         
         self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
@@ -264,6 +267,7 @@ class Table(QMainWindow):
             seat_grid.addWidget(seat.make_label(), seat.x, seat.y)
 
         self.table_top = TableTopWidget(resource_path)
+        self.table_top.trump_selected.connect(self.select_trump)
 
         seat_grid.addWidget(self.table_top, 1, 1)
         self.seat_grid = seat_grid
@@ -271,10 +275,8 @@ class Table(QMainWindow):
 
         testButton = QPushButton("Create card")
         testButton2 = QPushButton("Remove first card")
-        testButton3 = QPushButton("Swap table")
         vbox.addWidget(testButton)
         vbox.addWidget(testButton2)
-        vbox.addWidget(testButton3)
 
         self.card_box = CardBoxWidget(resource_path, [])
         self.card_box.doubleclicked.connect(self.play_card)
@@ -296,14 +298,15 @@ class Table(QMainWindow):
 
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event, table_id)
         server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event, table_id)
-        server.eventDispatcher.connect(EventType.DEAL, self.handle_deal)
+        server.eventDispatcher.connect(EventType.DEAL, self.handle_deal,
+                table_id)
+        server.eventDispatcher.connect(EventType.ASK_TRUMP,
+                self.handle_ask_trump, table_id)
 
         self.testsuit = 1
         self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
-        testButton3.clicked.connect(self.testSwap)
-        self._showingTrump = False
 
     def closeEvent(self, event):
         # TODO For now we assume that if you are looking at a table,
@@ -312,7 +315,7 @@ class Table(QMainWindow):
         answer = message_box.exec_()
         
         if answer == QMessageBox.Ok:
-            self.server.stand(self.table_id)
+            self.server.partTable(self.table_id)
             event.accept()
         else:
             event.ignore()
@@ -336,6 +339,14 @@ class Table(QMainWindow):
         self.logger.append("Table %d Playing card %s %s" % (self.table_id,
             str(card.value), str(card.suit)))
 
+    def select_trump(self, suit):
+        try:
+            self.server.callTrump(self.table_id, suit)
+            self.table_top.hide_trump_select()
+        except InvalidOperation as exc:
+            self.logger.append("Table %d could not call trump: %s" %
+                    (self.table_id, str(exc)))
+
     def testNewCard(self):
         self.card_box.add_cards([Card(self.testvalue, self.testsuit)])
         if self.testvalue == ACE and self.testsuit == 4:
@@ -350,14 +361,6 @@ class Table(QMainWindow):
     def testDelCard(self):
         self.card_box.del_card(0)
 
-    def testSwap(self):
-        if not self._showingTrump:
-            self._showingTrump = True
-            self.table_top.show_trump_select()
-        else:
-            self._showingTrump = False
-            self.table_top.hide_trump_select()
-        
     def _change_seat_label(self, seat, name):
         mapping = self.mapping[seat]
         old_label = self.seat_grid.itemAtPosition(mapping.x, mapping.y).widget()
@@ -378,6 +381,12 @@ class Table(QMainWindow):
 
     def handle_deal(self, dealt): # Ignore seat (first deal seat), not used yet
         self.card_box.add_cards(dealt)
+
+    def handle_ask_trump(self, seat):
+        if seat == self.seat_num:
+            self.table_top.show_trump_select()
+        else:
+            self.logger.append("TABLE: Seat %d asked trump" % (seat))
 
     def _start_game(self):
         try:
