@@ -3,10 +3,12 @@ from functools import partial
 from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation)
+
 from PySide.QtCore import (Signal, QSize, QPoint, Qt)
 from PySide.QtGui import *
 
-from cardlib import (get_card, CARD_WIDTH, CARD_HEIGHT)
+from trumpwidget import TrumpWidget
+from cardlib import (CardSource, CARD_WIDTH, CARD_HEIGHT)
 
 class ChatWidget(QWidget):
     def __init__(self, server, table_id, parent=None):
@@ -62,17 +64,40 @@ class TableTopWidget(QWidget):
         self.east_position = QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
                 CARD_HEIGHT + self.MARGIN)
 
-        n = CardWidget(resource_path, Card(6, SPADES), self)
-        n.move(self.north_position)
+        self.north = CardWidget(resource_path, Card(6, SPADES), self)
+        self.north.move(self.north_position)
 
-        s = CardWidget(resource_path, Card(7, SPADES), self)
-        s.move(self.south_position)
+        self.south = CardWidget(resource_path, Card(7, SPADES), self)
+        self.south.move(self.south_position)
 
-        e = CardWidget(resource_path, Card(8, SPADES), self)
-        e.move(self.east_position)
+        self.east = CardWidget(resource_path, Card(8, SPADES), self)
+        self.east.move(self.east_position)
 
-        w = CardWidget(resource_path, Card(9, SPADES), self)
-        w.move(self.west_position)
+        self.west = CardWidget(resource_path, Card(9, SPADES), self)
+        self.west.move(self.west_position)
+
+        self.trump_select = TrumpWidget(resource_path, self)
+        self.trump_select.setAutoFillBackground(True)
+
+        rect = self.trump_select.frameGeometry()
+        mid_point = self.geometry().center()
+        rect.moveCenter(mid_point)
+        self.trump_select.move(rect.topLeft())
+        self.trump_select.hide()
+
+    def show_trump_select(self):
+        self.north.hide()
+        self.south.hide()
+        self.east.hide()
+        self.west.hide()
+        self.trump_select.show()
+
+    def hide_trump_select(self):
+        self.north.show()
+        self.south.show()
+        self.east.show()
+        self.west.show()
+        self.trump_select.hide()
 
     def sizeHint(self):
         return self.minimumSizeHint()
@@ -92,7 +117,8 @@ class CardWidget(QWidget):
 
         self.card = pyCard
 
-        card_pixels = get_card(resource_path, pyCard.value, pyCard.suit)
+        card_source = CardSource(resource_path)
+        card_pixels = card_source.get_card(pyCard.value, pyCard.suit)
 
         img = QLabel(self)
         img.setPixmap(card_pixels)
@@ -206,7 +232,6 @@ class Table(QMainWindow):
         self.logger = logger
         self.server = server
         
-        
         self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
 
@@ -235,20 +260,21 @@ class Table(QMainWindow):
         vbox = QVBoxLayout()
 
         seat_grid = QGridLayout()
-
         for seat in self.mapping.values():
             seat_grid.addWidget(seat.make_label(), seat.x, seat.y)
 
-        table_top = TableTopWidget(resource_path)
-        seat_grid.addWidget(table_top, 1, 1)
-        self.seat_grid = seat_grid
+        self.table_top = TableTopWidget(resource_path)
 
+        seat_grid.addWidget(self.table_top, 1, 1)
+        self.seat_grid = seat_grid
         vbox.addLayout(seat_grid)
 
         testButton = QPushButton("Create card")
         testButton2 = QPushButton("Remove first card")
+        testButton3 = QPushButton("Swap table")
         vbox.addWidget(testButton)
         vbox.addWidget(testButton2)
+        vbox.addWidget(testButton3)
 
         self.card_box = CardBoxWidget(resource_path, [])
         self.card_box.doubleclicked.connect(self.play_card)
@@ -276,6 +302,8 @@ class Table(QMainWindow):
         self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
+        testButton3.clicked.connect(self.testSwap)
+        self._showingTrump = False
 
     def closeEvent(self, event):
         # TODO For now we assume that if you are looking at a table,
@@ -321,6 +349,14 @@ class Table(QMainWindow):
 
     def testDelCard(self):
         self.card_box.del_card(0)
+
+    def testSwap(self):
+        if not self._showingTrump:
+            self._showingTrump = True
+            self.table_top.show_trump_select()
+        else:
+            self._showingTrump = False
+            self.table_top.hide_trump_select()
         
     def _change_seat_label(self, seat, name):
         mapping = self.mapping[seat]
