@@ -16,7 +16,9 @@ Source if available on GitHub:
 
     .
     ├── api        Thrift API for any servers/clients
-    ├── client-py  Simple python client, mainly for testing
+    ├── client-py
+    │   ├── qt     Qt4 main client
+    │   └── py     Python test client and bot
     └── server     Erlang Tarabish Server
         ├── src
         └── test
@@ -38,9 +40,11 @@ Then the server can be build:
 To start the server run `make start` from the server directory. It will listen
 on port 42745 and 42746 for client connections.
 
+To start a client run `./client/qt/tarabish.py`. 
+
 A bot exists in the client-py directory that can be made to connect. It joins
 the first empty seat and plays any card permitted. Currently a bot has to be
-started from the base directory with `./client-py/bot.py`. Start 4 to get a
+started from the base directory with `./client/py/bot.py`. Start 4 to get a
 game going.
 
 ## Legal #######################################################################
