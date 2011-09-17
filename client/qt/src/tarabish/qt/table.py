@@ -205,25 +205,40 @@ class CardBoxWidget(QWidget):
         card.widget().setParent(None)
 
 
+
 class Table(QMainWindow):
-    class SeatMapping(object):
+    class SeatDisplay():
         def __init__(self, align, x, y):
             self.x = x
             self.y = y
-            self.align = align
+            self.label = QLabel()
+            self.label.setAlignment(align)
+            self.stand()
+
+        def update(self, seat_view):
+            if seat_view.isOpen:
+                self.stand()
+            else:
+                self.sit(seat_view.name)
+
+        def stand(self):
             self.name = "<empty>"
             self.occupied = False
+            self.label.setText(self.name)
 
-        def set_name(self, name):
+        def sit(self, name):
             self.name = name
+            self.occupied = True
+            self.label.setText(self.name)
 
-        def set_occupied(self, is_occupied):
-            self.occupied = is_occupied
+        def is_empty(self):
+            return not self.occupied
 
-        def make_label(self):
-            widget = QLabel(self.name)
-            widget.setAlignment(self.align)
-            return widget
+        def get_label(self):
+            return self.label
+
+    def get_seat_display(self, seat):
+        return self.seats[(2 - self.seat_num + seat) % 4]
 
     def __init__(self, table_id, seat_num, table_view, server, logger,
             resource_path, parent=None):
@@ -238,23 +253,17 @@ class Table(QMainWindow):
         self.setWindowTitle("Tarabish Table %d"%(table_id))
         self.resize(800, 600)
 
-        self.mapping = {}
-        # North
-        self.mapping[(seat_num + 2) % 4] = self.SeatMapping(
-                Qt.AlignCenter, 0, 1)
-        # South
-        self.mapping[seat_num] = self.SeatMapping(Qt.AlignCenter, 2, 1)
-        # East
-        self.mapping[(seat_num - 1) % 4] = self.SeatMapping(
-                Qt.AlignLeft | Qt.AlignVCenter, 1, 2)
-        # West
-        self.mapping[(seat_num + 1) % 4] = self.SeatMapping(
-                Qt.AlignRight | Qt.AlignVCenter, 1, 0)
+        self.seats = []
+        # North, East, South, West:
+        self.seats.append(self.SeatDisplay(Qt.AlignCenter, 0, 1))
+        self.seats.append(
+                self.SeatDisplay(Qt.AlignLeft | Qt.AlignVCenter, 1, 2))
+        self.seats.append(self.SeatDisplay(Qt.AlignCenter, 2, 1))
+        self.seats.append(
+                self.SeatDisplay(Qt.AlignRight | Qt.AlignVCenter, 1, 0))
 
         for (num, seat) in enumerate(table_view.seats):
-            self.mapping[num].set_occupied(not seat.isOpen)
-            if not seat.isOpen:
-                self.mapping[num].set_name(seat.name)
+            self.get_seat_display(num).update(seat)
 
         self.start_game_button = QPushButton("Start Game")
         self.start_game_button.setEnabled(self.is_full())
@@ -263,8 +272,8 @@ class Table(QMainWindow):
         vbox = QVBoxLayout()
 
         seat_grid = QGridLayout()
-        for seat in self.mapping.values():
-            seat_grid.addWidget(seat.make_label(), seat.x, seat.y)
+        for seat in self.seats:
+            seat_grid.addWidget(seat.get_label(), seat.x, seat.y)
 
         self.table_top = TableTopWidget(resource_path)
         self.table_top.trump_selected.connect(self.select_trump)
@@ -330,8 +339,8 @@ class Table(QMainWindow):
         return message_box
 
     def is_full(self):
-        for seat_map in self.mapping.itervalues():
-            if not seat_map.occupied:
+        for seat in self.seats:
+            if seat.is_empty():
                 return False
         return True
 
@@ -361,23 +370,16 @@ class Table(QMainWindow):
     def testDelCard(self):
         self.card_box.del_card(0)
 
-    def _change_seat_label(self, seat, name):
-        mapping = self.mapping[seat]
-        old_label = self.seat_grid.itemAtPosition(mapping.x, mapping.y).widget()
-        old_label.close()
-        mapping.set_name(name)
-        mapping.set_occupied(True)
-        self.seat_grid.addWidget(mapping.make_label(), mapping.x, mapping.y)
-
     def handle_sit_event(self, name, table, seat):
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
-        self._change_seat_label(seat, name)
+        self.get_seat_display(seat).sit(name)
         self.start_game_button.setEnabled(self.is_full())
 
     def handle_stand_event(self, name, table, seat):
         self.logger.append("TABLE: User %s stood from table %d seat %d" %(name,
             table, seat))
-        self._change_seat_label(seat, "<empty>")
+        self.get_seat_display(seat).stand()
+        self.start_game_button.setEnabled(self.is_full())
 
     def handle_deal(self, dealt): # Ignore seat (first deal seat), not used yet
         self.card_box.add_cards(dealt)
