@@ -289,7 +289,20 @@ class Table(QMainWindow):
 
         self.card_box = CardBoxWidget(resource_path, [])
         self.card_box.doubleclicked.connect(self.play_card)
-        vbox.addWidget(self.card_box)
+
+        self.call_run_button = QPushButton("Call Run")
+        self.show_run_button = QPushButton("Show Run")
+        self.bella_button    = QPushButton("Play Bella")
+
+        self.card_button_layout = QVBoxLayout()
+        self.card_button_layout.addWidget(self.call_run_button)
+        self.card_button_layout.addWidget(self.show_run_button)
+        self.card_button_layout.addWidget(self.bella_button)
+
+        cards_and_button_box = QHBoxLayout()
+        cards_and_button_box.addWidget(self.card_box)
+        cards_and_button_box.addLayout(self.card_button_layout)
+        vbox.addLayout(cards_and_button_box)
         
         game_button_layout = QDialogButtonBox(Qt.Horizontal)
         game_button_layout.addButton(self.start_game_button, QDialogButtonBox.ActionRole)
