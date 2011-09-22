@@ -204,6 +204,7 @@ class CardBoxWidget(QWidget):
         card = self.cardLayout.takeAt(index)
         card.widget().setParent(None)
 
+
 class CardButtonWidget(QWidget):
     call_run = Signal()
     show_run = Signal()
@@ -213,8 +214,13 @@ class CardButtonWidget(QWidget):
         super(CardButtonWidget, self).__init__(parent)
 
         self.call_run_button = QPushButton("Call Run")
+        self.call_run_button.clicked.connect(self.call_run)
+
         self.show_run_button = QPushButton("Show Run")
+        self.show_run_button.clicked.connect(self.show_run)
+
         self.bella_button    = QPushButton("Play Bella")
+        self.bella_button.clicked.connect(self.play_bella)
 
         self.card_button_layout = QVBoxLayout()
         self.card_button_layout.addWidget(self.call_run_button)
@@ -230,7 +236,6 @@ class CardButtonWidget(QWidget):
         self.call_run_button.setDisabled(disable)
         self.show_run_button.setDisabled(disable)
         self.bella_button.setDisabled(disable)
-
 
 
 class Table(QMainWindow):
