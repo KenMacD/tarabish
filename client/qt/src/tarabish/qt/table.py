@@ -204,6 +204,33 @@ class CardBoxWidget(QWidget):
         card = self.cardLayout.takeAt(index)
         card.widget().setParent(None)
 
+class CardButtonWidget(QWidget):
+    call_run = Signal()
+    show_run = Signal()
+    play_bella = Signal()
+
+    def __init__(self, parent=None):
+        super(CardButtonWidget, self).__init__(parent)
+
+        self.call_run_button = QPushButton("Call Run")
+        self.show_run_button = QPushButton("Show Run")
+        self.bella_button    = QPushButton("Play Bella")
+
+        self.card_button_layout = QVBoxLayout()
+        self.card_button_layout.addWidget(self.call_run_button)
+        self.card_button_layout.addWidget(self.show_run_button)
+        self.card_button_layout.addWidget(self.bella_button)
+
+        self.setDisabled(True)
+        self.setLayout(self.card_button_layout)
+
+    def setDisabled(self, disable):
+        super(CardButtonWidget, self).setDisabled(disable)
+
+        self.call_run_button.setDisabled(disable)
+        self.show_run_button.setDisabled(disable)
+        self.bella_button.setDisabled(disable)
+
 
 
 class Table(QMainWindow):
@@ -290,18 +317,11 @@ class Table(QMainWindow):
         self.card_box = CardBoxWidget(resource_path, [])
         self.card_box.doubleclicked.connect(self.play_card)
 
-        self.call_run_button = QPushButton("Call Run")
-        self.show_run_button = QPushButton("Show Run")
-        self.bella_button    = QPushButton("Play Bella")
-
-        self.card_button_layout = QVBoxLayout()
-        self.card_button_layout.addWidget(self.call_run_button)
-        self.card_button_layout.addWidget(self.show_run_button)
-        self.card_button_layout.addWidget(self.bella_button)
+        self.card_buttons = CardButtonWidget()
 
         cards_and_button_box = QHBoxLayout()
         cards_and_button_box.addWidget(self.card_box)
-        cards_and_button_box.addLayout(self.card_button_layout)
+        cards_and_button_box.addWidget(self.card_buttons)
         vbox.addLayout(cards_and_button_box)
         
         game_button_layout = QDialogButtonBox(Qt.Horizontal)
