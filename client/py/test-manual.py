@@ -77,3 +77,14 @@ def event_loop(cookie):
             return 0
 
 thread.start_new_thread(event_loop, (cookie,))
+
+args = sys.argv[1:]
+for arg in args:
+    if arg == "-j":
+        print "Joining first table"
+        for i in range(4):
+            try:
+                client.sit(1, i)
+                break
+            except InvalidOperation:
+                continue
