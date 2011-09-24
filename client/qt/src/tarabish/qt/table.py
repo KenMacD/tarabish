@@ -230,6 +230,9 @@ class CardButtonWidget(QWidget):
         self.setDisabled(True)
         self.setLayout(self.card_button_layout)
 
+    def enable(self):
+        self.setDisabled(False)
+
     def setDisabled(self, disable):
         super(CardButtonWidget, self).setDisabled(disable)
 
@@ -349,11 +352,17 @@ class Table(QMainWindow):
                 table_id)
         server.eventDispatcher.connect(EventType.ASK_TRUMP,
                 self.handle_ask_trump, table_id)
+        server.eventDispatcher.connect(EventType.CALL_TRUMP,
+                self.handle_call_trump, table_id)
 
         self.testsuit = 1
         self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
         testButton2.clicked.connect(self.testDelCard)
+
+        self.card_buttons.call_run.connect(self.call_run)
+        self.card_buttons.show_run.connect(self.show_run)
+        self.card_buttons.play_bella.connect(self.play_bella)
 
     def closeEvent(self, event):
         # TODO For now we assume that if you are looking at a table,
@@ -394,6 +403,26 @@ class Table(QMainWindow):
             self.logger.append("Table %d could not call trump: %s" %
                     (self.table_id, str(exc)))
 
+    def call_run(self):
+        try:
+            self.server.callRun(self.table_id)
+            self.logger.append("Table %d call run" % (self.table_id,))
+        except InvalidOperation as exc:
+            self.logger.append("Table %d call run failed: %s" % (self.table_id,
+                str(exc)))
+
+    def show_run(self):
+        try:
+            self.server.showRun(self.table_id)
+            self.logger.append("Table %d show run" % (self.table_id,))
+        except InvalidOperation as exc:
+            self.logger.append("Table %d show run failed: %s" % (self.table_id,
+                str(exc)))
+
+    def play_bella(self):
+        pass
+        # TODO: have to pass the card to playBella
+
     def testNewCard(self):
         self.card_box.add_cards([Card(self.testvalue, self.testsuit)])
         if self.testvalue == ACE and self.testsuit == 4:
@@ -427,6 +456,16 @@ class Table(QMainWindow):
             self.table_top.show_trump_select()
         else:
             self.logger.append("TABLE: Seat %d asked trump" % (seat))
+
+    def handle_call_trump(self, seat, suit):
+        # TODO: translate number for suit to actual suit string
+        self.logger.append("Table %d seat %d called %d" % (self.table_id,
+            seat, suit))
+        if suit:
+            self._enable_play()
+
+    def _enable_play(self):
+        self.card_buttons.enable()
 
     def _start_game(self):
         try:
