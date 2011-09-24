@@ -65,16 +65,16 @@ class TableTopWidget(QWidget):
         self.east_position = QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
                 CARD_HEIGHT + self.MARGIN)
 
-        self.north = CardWidget(resource_path, Card(6, SPADES), self)
+        self.north = CardWidget(resource_path, None, self)
         self.north.move(self.north_position)
 
-        self.south = CardWidget(resource_path, Card(7, SPADES), self)
+        self.south = CardWidget(resource_path, None, self)
         self.south.move(self.south_position)
 
-        self.east = CardWidget(resource_path, Card(8, SPADES), self)
+        self.east = CardWidget(resource_path, None, self)
         self.east.move(self.east_position)
 
-        self.west = CardWidget(resource_path, Card(9, SPADES), self)
+        self.west = CardWidget(resource_path, None, self)
         self.west.move(self.west_position)
 
         self.trump_select = TrumpWidget(resource_path, self)
@@ -86,6 +86,20 @@ class TableTopWidget(QWidget):
         rect.moveCenter(mid_point)
         self.trump_select.move(rect.topLeft())
         self.trump_select.hide()
+
+    def _get_card_widget(self, position):
+        if position == 0:
+            return self.north
+        elif position == 1:
+            return self.east
+        elif position == 2:
+            return self.south
+        else:
+            return self.west
+
+    def show_card(self, position, card):
+        widget = self._get_card_widget(position)
+        widget.set_card(card)
 
     def show_trump_select(self):
         self.north.hide()
@@ -117,16 +131,22 @@ class CardWidget(QWidget):
     def __init__(self, resource_path, pyCard, parent=None):
         super(CardWidget, self).__init__(parent)
 
-        self.card = pyCard
+        self.img = QLabel(self)
+        self.img.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
+        self.img.move(0,0)
 
-        card_source = CardSource(resource_path)
-        card_pixels = card_source.get_card(pyCard.value, pyCard.suit)
+        self.card_source = CardSource(resource_path)
 
-        img = QLabel(self)
-        img.setPixmap(card_pixels)
-        img.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
-        img.move(0,0)
-        img.show()
+        self.set_card(pyCard)
+
+    def set_card(self, card):
+        self.card = card
+        if card:
+            card_pixels = self.card_source.get_card(card.value, card.suit)
+            self.img.setPixmap(card_pixels)
+            self.img.show()
+        else:
+            self.img.hide()
 
     def sizeHint(self):
         return self.minimumSizeHint()
@@ -272,8 +292,11 @@ class Table(QMainWindow):
         def get_label(self):
             return self.label
 
+    def _seat_to_position(self, seat):
+        return (2 - self.seat_num + seat) % 4
+
     def get_seat_display(self, seat):
-        return self.seats[(2 - self.seat_num + seat) % 4]
+        return self.seats[self._seat_to_position(seat)]
 
     def __init__(self, table_id, seat_num, table_view, server, logger,
             resource_path, parent=None):
@@ -354,6 +377,8 @@ class Table(QMainWindow):
                 self.handle_ask_trump, table_id)
         server.eventDispatcher.connect(EventType.CALL_TRUMP,
                 self.handle_call_trump, table_id)
+        server.eventDispatcher.connect(EventType.PLAY_CARD,
+                self.handle_play_card, table_id)
 
         self.testsuit = 1
         self.testvalue = 6
@@ -463,6 +488,10 @@ class Table(QMainWindow):
             seat, suit))
         if suit:
             self._enable_play()
+
+    def handle_play_card(self, seat, card):
+        position = self._seat_to_position(seat)
+        self.table_top.show_card(position, card)
 
     def _enable_play(self):
         self.card_buttons.enable()
