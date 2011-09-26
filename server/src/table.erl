@@ -12,7 +12,7 @@
    terminate/2, code_change/3]).
 
 -export([chat/3, join/3, part/2, sit/4, stand/2,
-    start_game/2, call_trump/3, play_card/3, play_bella/3,
+    start_game/2, call_trump/3, play_card/3, play_bella/2,
     call_run/2, show_run/2]).
 
 %% From game
@@ -52,8 +52,8 @@ call_trump(Table, ClientName, Suit) ->
 play_card(Table, ClientName, Card) ->
   gen_server:call(Table, {play_card, ClientName, Card}).
 
-play_bella(Table, ClientName, Card) ->
-  gen_server:call(Table, {play_bella, ClientName, Card}).
+play_bella(Table, ClientName) ->
+  gen_server:call(Table, {play_bella, ClientName}).
 
 call_run(Table, ClientName) ->
   gen_server:call(Table, {call_run, ClientName}).
@@ -228,15 +228,15 @@ handle_call({play_card, ClientName, Card}, _From, State) ->
         {reply, {error, not_at_table}, State}
     end;
 
-handle_call({play_bella, _ClientName, _Card}, _From, #state{game=none} = State) ->
+handle_call({play_bella, _ClientName}, _From, #state{game=none} = State) ->
   {reply, {error, no_game}, State};
 
-handle_call({play_bella, ClientName, Card}, _From, State) ->
+handle_call({play_bella, ClientName}, _From, State) ->
   case orddict:find(ClientName, State#state.members) of
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, Person} ->
-      Reply = game:play_bella(State#state.game, Person#person.seat, Card),
+      Reply = game:play_bella(State#state.game, Person#person.seat),
       {reply, Reply, State};
     error ->
       {reply, {error, not_at_table}, State}

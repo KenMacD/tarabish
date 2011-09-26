@@ -12,7 +12,7 @@
 
 % From Cmd Socket:
 -export([chat/3, join_table/2, part_table/2, sit/3, stand/2,
-    start_game/2, call_trump/3, play_card/3, play_bella/3,
+    start_game/2, call_trump/3, play_card/3, play_bella/2,
     call_run/2, show_run/2]).
 
 % From Msg Socket:
@@ -61,8 +61,8 @@ call_trump(Client, TableId, Suit) ->
 play_card(Client, TableId, Card) ->
   gen_server:call(Client, {play_card, TableId, Card}).
 
-play_bella(Client, TableId, Card) ->
-  gen_server:call(Client, {play_bella, TableId, Card}).
+play_bella(Client, TableId) ->
+  gen_server:call(Client, {play_bella, TableId}).
 
 call_run(Client, TableId) ->
   gen_server:call(Client, {call_run, TableId}).
@@ -214,10 +214,10 @@ handle_call({play_card, TableId, Card}, _From, State) ->
       {reply, {error, not_at_table}, State}
   end;
 
-handle_call({play_bella, TableId, Card}, _From, State) ->
+handle_call({play_bella, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      {reply, table:play_bella(Table, State#state.id, Card), State};
+      {reply, table:play_bella(Table, State#state.id), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;

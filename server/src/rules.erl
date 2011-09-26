@@ -11,7 +11,7 @@
 %%
 %% Exported Functions
 %%
--export([valid_play/5, valid_bella/5]).
+-export([valid_play/5, valid_bella/4]).
 
 % When nothing led you can play anything:
 valid_play(Card, Hand, ?tarabish_NONE, _TrumpSuit, _HighTrumpValue) ->
@@ -26,27 +26,36 @@ valid_play(Card, Hand, Led, TrumpSuit, HighTrumpValue) ->
 
 % We only look at cards remaining here. That the player originally had bella
 % must be checked from the runs (when we have the full hand)
-valid_bella(#card{suit=TrumpSuit} = Card, Hand, Led, TrumpSuit, HighTrumpValue) ->
-  case valid_play(Card, Hand, Led, TrumpSuit, HighTrumpValue) of
-    true ->
-      is_last_of_bells(Card, Hand);
+valid_bella(Hand, Led, TrumpSuit, HighTrumpValue) ->
+  case has_last_of_bells(Hand, TrumpSuit) of
+    {true, Card} ->
+      case valid_play(Card, Hand, Led, TrumpSuit, HighTrumpValue) of
+        true -> {true, Card};
+        false -> false
+      end;
     false ->
       false
-  end;
+  end.
 
-valid_bella(_Card, _Hand, _Led, _TrumpSuit, _HighTrumpValue) ->
-  false.
+has_last_of_bells(Hand, TrumpSuit) ->
+  has_last_of_bells(Hand, TrumpSuit, none, 0).
 
-is_last_of_bells(#card{value=?tarabish_KING} = Card, Hand) ->
-  OtherBella = Card#card{value=?tarabish_QUEEN},
-  not(lists:member(OtherBella, Hand));
+has_last_of_bells([], _Suit, Bell, 1) ->
+  {true, Bell};
 
-is_last_of_bells(#card{value=?tarabish_QUEEN} = Card, Hand) ->
-  OtherBella = Card#card{value=?tarabish_KING},
-  not(lists:member(OtherBella, Hand));
+has_last_of_bells([], _Suit, _Bell, _Other) ->
+  false;
 
-is_last_of_bells(_OtherCard, _Hand) ->
-  false.
+has_last_of_bells([#card{value=?tarabish_KING, suit=Suit} = Card | Rest],
+    Suit, _Bell, Count) ->
+  has_last_of_bells(Rest, Suit, Card, Count + 1);
+
+has_last_of_bells([#card{value=?tarabish_QUEEN, suit=Suit} = Card | Rest],
+    Suit, _Bell, Count) ->
+  has_last_of_bells(Rest, Suit, Card, Count + 1);
+
+has_last_of_bells([_Other|Rest], Suit, Bell, Count) ->
+  has_last_of_bells(Rest, Suit, Bell, Count).
 
 insuit(Suit) -> fun(Card) -> Card#card.suit == Suit end.
 
@@ -132,7 +141,7 @@ in_suit_test_() ->
 
   ].
 
-is_last_of_bells_test_() ->
+has_last_of_bells_test_() ->
   King = card(?tarabish_KING, ?tarabish_CLUBS),
   Queen = card(?tarabish_QUEEN, ?tarabish_CLUBS),
   Hand = [card(6, ?tarabish_SPADES),
@@ -146,11 +155,17 @@ is_last_of_bells_test_() ->
           card(6, ?tarabish_DIAMONDS)],
   [
 
-    ?_assertEqual(true, is_last_of_bells(King, [King] ++ Hand)),
-    ?_assertEqual(false, is_last_of_bells(King, [King, Queen] ++ Hand)),
-    ?_assertEqual(false, is_last_of_bells(King, Hand ++ [King, Queen])),
+    ?_assertEqual({true, King}, has_last_of_bells([King] ++ Hand,
+      ?tarabish_CLUBS)),
+    ?_assertEqual(false, has_last_of_bells([King, Queen] ++ Hand,
+      ?tarabish_CLUBS)),
+    ?_assertEqual(false, has_last_of_bells(Hand ++ [King, Queen],
+      ?tarabish_CLUBS)),
 
-    ?_assertEqual(true, is_last_of_bells(Queen, [Queen] ++ Hand)),
-    ?_assertEqual(false, is_last_of_bells(Queen, [King, Queen] ++ Hand)),
-    ?_assertEqual(false, is_last_of_bells(Queen, Hand ++ [King, Queen]))
+    ?_assertEqual({true, Queen}, has_last_of_bells([Queen] ++ Hand,
+      ?tarabish_CLUBS)),
+    ?_assertEqual(false, has_last_of_bells([King, Queen] ++ Hand,
+      ?tarabish_CLUBS)),
+    ?_assertEqual(false, has_last_of_bells(Hand ++ [King, Queen],
+        ?tarabish_CLUBS))
   ].

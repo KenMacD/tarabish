@@ -178,7 +178,8 @@ service Tarabish
 	void playCard(1: i32 table_id, 2: Card card)
 		throws (1:InvalidOperation invalid)
 
-	void playBella(1: i32 table_id, 2: Card card)
+	# Get's it's card from the only bella left in hand
+	void playBella(1: i32 table_id)
 		throws (1:InvalidOperation invalid)
 }
 

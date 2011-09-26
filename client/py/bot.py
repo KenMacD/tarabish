@@ -86,10 +86,14 @@ game = 0
 ec = join_event(cookie)
 cards = []
 trick = 0
+#count = 0
 while True:
     events = ec.getEventsTimeout(300000)
     for event in events:
         print_event(event, seatnum)
+#        if event.type == EventType.HAND_DONE:
+#            count = count + 1
+#            print "BELLA hand count: " + str(count)
         if event.type == EventType.DEAL:
             cards += event.dealt
             trick = 0
@@ -99,6 +103,8 @@ while True:
             except InvalidOperation, e:
                 # Forced
                 client.callTrump(tableid, SPADES)
+        if event.type == EventType.PLAY_CARD and event.seat == seatnum:
+             cards.remove(event.card)
         if event.type == EventType.ASK_CARD and event.seat == seatnum:
             if trick == 0:
                 try:
@@ -114,21 +120,19 @@ while True:
                     pass # expected
             played = 0
             # try playing each card a bells first:
-            for card in cards[:]:
-                try:
-                    client.playBella(tableid, card)
-                    cards.remove(card)
-                    print "Played Bella!"
-                    played = 1
-                    break;
-                except InvalidOperation, e:
+            try:
+                client.playBella(tableid)
+                print "Played Bella!"
+                played = 1
+            except InvalidOperation, e:
+                for card in cards[:]:
                     try:
                         client.playCard(tableid, card)
-                        cards.remove(card)
                         played = 1
                         break;
                     except InvalidOperation, e:
                         pass # expected
+
             if not played:
                 print "!!! No valid cards in hand: " + str(cards)
             trick = trick + 1
