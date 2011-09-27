@@ -445,8 +445,12 @@ class Table(QMainWindow):
                 str(exc)))
 
     def play_bella(self):
-        pass
-        # TODO: have to pass the card to playBella
+        try:
+            self.server.playBella(self.table_id)
+            self.logger.append("Table %d played bella" % (self.table_id,))
+        except InvalidOperation as exc:
+            self.logger.append("Table %d play bella failed: %s" %
+                    (self.table_id, str(exc)))
 
     def testNewCard(self):
         self.card_box.add_cards([Card(self.testvalue, self.testsuit)])
