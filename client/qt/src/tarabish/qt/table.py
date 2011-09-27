@@ -394,6 +394,8 @@ class Table(QMainWindow):
                 self.handle_game_done, table_id)
         server.eventDispatcher.connect(EventType.GAME_CANCEL,
                 self.handle_game_cancel, table_id)
+        server.eventDispatcher.connect(EventType.TAKE_TRICK,
+                self.handle_take_trick, table_id)
 
         self.testsuit = 1
         self.testvalue = 6
@@ -522,6 +524,12 @@ class Table(QMainWindow):
 
     def handle_game_cancel(self):
         self.card_box.clear()
+        self.table_top.clear()
+
+    def handle_take_trick(self, seat):
+        self.logger.append("Table %d seat %d takes trick" % (self.table_id,
+            seat))
+        # TODO: delay the removing to the trick for a few seconds.
         self.table_top.clear()
 
     def _enable_play(self):
