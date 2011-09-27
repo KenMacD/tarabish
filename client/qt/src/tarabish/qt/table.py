@@ -97,6 +97,13 @@ class TableTopWidget(QWidget):
         else:
             return self.west
 
+    def clear(self):
+        self.hide_trump_select()
+        self.north.set_card(None)
+        self.east.set_card(None)
+        self.south.set_card(None)
+        self.west.set_card(None)
+
     def show_card(self, position, card):
         widget = self._get_card_widget(position)
         widget.set_card(card)
@@ -169,6 +176,7 @@ class CardBoxWidget(QWidget):
 
         self.cardLayout = QHBoxLayout()
         self.setLayout(self.cardLayout)
+        self.cardLayout.addStretch()
 
         self.cards = []
         self.add_cards(cards)
@@ -193,21 +201,24 @@ class CardBoxWidget(QWidget):
             else:
                 return card1.value - card2.value
 
+    def clear(self):
+        self._reset_layout()
+        for card in self.cards:
+            card.setParent(None)
+        self.cards = []
+
     def _reset_layout(self):
-        while True:
-            rm_card = self.cardLayout.takeAt(0)
-            if not rm_card:
-                break
-        self.cardLayout.addStretch()
+        for card in self.cards:
+            self.cardLayout.removeWidget(card)
 
     def add_cards(self, cards):
+        # Remove all the cards:
+        self._reset_layout()
+
         for card in cards:
             item = CardWidget(self.resource_path, card)
             item.doubleclicked.connect(partial(self.cardDoubleClickEvent, card))
             self.cards.append(item)
-
-        # Remove all the cards:
-        self._reset_layout()
 
         # Sort
         self.cards = sorted(self.cards, cmp=self._compare_card)
@@ -379,6 +390,10 @@ class Table(QMainWindow):
                 self.handle_call_trump, table_id)
         server.eventDispatcher.connect(EventType.PLAY_CARD,
                 self.handle_play_card, table_id)
+        server.eventDispatcher.connect(EventType.GAME_DONE,
+                self.handle_game_done, table_id)
+        server.eventDispatcher.connect(EventType.GAME_CANCEL,
+                self.handle_game_cancel, table_id)
 
         self.testsuit = 1
         self.testvalue = 6
@@ -501,6 +516,13 @@ class Table(QMainWindow):
     def handle_play_card(self, seat, card):
         position = self._seat_to_position(seat)
         self.table_top.show_card(position, card)
+
+    def handle_game_done(self):
+        self.handle_game_cancel()
+
+    def handle_game_cancel(self):
+        self.card_box.clear()
+        self.table_top.clear()
 
     def _enable_play(self):
         self.card_buttons.enable()
