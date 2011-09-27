@@ -417,8 +417,13 @@ class Table(QMainWindow):
         return True
 
     def play_card(self, card):
-        self.logger.append("Table %d Playing card %s %s" % (self.table_id,
-            str(card.value), str(card.suit)))
+        try:
+            self.server.playCard(self.table_id, card)
+            self.logger.append("Table %d you played card %s" % (self.table_id,
+                str(card)))
+        except InvalidOperation as exc:
+            self.logger.append("Table %d could not play card %s because %s" %
+                    (self.table_id, str(card), str(exc)))
 
     def select_trump(self, suit):
         try:
