@@ -4,7 +4,8 @@ from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation)
 
-from PySide.QtCore import (Signal, QSize, QPoint, Qt)
+from PySide.QtCore import (Signal, QSize, QPoint, Qt, QPropertyAnimation,
+        QParallelAnimationGroup)
 from PySide.QtGui import *
 
 from trumpwidget import TrumpWidget
@@ -66,16 +67,10 @@ class TableTopWidget(QWidget):
                 CARD_HEIGHT + self.MARGIN)
 
         self.north = CardWidget(resource_path, None, self)
-        self.north.move(self.north_position)
-
         self.south = CardWidget(resource_path, None, self)
-        self.south.move(self.south_position)
-
         self.east = CardWidget(resource_path, None, self)
-        self.east.move(self.east_position)
-
         self.west = CardWidget(resource_path, None, self)
-        self.west.move(self.west_position)
+        self._layout()
 
         self.trump_select = TrumpWidget(resource_path, self)
         self.trump_select.setAutoFillBackground(True)
@@ -87,6 +82,12 @@ class TableTopWidget(QWidget):
         self.trump_select.move(rect.topLeft())
         self.trump_select.hide()
 
+    def _layout(self):
+        self.north.move(self.north_position)
+        self.east.move(self.east_position)
+        self.south.move(self.south_position)
+        self.west.move(self.west_position)
+
     def _get_card_widget(self, position):
         if position == 0:
             return self.north
@@ -96,6 +97,20 @@ class TableTopWidget(QWidget):
             return self.south
         else:
             return self.west
+
+    def clear_sweep(self, pos):
+        group = QParallelAnimationGroup()
+        sweep_dir = self._get_card_widget(pos)
+        for i in range(4):
+            card = self._get_card_widget(i)
+            ani = QPropertyAnimation(card, "geometry")
+            ani.setDuration(750)
+            ani.setEndValue(sweep_dir.geometry())
+            ani.finished.connect(partial(card.set_card, None))
+            group.addAnimation(ani)
+        group.finished.connect(self._layout)
+        group.start()
+        self.ani_group = group # Save to keep from being cleaned up
 
     def clear(self):
         self.hide_trump_select()
@@ -529,8 +544,8 @@ class Table(QMainWindow):
     def handle_take_trick(self, seat):
         self.logger.append("Table %d seat %d takes trick" % (self.table_id,
             seat))
-        # TODO: delay the removing to the trick for a few seconds.
-        self.table_top.clear()
+        position = self._seat_to_position(seat)
+        self.table_top.clear_sweep(position)
 
     def _enable_play(self):
         self.card_buttons.enable()
