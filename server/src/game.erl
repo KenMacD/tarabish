@@ -286,11 +286,11 @@ wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
 
       NewHand = lists:delete(Card, Hand),
       NewHands = setelement(Seat + 1, State#state.hands, NewHand),
-      case Suit == Trump of
-          true ->
+      case deck:trump_higher(Value, HighTrump) of
+          true when Suit == Trump ->
             process_card(Seat, Card, Rest, State#state{hands=NewHands,
                 htrump=Value});
-          false ->
+          _ ->
             process_card(Seat, Card, Rest, State#state{hands=NewHands})
         end;
     false ->
