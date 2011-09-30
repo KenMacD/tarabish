@@ -425,6 +425,8 @@ class Table(QMainWindow):
                 self.handle_game_cancel, table_id)
         server.eventDispatcher.connect(EventType.TAKE_TRICK,
                 self.handle_take_trick, table_id)
+        server.eventDispatcher.connect(EventType.HAND_DONE,
+                self.handle_hand_done, table_id)
 
         self.card_buttons.call_run.connect(self.call_run)
         self.card_buttons.show_run.connect(self.show_run)
@@ -523,12 +525,19 @@ class Table(QMainWindow):
         position = self._seat_to_position(seat)
         self.table_top.show_card(position, card)
 
-    def handle_game_done(self):
+    def handle_game_done(self, score):
+        self.logger.append("Game over score %d -- %d" % (score[0], score[1]))
         self.handle_game_cancel()
 
     def handle_game_cancel(self):
+        self.logger.append("Game cancelled")
         self.card_box.clear()
         self.table_top.clear()
+
+    def handle_hand_done(self, hand_score, score):
+        self.logger.append(
+                "Hand done. This hand %d -- %d.  Total score: %d -- %d" %
+                (hand_score[0], hand_score[1], score[0], score[1]))
 
     def handle_take_trick(self, seat):
         self.logger.append("%s takes trick" % (self._seat_to_name(seat),))
