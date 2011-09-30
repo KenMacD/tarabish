@@ -36,6 +36,10 @@ class ChatWidget(QWidget):
                                             self._handle_chat_message,
                                             self.table_id)
         
+    def append(self, message):
+        display = "Server: %s" % (message)
+        self.messages.append(display)
+
     def _handle_chat_message(self, table, name, message):
         display = "%s: %s" % (name, message)
         self.messages.append(display)
@@ -332,13 +336,13 @@ class Table(QMainWindow):
     def get_seat_display(self, seat):
         return self.seats[self._seat_to_position(seat)]
 
+    # TODO: logger no longer needed?
     def __init__(self, table_id, seat_num, table_view, server, logger,
             resource_path, parent=None):
         super(Table, self).__init__(parent)
 
         self.setAttribute(Qt.WA_QuitOnClose, False)
         self.table_id = table_id
-        self.logger = logger
         self.server = server
         self.seat_num = seat_num
         
@@ -389,8 +393,11 @@ class Table(QMainWindow):
         game_button_layout.setFixedWidth(120)
         game_button_layout.setCenterButtons(True)
         
+        self.chat_widget = ChatWidget(server, self.table_id)
+        self.logger = self.chat_widget
+
         chat_and_buttons_box = QHBoxLayout()
-        chat_and_buttons_box.addWidget(ChatWidget(server, self.table_id))
+        chat_and_buttons_box.addWidget(self.chat_widget)
         chat_and_buttons_box.addWidget(game_button_layout)
         vbox.addLayout(chat_and_buttons_box)
 
