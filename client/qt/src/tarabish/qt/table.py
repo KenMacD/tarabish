@@ -193,15 +193,15 @@ class CardBoxWidget(QWidget):
         self.setLayout(self.cardLayout)
         self.cardLayout.addStretch()
 
-        self.cards = []
+        self.cards = {}
         self.add_cards(cards)
 
         self.trump = trump
 
     # TODO: sort J, 9, A, 10 if trump.
-    def _compare_card(self, card_item1, card_item2):
-        card1 = card_item1.card
-        card2 = card_item2.card
+    def _compare_card(self, card_widget1, card_widget2):
+        card1 = card_widget1.card
+        card2 = card_widget2.card
         if card1.suit != card2.suit:
             return card1.suit - card2.suit
         else:
@@ -218,13 +218,13 @@ class CardBoxWidget(QWidget):
 
     def clear(self):
         self._reset_layout()
-        for card in self.cards:
-            card.setParent(None)
-        self.cards = []
+        for card_widget in self.cards.values():
+            card_widget.setParent(None)
+        self.cards = {}
 
     def _reset_layout(self):
-        for card in self.cards:
-            self.cardLayout.removeWidget(card)
+        for card_widget in self.cards.values():
+            self.cardLayout.removeWidget(card_widget)
 
     def add_cards(self, cards):
         # Remove all the cards:
@@ -233,23 +233,27 @@ class CardBoxWidget(QWidget):
         for card in cards:
             item = CardWidget(self.resource_path, card)
             item.doubleclicked.connect(partial(self.cardDoubleClickEvent, card))
-            self.cards.append(item)
+            self.cards[card] = item
 
         # Sort
-        self.cards = sorted(self.cards, cmp=self._compare_card)
+        sorted_card_widgets = sorted(self.cards.values(), cmp=self._compare_card)
 
         # And add them back in:
-        for card_item in self.cards:
-            self.cardLayout.insertWidget(self.cardLayout.count() - 1, card_item)
+        for card_widget in sorted_card_widgets:
+            self.cardLayout.insertWidget(self.cardLayout.count() - 1,
+                    card_widget)
 
     def cardDoubleClickEvent(self, card):
         self.doubleclicked.emit(card)
 
-    def del_card(self, index):
-        self.cards.pop(index)
-        card = self.cardLayout.takeAt(index)
-        card.widget().setParent(None)
-
+    def rm_card(self, card):
+        # Cards have different __hash__
+        for (our_card, card_widget) in self.cards.items():
+            if our_card == card:
+                card_widget.setParent(None)
+                del self.cards[our_card]
+                return
+        raise KeyError
 
 class CardButtonWidget(QWidget):
     call_run = Signal()
@@ -415,7 +419,6 @@ class Table(QMainWindow):
         self.testsuit = 1
         self.testvalue = 6
         testButton.clicked.connect(self.testNewCard)
-        testButton2.clicked.connect(self.testDelCard)
 
         self.card_buttons.call_run.connect(self.call_run)
         self.card_buttons.show_run.connect(self.show_run)
@@ -500,9 +503,6 @@ class Table(QMainWindow):
         else:
             self.testvalue = self.testvalue + 1
 
-    def testDelCard(self):
-        self.card_box.del_card(0)
-
     def handle_sit_event(self, name, table, seat):
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
         self.get_seat_display(seat).sit(name)
@@ -531,6 +531,9 @@ class Table(QMainWindow):
             self._enable_play()
 
     def handle_play_card(self, seat, card):
+        if seat == self.seat_num:
+            self.card_box.rm_card(card)
+
         position = self._seat_to_position(seat)
         self.table_top.show_card(position, card)
 
