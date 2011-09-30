@@ -48,6 +48,34 @@ class ChatWidget(QWidget):
         self.server.chat(self.table_id, message)
         self.message_box.clear()
 
+class TableTopCard(object):
+    def __init__(self, resource_path, position, parent):
+        self.position = position
+        self.parent = parent
+        self.resource_path = resource_path
+        self.card_widget = CardWidget(self.resource_path, None, self.parent)
+        self.card_widget.move(self.position)
+        self.card_widget.show()
+
+    def pop(self):
+        widget = self.card_widget
+        self.card_widget = CardWidget(self.resource_path, None, self.parent)
+        self.card_widget.move(self.position)
+        self.card_widget.show()
+        return widget
+
+    def set_card(self, card):
+        self.card_widget.set_card(card)
+
+    def hide(self):
+        self.card_widget.hide()
+
+    def show(self):
+        self.card_widget.show()
+
+    def raise_(self):
+        self.card_widget.raise_()
+
 class TableTopWidget(QWidget):
     MARGIN = 6
     trump_selected = Signal(int)
@@ -59,18 +87,17 @@ class TableTopWidget(QWidget):
         self.height = CARD_HEIGHT * 3 + self.MARGIN * 2
         self.setFixedSize(self.width, self.height)
 
-        self.north_position = QPoint(CARD_WIDTH + self.MARGIN, 0)
-        self.west_position = QPoint(0, CARD_HEIGHT + self.MARGIN)
-        self.south_position = QPoint(CARD_WIDTH + self.MARGIN,
-                CARD_HEIGHT * 2+ self.MARGIN * 2)
-        self.east_position = QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
-                CARD_HEIGHT + self.MARGIN)
-
-        self.north = CardWidget(resource_path, None, self)
-        self.south = CardWidget(resource_path, None, self)
-        self.east = CardWidget(resource_path, None, self)
-        self.west = CardWidget(resource_path, None, self)
-        self._layout()
+        self.cards = []
+        self.cards.append(TableTopCard(resource_path, 
+                QPoint(CARD_WIDTH + self.MARGIN, 0), self))
+        self.cards.append(TableTopCard(resource_path, 
+                QPoint(CARD_WIDTH  * 2 + self.MARGIN * 2,
+                CARD_HEIGHT + self.MARGIN), self))
+        self.cards.append(TableTopCard(resource_path,
+                QPoint(CARD_WIDTH + self.MARGIN,
+                CARD_HEIGHT * 2+ self.MARGIN * 2), self))
+        self.cards.append(TableTopCard(resource_path,
+                QPoint(0, CARD_HEIGHT + self.MARGIN), self))
 
         self.trump_select = TrumpWidget(resource_path, self)
         self.trump_select.setAutoFillBackground(True)
@@ -82,60 +109,37 @@ class TableTopWidget(QWidget):
         self.trump_select.move(rect.topLeft())
         self.trump_select.hide()
 
-    def _layout(self):
-        self.north.move(self.north_position)
-        self.east.move(self.east_position)
-        self.south.move(self.south_position)
-        self.west.move(self.west_position)
-
-    def _get_card_widget(self, position):
-        if position == 0:
-            return self.north
-        elif position == 1:
-            return self.east
-        elif position == 2:
-            return self.south
-        else:
-            return self.west
-
     def clear_sweep(self, pos):
         group = QParallelAnimationGroup()
-        sweep_dir = self._get_card_widget(pos)
-        for i in range(4):
-            card = self._get_card_widget(i)
-            ani = QPropertyAnimation(card, "geometry")
+        end_pos = self.cards[pos].card_widget.geometry()
+        for card in self.cards:
+            widget = card.pop()
+            widget.raise_()
+            ani = QPropertyAnimation(widget, "geometry")
             ani.setDuration(750)
-            ani.setEndValue(sweep_dir.geometry())
-            ani.finished.connect(partial(card.set_card, None))
+            ani.setEndValue(end_pos)
+            ani.finished.connect(partial(widget.setParent, None))
             group.addAnimation(ani)
-        group.finished.connect(self._layout)
         group.start()
         self.ani_group = group # Save to keep from being cleaned up
 
     def clear(self):
         self.hide_trump_select()
-        self.north.set_card(None)
-        self.east.set_card(None)
-        self.south.set_card(None)
-        self.west.set_card(None)
+        for card in self.cards:
+            card.set_card(None)
 
     def show_card(self, position, card):
-        widget = self._get_card_widget(position)
-        widget.set_card(card)
+        self.cards[position].set_card(card)
 
     def show_trump_select(self):
-        self.north.hide()
-        self.south.hide()
-        self.east.hide()
-        self.west.hide()
+        for card in self.cards:
+            card.hide()
         self.trump_select.show()
 
     def hide_trump_select(self):
-        self.north.show()
-        self.south.show()
-        self.east.show()
-        self.west.show()
         self.trump_select.hide()
+        for card in self.cards:
+            card.show()
 
     def sizeHint(self):
         return self.minimumSizeHint()
@@ -370,11 +374,6 @@ class Table(QMainWindow):
         self.seat_grid = seat_grid
         vbox.addLayout(seat_grid)
 
-        testButton = QPushButton("Create card")
-        testButton2 = QPushButton("Remove first card")
-        vbox.addWidget(testButton)
-        vbox.addWidget(testButton2)
-
         self.card_box = CardBoxWidget(resource_path, [])
         self.card_box.doubleclicked.connect(self.play_card)
 
@@ -415,10 +414,6 @@ class Table(QMainWindow):
                 self.handle_game_cancel, table_id)
         server.eventDispatcher.connect(EventType.TAKE_TRICK,
                 self.handle_take_trick, table_id)
-
-        self.testsuit = 1
-        self.testvalue = 6
-        testButton.clicked.connect(self.testNewCard)
 
         self.card_buttons.call_run.connect(self.call_run)
         self.card_buttons.show_run.connect(self.show_run)
@@ -491,17 +486,6 @@ class Table(QMainWindow):
         except InvalidOperation as exc:
             self.logger.append("Table %d play bella failed: %s" %
                     (self.table_id, str(exc)))
-
-    def testNewCard(self):
-        self.card_box.add_cards([Card(self.testvalue, self.testsuit)])
-        if self.testvalue == ACE and self.testsuit == 4:
-            self.testvalue = 6
-            self.testsuit = 1
-        elif self.testvalue == ACE:
-            self.testvalue = 6
-            self.testsuit = self.testsuit + 1
-        else:
-            self.testvalue = self.testvalue + 1
 
     def handle_sit_event(self, name, table, seat):
         self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
