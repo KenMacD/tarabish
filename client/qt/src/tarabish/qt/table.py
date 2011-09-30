@@ -333,6 +333,10 @@ class Table(QMainWindow):
     def _seat_to_position(self, seat):
         return (2 - self.seat_num + seat) % 4
 
+    def _seat_to_name(self, seat):
+        names = ['north', 'east', 'south', 'west']
+        return names[self._seat_to_position(seat)]
+
     def get_seat_display(self, seat):
         return self.seats[self._seat_to_position(seat)]
 
@@ -456,52 +460,42 @@ class Table(QMainWindow):
     def play_card(self, card):
         try:
             self.server.playCard(self.table_id, card)
-            self.logger.append("Table %d you played card %s" % (self.table_id,
-                str(card)))
         except InvalidOperation as exc:
-            self.logger.append("Table %d could not play card %s because %s" %
-                    (self.table_id, str(card), str(exc)))
+            self.logger.append("Can not play card %s because %s" %
+                    (str(card), str(exc)))
 
     def select_trump(self, suit):
         try:
             self.server.callTrump(self.table_id, suit)
             self.table_top.hide_trump_select()
         except InvalidOperation as exc:
-            self.logger.append("Table %d could not call trump: %s" %
-                    (self.table_id, str(exc)))
+            self.logger.append("Can not call trump because: %s" % (str(exc),))
 
     def call_run(self):
         try:
             self.server.callRun(self.table_id)
-            self.logger.append("Table %d call run" % (self.table_id,))
         except InvalidOperation as exc:
-            self.logger.append("Table %d call run failed: %s" % (self.table_id,
-                str(exc)))
+            self.logger.append("Can not call run because: %s" % (str(exc),))
 
     def show_run(self):
         try:
             self.server.showRun(self.table_id)
-            self.logger.append("Table %d show run" % (self.table_id,))
         except InvalidOperation as exc:
-            self.logger.append("Table %d show run failed: %s" % (self.table_id,
-                str(exc)))
+            self.logger.append("Can not show run because: %s" % (str(exc),))
 
     def play_bella(self):
         try:
             self.server.playBella(self.table_id)
-            self.logger.append("Table %d played bella" % (self.table_id,))
         except InvalidOperation as exc:
-            self.logger.append("Table %d play bella failed: %s" %
-                    (self.table_id, str(exc)))
+            self.logger.append("Can not play bella because: %s" % (str(exc),))
 
     def handle_sit_event(self, name, table, seat):
-        self.logger.append("TABLE: User %s sat at table %d in seat %d" % (name, table, seat))
+        self.logger.append("User %s sat" % (name,))
         self.get_seat_display(seat).sit(name)
         self.start_game_button.setEnabled(self.is_full())
 
     def handle_stand_event(self, name, table, seat):
-        self.logger.append("TABLE: User %s stood from table %d seat %d" %(name,
-            table, seat))
+        self.logger.append("User %s stood" %(name))
         self.get_seat_display(seat).stand()
         self.start_game_button.setEnabled(self.is_full())
 
@@ -512,12 +506,13 @@ class Table(QMainWindow):
         if seat == self.seat_num:
             self.table_top.show_trump_select()
         else:
-            self.logger.append("TABLE: Seat %d asked trump" % (seat))
+            self.logger.append("%s asked to call trump" %
+                    (self._seat_to_name(seat),))
 
     def handle_call_trump(self, seat, suit):
         # TODO: translate number for suit to actual suit string
-        self.logger.append("Table %d seat %d called %d" % (self.table_id,
-            seat, suit))
+        self.logger.append("%s called trump as <b>%d</b>" %
+                (self._seat_to_name(seat), suit))
         if suit:
             self._enable_play()
 
@@ -536,8 +531,7 @@ class Table(QMainWindow):
         self.table_top.clear()
 
     def handle_take_trick(self, seat):
-        self.logger.append("Table %d seat %d takes trick" % (self.table_id,
-            seat))
+        self.logger.append("%s takes trick" % (self._seat_to_name(seat),))
         position = self._seat_to_position(seat)
         self.table_top.clear_sweep(position)
 
@@ -547,6 +541,5 @@ class Table(QMainWindow):
     def _start_game(self):
         try:
             self.server.startGame(self.table_id)
-            self.logger.append("Game started at table %d." % (self.table_id))
         except InvalidOperation, e:
-            self.logger.append("Could not start game at table %d: %s" % (self.table_id, e.why))
+            self.logger.append("Can not start game because: %s" % (e.why))
