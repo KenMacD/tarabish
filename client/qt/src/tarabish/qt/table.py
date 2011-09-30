@@ -1,6 +1,6 @@
 from functools import partial
 
-from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS)
+from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS, PASS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
 from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation)
 
@@ -333,8 +333,20 @@ class Table(QMainWindow):
     def _seat_to_position(self, seat):
         return (2 - self.seat_num + seat) % 4
 
+    def _suit_to_name(self, suit):
+        if suit == DIAMONDS:
+            return "Diamonds"
+        elif suit == HEARTS:
+            return "Hearts"
+        elif suit == SPADES:
+            return "Spades"
+        elif suit == CLUBS:
+            return "Clubs"
+        else:
+            return "Pass"
+
     def _seat_to_name(self, seat):
-        names = ['north', 'east', 'south', 'west']
+        names = ['North', 'East', 'South', 'West']
         return names[self._seat_to_position(seat)]
 
     def get_seat_display(self, seat):
@@ -512,10 +524,12 @@ class Table(QMainWindow):
                     (self._seat_to_name(seat),))
 
     def handle_call_trump(self, seat, suit):
-        # TODO: translate number for suit to actual suit string
-        self.logger.append("%s called trump as <b>%d</b>" %
-                (self._seat_to_name(seat), suit))
-        if suit:
+        name = self._seat_to_name(seat)
+        if suit == PASS:
+            self.logger.append("%s passed" % (name))
+        else:
+            self.logger.append("%s called trump as <b>%s</b>" %
+                 (name, self._suit_to_name(suit)))
             self._enable_play()
 
     def handle_play_card(self, seat, card):
