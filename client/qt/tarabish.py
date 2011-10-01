@@ -5,7 +5,7 @@ import os
 
 our_path = os.path.dirname(__file__)
 
-if sys.frozen:
+if hasattr(sys,"frozen") and sys.frozen:
     resource_path = os.environ["_MEIPASS2"]
 else:
     resource_path = os.path.dirname(__file__) + "/resources/"
