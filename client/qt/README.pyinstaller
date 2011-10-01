@@ -1,0 +1,22 @@
+Current steps to build with pyinstaller:
+
+Copy client/qt/* to c:\qt.win\
+
+Copy src\* to current directory
+Copy resources\*.svg to current directory
+
+Install Python
+Install UPX
+Install PyWin32
+
+Install setuptools
+c:\Python2.7\Scripts\easy_install -U pyside
+
+Download thrift
+Rename lib/py/src to thrift
+Copy to local directory
+
+python c:\pyinstaller-1.5.1\Build.py tarabish.spec
+
+File built to dist: tarabish.exe
+

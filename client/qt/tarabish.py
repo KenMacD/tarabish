@@ -4,8 +4,12 @@ import sys
 import os
 
 our_path = os.path.dirname(__file__)
-resource_path = os.path.dirname(__file__) + "/resources/"
-sys.path.insert(0,our_path + "/src/")
+
+if sys.frozen:
+    resource_path = os.environ["_MEIPASS2"]
+else:
+    resource_path = os.path.dirname(__file__) + "/resources/"
+    sys.path.insert(0,our_path + "/src/")
 
 from PySide.QtGui import QApplication
 from tarabish.qt.connection import ServerEvents, ServerConnection
