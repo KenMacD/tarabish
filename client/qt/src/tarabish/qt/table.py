@@ -2,7 +2,7 @@ from functools import partial
 
 from tarabish.thrift.constants import (CLUBS, SPADES, HEARTS, DIAMONDS, PASS)
 from tarabish.thrift.constants import (JACK, QUEEN, KING, ACE)
-from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation)
+from tarabish.thrift.ttypes import (Card, EventType, InvalidOperation, RunType)
 
 from PySide.QtCore import (Signal, QSize, QPoint, Qt, QPropertyAnimation,
         QParallelAnimationGroup)
@@ -154,9 +154,6 @@ class TableTopWidget(QWidget):
 
 class CardWidget(QWidget):
     doubleclicked = Signal()
-
-    suit = {CLUBS: "C", SPADES: "S", HEARTS: "H", DIAMONDS: "D"}
-    value = {JACK: "J", QUEEN: "Q", KING: "K", ACE: "A"}
 
     def __init__(self, resource_path, pyCard, parent=None):
         super(CardWidget, self).__init__(parent)
@@ -345,9 +342,35 @@ class Table(QMainWindow):
         else:
             return "Pass"
 
+    def _card_to_str(self, card):
+        suit = {CLUBS: "C", SPADES: "S", HEARTS: "H", DIAMONDS: "D"}
+        value = {JACK: "J", QUEEN: "Q", KING: "K", ACE: "A"}
+
+        if card.value > 10:
+            value_str = value[card.value]
+        else:
+            value_str = str(card.value)
+
+        suit_str = suit[card.suit]
+
+        return value_str + suit_str
+
+    def _cards_to_str(self, cards):
+        ret = ""
+        for card in cards:
+            ret += self._card_to_str(card)
+            ret += " "
+        return ret[:-1] # cut last space
+
     def _seat_to_name(self, seat):
         names = ['North', 'East', 'South', 'West']
         return names[self._seat_to_position(seat)]
+
+    def _runtype_to_name(self, run):
+        if run == RunType.TWENTY:
+            return "twenty"
+        else:
+            return "fifty"
 
     def get_seat_display(self, seat):
         return self.seats[self._seat_to_position(seat)]
@@ -439,6 +462,13 @@ class Table(QMainWindow):
                 self.handle_take_trick, table_id)
         server.eventDispatcher.connect(EventType.HAND_DONE,
                 self.handle_hand_done, table_id)
+
+        server.eventDispatcher.connect(EventType.CALL_RUN,
+                self.handle_call_run, table_id)
+        server.eventDispatcher.connect(EventType.SHOW_RUN,
+                self.handle_show_run, table_id)
+        server.eventDispatcher.connect(EventType.NOSHOW_RUN,
+                self.handle_noshow_run, table_id)
 
         self.card_buttons.call_run.connect(self.call_run)
         self.card_buttons.show_run.connect(self.show_run)
@@ -557,6 +587,19 @@ class Table(QMainWindow):
         self.logger.append("%s takes trick" % (self._seat_to_name(seat),))
         position = self._seat_to_position(seat)
         self.table_top.clear_sweep(position)
+
+    def handle_call_run(self, seat, run):
+        self.logger.append("%s calls a %s" % (self._seat_to_name(seat),
+            self._runtype_to_name(run)))
+
+    def handle_show_run(self, seat, run, cards):
+        self.logger.append("%s shows a %s -- <b>%s</b>" % (self._seat_to_name(seat),
+            self._runtype_to_name(run), self._cards_to_str(cards)))
+
+    def handle_noshow_run(self, seat, run, better, high_value, is_trump,
+            other_seat):
+        self.logger.append("%s says %s's run is no good" %
+                (self._seat_to_name(other_seat), self._seat_to_name(seat)))
 
     def _enable_play(self):
         self.card_buttons.enable()
