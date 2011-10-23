@@ -16,7 +16,9 @@ Download thrift
 Rename lib/py/src to thrift
 Copy to local directory
 
-python c:\pyinstaller-1.5.1\Build.py tarabish.spec
+python c:\\pyinstaller-1.5.1\\Configure.py
+python c:\\pyinstaller-1.5.1\\Build.py tarabish.spec
+
 
 File built to dist: tarabish.exe
 
