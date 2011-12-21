@@ -6,7 +6,7 @@
 
 %% Public:
 -export([start/0, get_client/1, get_client_by_cookie/1, create_table/0,
-    get_table/1, get_tables/0, get_client_if_new/2]).
+    get_table/1, get_tables/0, get_client_if_new/2, get_client_if_new/1]).
 
 %% From tables
 -export([update_table_image/2]).
@@ -30,6 +30,9 @@ get_client(Id) ->
 
 get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
+
+get_client_if_new(Id) ->
+  gen_server:call({global, ?MODULE}, {get_new_client, Id}).
 
 get_client_if_new(Id, CmdPid) ->
   gen_server:call({global, ?MODULE}, {get_new_client, Id, CmdPid}).
@@ -57,6 +60,19 @@ init([]) ->
               table_cnt = 0}}.
 
 % TODO: remove when using authentication again
+% TODO: non-linked clients need to be cleaned up
+handle_call({get_new_client, Id}, _From, State) ->
+  case orddict:find(Id, State#state.id) of
+    {ok, {_Client, _Cookie}} ->
+      {reply, error, State};
+    error ->
+      {ok, Client} = client:start(Id),
+      Cookie = new_cookie(),
+      NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
+      NewCookie = orddict:store(Cookie, Client, State#state.cookie),
+      {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
+  end;
+
 handle_call({get_new_client, Id, CmdPid}, _From, State) ->
   case orddict:find(Id, State#state.id) of
     {ok, {_Client, _Cookie}} ->

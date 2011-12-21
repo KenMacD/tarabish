@@ -4,7 +4,7 @@
 
 -behaviour(gen_server).
 
--export([start/2, start_link/2, quit/1]).
+-export([start/1, start_link/2, quit/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -24,8 +24,8 @@
 -record(state, {id, tables, events, subscriber, cmdRef}).
 
 % Public:
-start(Id, CmdPid) ->
-  gen_server:start(?MODULE, [Id, CmdPid], []).
+start(Id) ->
+  gen_server:start(?MODULE, [Id, none], []).
 
 start_link(Id, CmdPid) ->
   gen_server:start_link(?MODULE, [Id, CmdPid], []).
@@ -111,6 +111,12 @@ clear_new_event() ->
   after 0 ->
       ok
   end.
+
+init([Id, none]) ->
+  {ok, #state{id=Id,
+              tables=orddict:new(),
+              events=[],
+              cmdRef=none}};
 
 init([Id, CmdPid]) ->
   Ref = erlang:monitor(process, CmdPid),

@@ -12,7 +12,8 @@ start() ->
   tarabish_server:create_table(),
   tarabish_server:create_table(),
   thrift_cmd:start(),
-  thrift_msg:start().
+  thrift_msg:start(),
+  web:start().
 
 install_tables(RamNodes, DiskNodes)
   when is_list(RamNodes),
