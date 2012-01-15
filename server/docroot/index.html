@@ -2,8 +2,22 @@
 <head>
 	<!-- <link rel="stylesheet" type="text/css" href="/static/site.css"/> -->
 	<title>Tarabish online</title>
+	<script type="text/javascript" src="static/thrift.js"></script>
+	<script type="text/javascript" src="static/prototype.js"></script>
+	<script type="text/javascript" src="static/tarabish_types.js"></script>
+	<script type="text/javascript" src="static/Tarabish.js"></script>
+	<script type="text/javascript">
+		function getVersion() {
+			var transport = new Thrift.Transport("/cmd/");
+			var protocol  = new Thrift.Protocol(transport);
+			var client    = new TarabishClient(protocol);
+
+			var result = client.getVersion();
+			document.getElementById("p_ver").innerHTML = result;
+		}
+	</script>
 </head>
-<body>
+<body onload="getVersion()">
 	<h1>Tarabish Online</h1>
 	
 	<h3>Login</h3>
@@ -11,5 +25,9 @@
 	<form action="/login/" method="post">
 		<input type="text" name="name" /> <input type="submit" value="Login"/>
 	</form>
+
+	<a href="javascript:getVersion">call getVersion</a>
+
+	<p><div id="ver">Protocol Version: <div id="p_ver">unknown</div></div></p>
 </body>
 </html>

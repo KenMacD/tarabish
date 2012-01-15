@@ -22,10 +22,12 @@ get_client(Req) ->
   {Cookie, _Rest} = string:to_integer(get_parameter("session", Req:parse_cookie())),
   tarabish_server:get_client_by_cookie(Cookie).
 
-handle_request(Req, "/getVersion/") ->
-  VersionEncoded = json_encode(tarabish_thrift:function_info('getVersion',
-      reply_type), ?tarabish_PROTOCOL_VERSION),
-  Req:ok({"text/json", [], VersionEncoded});
+handle_request(Req, "/cmd/") ->
+  io:format("Start of cmd~n"),
+  Data = Req:recv_body(),
+  OutData = thrift_process(Data),
+  io:format("OutData: ~s~n", [OutData]),
+  Req:ok({"text/json", [], OutData});
 
 handle_request(Req, "/login/") ->
   io:format("Start of login~n"),
@@ -45,14 +47,21 @@ handle_request(Req, "/") ->
   Req:serve_file("index.html", "docroot");
 
 handle_request(Req, OtherPath) ->
-  io:format("Start of OtherPath~n"),
-  case get_client(Req) of
-    {ok, Client} ->
-      io:format("Have client"),
-      handle_request(Req, OtherPath, Client);
-    {error, _Reason} ->
-      io:format("No client, need login"),
-      Req:respond({302, [{"Location", "/"}], <<>>})
+  io:format("Other Path ~s~n", [OtherPath]),
+  case lists:prefix("/static/", OtherPath) of
+    true ->
+      io:format("Loading file from ~s~n", [string:substr(OtherPath,
+            string:len("/static/"))]),
+      Req:serve_file(string:substr(OtherPath, string:len("/static/ ")), "docroot");
+    false ->
+      case get_client(Req) of
+        {ok, Client} ->
+          io:format("Have client~n"),
+          handle_request(Req, OtherPath, Client);
+        {error, _Reason} ->
+          io:format("No client, need login~n"),
+          Req:respond({302, [{"Location", "/"}], <<>>})
+      end
   end.
 
 handle_request(Req, "/lobby/", _Client) ->
@@ -73,6 +82,26 @@ loop(Req) ->
       handle_request(Req, Path);
     _ -> ok
   end.
+
+thrift_process(Data) ->
+  InProtoGen = fun() ->
+      {ok, MemoryTransport} = thrift_memory_buffer:new(Data),
+      {ok, JP} = thrift_json_protocol:new(MemoryTransport),
+      JP
+  end,
+  OutProtoGen = fun() ->
+      {ok, MemoryTransport2} = thrift_memory_buffer:new(),
+      {ok, JP2} = thrift_json_protocol:new(MemoryTransport2),
+      JP2
+  end,
+  {OutProto, ok} = thrift_processor:init({self(),
+                                          InProtoGen,
+                                          OutProtoGen,
+                                          tarabish_thrift,
+                                          thrift_cmd}),
+  {_OutProto2, {ok, ReplyTransport}} = thrift_protocol:get_transport(OutProto),
+  {_ReplyTransport2, {ok, ReplyData}} = thrift_transport:read(ReplyTransport, 1024 * 1024),
+  ReplyData.
 
 % 
 % Type: tarabish_thrift:function_info('getTables', reply_type).

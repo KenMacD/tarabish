@@ -4,7 +4,7 @@ all:
 	erl -make
 
 test: all
-	erl -pz ebin -noshell -s account test \
+	erl -pa ebin -noshell -s account test \
 	                      -s deck test \
 			      -s rules test \
 	                      -s game test \
@@ -20,5 +20,5 @@ clean:
 	rm -f erl_crash.dump
 
 start: all
-	erl -pz ebin -noshell -s main start
+	erl -pa ebin -noshell -s main start
 
