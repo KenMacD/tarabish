@@ -24,10 +24,9 @@ get_client(Req) ->
 
 handle_request(Req, "/cmd/") ->
   io:format("Start of cmd~n"),
-  Data = Req:recv_body(),
-  OutData = thrift_process(Data),
-  io:format("OutData: ~s~n", [OutData]),
-  Req:ok({"text/json", [], OutData});
+  {ok, Transport} = thrift_mochiweb_transport:new(Req),
+  {ok, Protocol} = thrift_json_protocol:new(Transport),
+  thrift_processor:once({Protocol, tarabish_thrift, thrift_cmd});
 
 handle_request(Req, "/login/") ->
   io:format("Start of login~n"),
@@ -66,14 +65,14 @@ handle_request(Req, OtherPath) ->
 
 handle_request(Req, "/lobby/", _Client) ->
   io:format("Start of lobby~n"),
-  Req:serve_file("lobby.html", "docroot");
+  Req:serve_file("lobby.html", "docroot").
 
-handle_request(Req, "/lobby/refresh/", _Client) ->
-  {ok, TableList} = tarabish_server:get_tables(),
-  TableListEncoded = json_encode(tarabish_thrift:function_info('getTables',
-      reply_type), TableList),
-
-  Req:ok({"text/json", [], TableListEncoded}).
+%handle_request(Req, "/lobby/refresh/", _Client) ->
+%  {ok, TableList} = tarabish_server:get_tables(),
+%  TableListEncoded = json_encode(tarabish_thrift:function_info('getTables',
+%      reply_type), TableList),
+%
+%  Req:ok({"text/json", [], TableListEncoded}).
 
 loop(Req) ->
   catch case Req:get(version) of
@@ -82,37 +81,3 @@ loop(Req) ->
       handle_request(Req, Path);
     _ -> ok
   end.
-
-thrift_process(Data) ->
-  InProtoGen = fun() ->
-      {ok, MemoryTransport} = thrift_memory_buffer:new(Data),
-      {ok, JP} = thrift_json_protocol:new(MemoryTransport),
-      JP
-  end,
-  OutProtoGen = fun() ->
-      {ok, MemoryTransport2} = thrift_memory_buffer:new(),
-      {ok, JP2} = thrift_json_protocol:new(MemoryTransport2),
-      JP2
-  end,
-  {OutProto, ok} = thrift_processor:init({self(),
-                                          InProtoGen,
-                                          OutProtoGen,
-                                          tarabish_thrift,
-                                          thrift_cmd}),
-  {_OutProto2, {ok, ReplyTransport}} = thrift_protocol:get_transport(OutProto),
-  {_ReplyTransport2, {ok, ReplyData}} = thrift_transport:read(ReplyTransport, 1024 * 1024),
-  ReplyData.
-
-% 
-% Type: tarabish_thrift:function_info('getTables', reply_type).
-% Data
-json_encode(Type, Data) ->
-  {ok, MemoryTransport} = thrift_memory_buffer:new(),
-  {ok, JsonProtocolIn} = thrift_json_protocol:new(MemoryTransport),
-  {Protocol, ok} = thrift_protocol:write(JsonProtocolIn, {Type, Data}),
-  {protocol, thrift_json_protocol, JsonProtocol} = Protocol,
-  {json_protocol, Transport, _, _} = JsonProtocol,
-  {transport, thrift_memory_buffer, MemoryBuffer} = Transport,
-  {memory_buffer, OutData} = MemoryBuffer,
-
-  iolist_to_binary(OutData).
