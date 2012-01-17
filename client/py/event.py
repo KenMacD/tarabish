@@ -4,7 +4,7 @@ import string
 from time import sleep
 sys.path.append('api/target/gen-py')
 
-from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift import Tarabish
 from tarabish.thrift.ttypes import *
 from tarabish.thrift.constants import *
 

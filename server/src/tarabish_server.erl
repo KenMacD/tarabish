@@ -73,18 +73,6 @@ handle_call({get_new_client, Id}, _From, State) ->
       {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
   end;
 
-handle_call({get_new_client, Id, CmdPid}, _From, State) ->
-  case orddict:find(Id, State#state.id) of
-    {ok, {_Client, _Cookie}} ->
-      {reply, error, State};
-    error ->
-      {ok, Client} = client:start_link(Id, CmdPid),
-      Cookie = new_cookie(),
-      NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
-      NewCookie = orddict:store(Cookie, Client, State#state.cookie),
-      {reply, {ok, Client, Cookie}, State#state{id=NewId, cookie=NewCookie}}
-  end;
-
 handle_call({get_client, Id}, _From, State) ->
   case orddict:find(Id, State#state.id) of
     {ok, {Client, Cookie}} ->

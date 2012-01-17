@@ -10,7 +10,7 @@ import random
 import thread
 import string
 
-from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift import Tarabish
 from tarabish.thrift.ttypes import *
 from tarabish.thrift.constants import *
 
@@ -56,11 +56,11 @@ print str(tables)
 
 def join_event(cookie):
     print "Joining Event Stream, ",
-    t2 = TSocket.TSocket('localhost', 42746)
+    t2 = TSocket.TSocket('localhost', 42745)
     t2 = TTransport.TBufferedTransport(t2)
     p2 = TBinaryProtocol.TBinaryProtocol(t2)
     t2.open()
-    event_client = TarabishMsg.Client(p2)
+    event_client = Tarabish.Client(p2)
     print str(event_client.login(cookie))
     return event_client
 

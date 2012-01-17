@@ -38,7 +38,7 @@ Then the server can be build:
 ## Running #####################################################################
 
 To start the server run `make start` from the server directory. It will listen
-on port 42745 and 42746 for client connections.
+on port 42745 for client connections.
 
 To start a client run `./client/qt/tarabish.py`. 
 

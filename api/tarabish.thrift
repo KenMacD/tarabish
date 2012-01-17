@@ -2,7 +2,7 @@
 
 namespace py tarabish.thrift
 
-const i32	PROTOCOL_VERSION = 1
+const i32	PROTOCOL_VERSION = 2
 
 exception InvalidOperation {
 	1: string why
@@ -140,59 +140,52 @@ service Tarabish
 
 
 	##### After login #####
-	void joinTable(1: i32 table_id)
+	void joinTable(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	list<TableView> getTables()
+	list<TableView> getTables(1: i64 client_id)
 		throws (1:InvalidOperation invalid)
 
-	TableView sit(1: i32 table_id, 2: byte seat)
+	TableView sit(1: i64 client_id, 2: i32 table_id, 3: byte seat)
 		throws (1:InvalidOperation invalid)
 
-	void stand(1: i32 table_id)
+	void stand(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void partTable(1: i32 table_id)
+	void partTable(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void quit()
+	void quit(1: i64 client_id)
 		throws (1:InvalidOperation invalid)
 
 	##### After joining a table #####
-	void chat(1: i32 table, 2: string message)
+	void chat(1: i64 client_id, 2: i32 table, 3: string message)
 		throws (1:InvalidOperation invalid)
 
 	##### Once we have a full table #####
-	void startGame(1: i32 table_id)
+	void startGame(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void callTrump(1: i32 table_id, 2: byte suit)
+	void callTrump(1: i64 client_id, 2: i32 table_id, 3: byte suit)
 		throws (1:InvalidOperation invalid)
 
-	void callRun(1: i32 table_id)
+	void callRun(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void showRun(1: i32 table_id)
+	void showRun(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	void playCard(1: i32 table_id, 2: Card card)
+	void playCard(1: i64 client_id, 2: i32 table_id, 3: Card card)
 		throws (1:InvalidOperation invalid)
 
 	# Get's it's card from the only bella left in hand
-	void playBella(1: i32 table_id)
-		throws (1:InvalidOperation invalid)
-}
-
-service TarabishMsg
-{
-	i32 getVersion()
-
-	void login(1: i64 cookie)
+	void playBella(1: i64 client_id, 2: i32 table_id)
 		throws (1:InvalidOperation invalid)
 
-	list<Event> getEvents()
+	##### Event processing #####
+	list<Event> getEvents(1: i64 client_id)
 		throws (1:InvalidOperation invalid)
 
-	list<Event> getEventsTimeout(1: i32 timeout_mills)
+	list<Event> getEventsTimeout(1: i64 client_id, 2: i32 timeout_mills)
 		throws (1:InvalidOperation invalid)
 }

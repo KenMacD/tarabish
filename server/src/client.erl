@@ -79,6 +79,7 @@ get_events(Client, 0) ->
 % Either of these might fail and throw noproc
 get_events(Client, Timeout) ->
   clear_new_event(),
+  client:subscribe(Client, self()),
   Events = gen_server:call(Client, {get_events}),
   get_events(Client, Timeout, Events).
 
@@ -92,6 +93,7 @@ get_events(Client, Timeout, []) ->
     {'DOWN',Ref,process,_,_} ->
       []
   after Timeout ->
+      erlang:demonitor(Ref),
       []
   end;
 

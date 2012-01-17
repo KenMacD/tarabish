@@ -18,20 +18,13 @@ create_account(Name, Email, Password) ->
       _ -> throw(#invalidOperation{why="Unknown"})
   end.
 
-login(Name, Password) ->
-  login(Name, Password, get(client)).
-
-login(Name, _Password, undefined) ->
-  case tarabish_server:get_client_if_new(Name, self()) of
-    {ok, Client, Cookie} ->
-      put(client, Client),
+login(Name, _Password) ->
+  case tarabish_server:get_client_if_new(Name) of
+    {ok, _Client, Cookie} ->
       Cookie;
     error ->
       throw(#invalidOperation{why="Client exists, use cookie"})
-  end;
-
-login(_Name, _Password, _) ->
-  throw(#invalidOperation{why="Already Authenticated"}).
+  end.
 
 start() ->
   start(42745).
@@ -51,35 +44,53 @@ stop(Server) ->
   thrift_socket_server:stop(Server).
 
 local(Function, Args) ->
-  apply(?MODULE, Function, tuple_to_list(Args)).
+  apply(?MODULE, Function, Args).
 
-server_call(Function, Args) ->
-  server_call(Function, Args, get(client)).
+server_call(Function, [ClientId|Args]) ->
+  server_call(Function, Args, get_client(ClientId)).
 
 server_call(_Function, _Args, undefined) ->
   throw(#invalidOperation{why="Need login first"});
 
 server_call(Function, Args, _Client) ->
-  case apply(tarabish_server, Function, tuple_to_list(Args)) of
+  case apply(tarabish_server, Function, Args) of
       ok -> ok;
       {ok, Result} -> Result;
       {error, Reason} ->
         throw(#invalidOperation{why=atom_to_list(Reason)})
     end.
 
-client_call(Function, Args) ->
-  client_call(Function, Args, get(client)).
+client_call(Function, [ClientId|Args]) ->
+  client_call(Function, Args, get_client(ClientId)).
 
 client_call(_Function, _Args, undefined) ->
   throw(#invalidOperation{why="Need login first"});
 
 client_call(Function, Args, Client) ->
-  case apply(client, Function, [Client | tuple_to_list(Args)]) of
+  case apply(client, Function, [Client | Args]) of
       ok -> ok;
       {ok, Result} -> Result;
       {error, Reason} ->
         throw(#invalidOperation{why=atom_to_list(Reason)})
     end.
+
+event_call(Function, [ClientId|Args]) ->
+  event_call(Function, Args, get_client(ClientId)).
+
+event_call(_Function, _Args, undefined) ->
+  throw(#invalidOperation{why="Need login first"});
+
+% For events override missing timeout with zero.
+event_call(Function, [], Client) ->
+  event_call(Function, [0], Client);
+
+event_call(_Function, [Timeout], Client) ->
+  case (catch client:get_events(Client, Timeout)) of
+    {'EXIT',{noproc,_Stackdump}} ->
+      throw(#invalidOperation{why="Client Gone"}); 
+    Other ->
+      Other
+  end. 
 
 cap_to_underscore_char(C) when is_integer(C) ->
   Lc = string:to_lower(C),
@@ -96,21 +107,34 @@ handle_function(Function, Args) when is_atom(Function), is_tuple(Args) ->
   FunctionNameAtom = cap_to_underscore(Function),
   FunctionHandlers =
     [{[get_version, create_account, login], fun local/2},
-     {[get_tables],                       fun server_call/2}],
+     {[get_tables],                         fun server_call/2},
+     {[get_events, get_events_timeout],     fun event_call/2}],
   case handle_function(FunctionNameAtom, Args, FunctionHandlers) of
     ok -> ok;
     Reply -> {reply, Reply}
   end.
 
 handle_function(Function, Args, []) ->
-  client_call(Function, Args);
+  client_call(Function, tuple_to_list(Args));
 
 handle_function(Function, Args, [{Functions, Handler}|Rest]) ->
   case contains(Function, Functions) of
-    true  -> Handler(Function, Args);
+    true  -> Handler(Function, tuple_to_list(Args));
     false -> handle_function(Function, Args, Rest)
   end.
 
+get_client(SignedCookie) when is_integer(SignedCookie) ->
+  <<Cookie:64>> = <<SignedCookie:64>>,
+  case tarabish_server:get_client_by_cookie(Cookie) of
+    {ok, Client} ->
+      Client;
+    {error, _Reason} -> % TODO: {ok, _} | {error, Reason} instead of eating it.
+      undefined
+  end;
+
+get_client(_Other) ->
+  undefined.
+  
 contains(_Key, []) ->
   false;
 contains(Key, List) ->

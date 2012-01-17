@@ -8,7 +8,7 @@ import string
 from time import sleep
 sys.path.append('api/target/gen-py')
 
-from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift import Tarabish
 from tarabish.thrift.ttypes import *
 from tarabish.thrift.constants import *
 
@@ -49,7 +49,7 @@ print "Login"
 cookie = client.login(name, "password")
 
 print "Checking Table list - ",
-tables = client.getTables()
+tables = client.getTables(cookie)
 print str(tables)
 
 tablenum = 0
@@ -59,12 +59,12 @@ def join_first_seat(tables):
         for seat in table.seats:
             if seat.isOpen:
                 print "Found open seat"
-                client.sit(table.tableId, seat_num)
+                client.sit(cookie, table.tableId, seat_num)
                 if seat_num == 3:
                     print "Starting the game"
                     global tablenum
                     tablenum = table.tableId
-                    client.startGame(table.tableId)
+                    client.startGame(cookie, table.tableId)
                 return (table.tableId, seat_num)
             seat_num += 1
 
@@ -74,12 +74,11 @@ print "Joining table"
 
 def join_event(cookie):
     print "Joining Event Stream, ",
-    t2 = TSocket.TSocket('localhost', 42746)
+    t2 = TSocket.TSocket('localhost', 42745)
     t2 = TTransport.TBufferedTransport(t2)
     p2 = TBinaryProtocol.TBinaryProtocol(t2)
     t2.open()
-    event_client = TarabishMsg.Client(p2)
-    print str(event_client.login(cookie))
+    event_client = Tarabish.Client(p2)
     return event_client
 
 game = 0
@@ -88,7 +87,8 @@ cards = []
 trick = 0
 #count = 0
 while True:
-    events = ec.getEventsTimeout(300000)
+    print "Getting Events..."
+    events = ec.getEventsTimeout(cookie, 300000)
     for event in events:
         print_event(event, seatnum)
 #        if event.type == EventType.HAND_DONE:
@@ -99,35 +99,35 @@ while True:
             trick = 0
         if event.type == EventType.ASK_TRUMP and event.seat == seatnum:
             try:
-                client.callTrump(tableid, PASS)
+                client.callTrump(cookie, tableid, PASS)
             except InvalidOperation, e:
                 # Forced
-                client.callTrump(tableid, SPADES)
+                client.callTrump(cookie, tableid, SPADES)
         if event.type == EventType.PLAY_CARD and event.seat == seatnum:
              cards.remove(event.card)
         if event.type == EventType.ASK_CARD and event.seat == seatnum:
             if trick == 0:
                 try:
-                    client.callRun(tableid)
+                    client.callRun(cookie, tableid)
                     print "Called Run!"
                 except InvalidOperation, e:
                     pass # expected
             if trick == 1:
                 try:
-                    client.showRun(tableid)
+                    client.showRun(cookie, tableid)
                     print "Showed Run!"
                 except InvalidOperation, e:
                     pass # expected
             played = 0
             # try playing each card a bells first:
             try:
-                client.playBella(tableid)
+                client.playBella(cookie, tableid)
                 print "Played Bella!"
                 played = 1
             except InvalidOperation, e:
                 for card in cards[:]:
                     try:
-                        client.playCard(tableid, card)
+                        client.playCard(cookie, tableid, card)
                         played = 1
                         break;
                     except InvalidOperation, e:
@@ -139,7 +139,7 @@ while True:
         if event.type == EventType.GAME_DONE:
             game = game + 1
             if game < 5 and seatnum == 3:
-                client.startGame(tablenum)
+                client.startGame(cookie, tablenum)
             elif game == 5:
                 sys.exit(1)
 

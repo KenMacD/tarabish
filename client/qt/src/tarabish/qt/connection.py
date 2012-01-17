@@ -1,7 +1,8 @@
 import sys
+from functools import partial
 
 sys.path.append('api/target/gen-py')
-from tarabish.thrift import Tarabish, TarabishMsg
+from tarabish.thrift import Tarabish
 from tarabish.thrift.ttypes import *
 from events import EventDispatcher
 
@@ -12,7 +13,7 @@ from thrift.protocol import TBinaryProtocol
 
 from PySide.QtCore import (QObject, QThread, QTimer, Signal)
 
-CLIENT_PROTO_VERSION = 1
+CLIENT_PROTO_VERSION = 2
 
 class ServerEvents(QThread):
     eventSignal = Signal(Event)
@@ -22,9 +23,9 @@ class ServerEvents(QThread):
         self.stopped = False
 
     def initialize(self, host, cookie):
-        self.transport = TTransport.TBufferedTransport(TSocket.TSocket(host, 42746))
+        self.transport = TTransport.TBufferedTransport(TSocket.TSocket(host, 42745))
         protocol = TBinaryProtocol.TBinaryProtocol(self.transport)
-        self.eclient = TarabishMsg.Client(protocol)
+        self.eclient = Tarabish.Client(protocol)
         self.cookie = cookie
         self.stopped = False
 
@@ -38,9 +39,8 @@ class ServerEvents(QThread):
 
         try:
             self.transport.open()
-            self.eclient.login(self.cookie)
             while not self.stopped:
-                events = self.eclient.getEventsTimeout(1000)
+                events = self.eclient.getEventsTimeout(self.cookie, 1000)
                 for event in events:
                     self.eventSignal.emit(event)
         except InvalidOperation:
@@ -62,6 +62,7 @@ class ServerConnection(QObject):
         self.hasEvents = False
         self.serverEvents = serverEvents
         self.eventDispatcher = EventDispatcher(self.serverEvents.eventSignal)
+        self.cookie = 0
 
         app.aboutToQuit.connect(lambda: self.disconnectFromServer(False))
 
@@ -80,8 +81,8 @@ class ServerConnection(QObject):
             if version != CLIENT_PROTO_VERSION:
                 raise Exception("Invalid Version") # TODO: better exceptions
 
-            cookie = self.client.login(name, "password")
-            self.serverEvents.initialize(host, cookie)
+            self.cookie = self.client.login(name, "password")
+            self.serverEvents.initialize(host, self.cookie)
             self.serverEvents.start()
             self.hasEvents = True
 
@@ -95,7 +96,7 @@ class ServerConnection(QObject):
     def disconnectFromServer(self, notify=True):
         if self.is_connected:
             try:
-                self.client.quit()
+                self.client.quit(self.cookie)
             except InvalidOperation:
                 pass
             self.serverEvents.stop()
@@ -112,6 +113,9 @@ class ServerConnection(QObject):
             raise InvalidOperation("Not Connected")
 
         if self.is_connected:
-            return getattr(self.client, attr)
+            fun = getattr(self.client, attr)
+            pfun = partial(fun, self.cookie)
+
+            return pfun
         else:
             return lambda * args, **kwargs: not_connected()
