@@ -157,7 +157,9 @@ code_change(_OldVsn, State, _Extra) ->
 
 % Internal functions
 new_cookie() ->
-  <<Cookie:64>> = crypto:rand_bytes(8),
+  % Lower precision of cookie for JS :(
+  % <<Cookie:64>> = crypto:rand_bytes(8),
+  <<Cookie:53,_:3>> = crypto:rand_bytes(7),
   Cookie.
 
 tables_view_to_list(TableViews) ->
