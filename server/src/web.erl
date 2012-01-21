@@ -45,6 +45,13 @@ handle_request(Req, "/") ->
   io:format("Start of index~n"),
   Req:serve_file("index.html", "docroot");
 
+handle_request(Req, "/client_id.js") ->
+  io:format("Start of client_id~n"),
+  {Cookie, _Rest} = string:to_integer(get_parameter("session", Req:parse_cookie())),
+  Req:ok({"application/javascript",
+      lists:concat(["var client_id=", Cookie, ";"])});
+
+
 handle_request(Req, OtherPath) ->
   io:format("Other Path ~s~n", [OtherPath]),
   case lists:prefix("/static/", OtherPath) of
