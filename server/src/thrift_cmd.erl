@@ -19,7 +19,11 @@ create_account(Name, Email, Password) ->
   end.
 
 login(Name, _Password) ->
-  case tarabish_server:get_client_if_new(Name) of
+  ListName = case is_binary(Name) of
+    true  -> binary_to_list(Name);
+    false -> Name
+  end,
+  case tarabish_server:get_client_if_new(ListName) of
     {ok, _Client, Cookie} ->
       Cookie;
     error ->
