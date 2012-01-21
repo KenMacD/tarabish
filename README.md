@@ -35,6 +35,9 @@ Then the server can be build:
     $ cd server
     $ make
 
+Generated gen-js files have to be copied to docroot, as does thrift.js from the
+thrift project.
+
 ## Running #####################################################################
 
 To start the server run `make start` from the server directory. It will listen
