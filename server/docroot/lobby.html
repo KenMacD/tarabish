@@ -19,6 +19,11 @@
 			var t = Array();
 			var j = -1;
 
+			t[++j] = "<tr><td>Table:</td>";
+			t[++j] = "<td>Seat 1</td>";
+			t[++j] = "<td>Seat 2</td>";
+			t[++j] = "<td>Seat 3</td>";
+			t[++j] = "<td>Seat 4</td></tr>";
 			for (var tableIndex = 0; tableIndex < tables.length; tableIndex++) {
 				var table = tables[tableIndex];
 				t[++j] = '<tr><td>';
@@ -29,7 +34,11 @@
 					var seat = table.seats[seatIndex];
 					t[++j] = '<td>';
 					if (seat.isOpen) {
-						t[++j] = 'Open';
+						t[++j] = '<a href="/sit/?tid=';
+						t[++j] = table.tableId;
+						t[++j] = '&seat=';
+						t[++j] = seatIndex;
+						t[++j] = '">Sit</a>';
 					} else {
 						t[++j] = String(seat.name); // TODO: XSS
 					}

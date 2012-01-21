@@ -72,7 +72,25 @@ handle_request(Req, OtherPath) ->
 
 handle_request(Req, "/lobby/", _Client) ->
   io:format("Start of lobby~n"),
-  Req:serve_file("lobby.html", "docroot").
+  Req:serve_file("lobby.html", "docroot");
+
+handle_request(Req, "/sit/", Client) ->
+  io:format("Start of table~n"),
+  QS = Req:parse_qs(),
+  TableId = get_parameter("tid", QS),
+  {TableIdNum, []} = string:to_integer(TableId),
+  SeatId = get_parameter("seat", QS),
+  {SeatIdNum, []} = string:to_integer(SeatId),
+  TableView = client:sit(Client, TableIdNum, SeatIdNum), % TODO: handle error
+  Location = ["/table/", TableId, "/", SeatId, "/"],
+  Req:respond({302, [{"Location", lists:concat(Location)}], <<>>});
+
+handle_request(Req, Other, Client) ->
+  handle_token_request(Req, Client, string:tokens(Other, "/")).
+
+handle_token_request(Req, Client, ["table", TableId, SeatId]) ->
+  io:format("Start of table ~w seat ~w~n", [TableId, SeatId]),
+  Req:serve_file("table.html", "docroot").
 
 %handle_request(Req, "/lobby/refresh/", _Client) ->
 %  {ok, TableList} = tarabish_server:get_tables(),
