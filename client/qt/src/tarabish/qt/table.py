@@ -376,7 +376,7 @@ class Table(QMainWindow):
         return self.seats[self._seat_to_position(seat)]
 
     # TODO: logger no longer needed?
-    def __init__(self, table_id, seat_num, table_view, server, logger,
+    def __init__(self, table_id, seat_num, server, logger,
             resource_path, parent=None):
         super(Table, self).__init__(parent)
 
@@ -396,9 +396,6 @@ class Table(QMainWindow):
         self.seats.append(self.SeatDisplay(Qt.AlignCenter, 2, 1))
         self.seats.append(
                 self.SeatDisplay(Qt.AlignRight | Qt.AlignVCenter, 1, 0))
-
-        for (num, seat) in enumerate(table_view.seats):
-            self.get_seat_display(num).update(seat)
 
         self.start_game_button = QPushButton("Start Game")
         self.start_game_button.setEnabled(self.is_full())
@@ -444,6 +441,8 @@ class Table(QMainWindow):
         main.setLayout(vbox)
         self.setCentralWidget(main)
 
+        server.eventDispatcher.connect(EventType.TABLEVIEW,
+                self.handle_tableview_event, table_id)
         server.eventDispatcher.connect(EventType.SIT, self.handle_sit_event, table_id)
         server.eventDispatcher.connect(EventType.STAND, self.handle_stand_event, table_id)
         server.eventDispatcher.connect(EventType.DEAL, self.handle_deal,
@@ -532,6 +531,13 @@ class Table(QMainWindow):
             self.server.playBella(self.table_id)
         except InvalidOperation as exc:
             self.logger.append("Can not play bella because: %s" % (str(exc),))
+
+    def handle_tableview_event(self, table_view):
+        self.logger.append("Table update event")
+        for (num, seat) in enumerate(table_view.seats):
+            self.get_seat_display(num).update(seat)
+        # TODO: handle already started, esp when join with sit enabled
+        self.start_game_button.setEnabled(self.is_full())
 
     def handle_sit_event(self, name, table, seat):
         self.logger.append("User %s sat" % (name,))

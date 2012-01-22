@@ -91,6 +91,8 @@ handle_call({join, ClientName, Client}, _From, State) ->
       Observers = [ClientName|State#state.observers],
       NewState = State#state{members=NewMembers, observers=Observers},
       update_server(NewState),
+      send_event_one(#event{type=?tarabish_EventType_TABLEVIEW,
+                            table_view=make_table_view(NewState)}, NewState, Client),
       {reply, ok, NewState}
   end;
 
@@ -131,14 +133,13 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
                    seat=SeatNum},
     case orddict:find(ClientName, State#state.members) of
       {ok, #person{seat=none} = Person} ->
-
         send_event_all(Event, State),
         NewPerson = Person#person{seat=SeatNum},
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewObservers = lists:delete(ClientName, State#state.observers),
         NewState = State#state{members=NewMembers, seats=NewSeats, observers=NewObservers},
         update_server(NewState),
-        {reply, {ok, make_table_view(NewState)}, NewState};
+        {reply, ok, NewState};
       {ok, _Person} ->
           {reply, {error, already_seated}, State};
       error -> % Not at table, join
@@ -147,7 +148,11 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
         NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
         NewState = State#state{members=NewMembers, seats=NewSeats},
         update_server(NewState),
-        {reply, {ok, make_table_view(NewState)}, NewState}
+
+        % Send a new client a table view
+        send_event_one(#event{type=?tarabish_EventType_TABLEVIEW,
+                              table_view=make_table_view(NewState)}, NewState, Client),
+        {reply, ok, NewState}
     end;
   true ->
     {reply, {error, seat_taken}, State}
@@ -328,6 +333,10 @@ cancel_game(#state{game=Game} = State) ->
 
 send_event_all(Event, State) ->
   send_event(State#state.id, Event, State#state.members).
+
+send_event_one(Event, State, Client) ->
+  TableEvent = Event#event{table=State#state.id},
+  client:recv_event(Client, TableEvent).
 
 send_event(TableId, Event, MemberDict) ->
   {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),

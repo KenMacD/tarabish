@@ -159,10 +159,10 @@ handle_call({sit, TableId, Seat}, _From, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
       case table:sit(Table, State#state.id, self(), Seat) of
-        {ok, TableView} ->
+        ok ->
           % If we were already watching the table is should overwrite
           NewTables = orddict:store(TableId, Table, State#state.tables),
-          {reply, {ok, TableView}, State#state{tables=NewTables}};
+          {reply, ok, State#state{tables=NewTables}};
         {error, Reason} ->
           {reply, {error, Reason}, State}
       end;

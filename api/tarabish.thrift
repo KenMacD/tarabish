@@ -2,7 +2,7 @@
 
 namespace py tarabish.thrift
 
-const i32	PROTOCOL_VERSION = 2
+const i32	PROTOCOL_VERSION = 3
 
 exception InvalidOperation {
 	1: string why
@@ -67,6 +67,7 @@ enum BetterType {
 
 # Thrift doesn't allow different types, so only some fields populated.
 enum EventType {
+  TABLEVIEW,	# table, table_view
   JOIN,		# table, name
   PART,		# table, name
   SIT,		# table, name, seat
@@ -124,6 +125,8 @@ struct Event {
  15: byte	high_value,
  16: bool	is_trump,
  17: byte	other_seat,
+
+ 18: TableView	table_view,
 }
 
 service Tarabish
@@ -146,7 +149,7 @@ service Tarabish
 	list<TableView> getTables(1: i64 client_id)
 		throws (1:InvalidOperation invalid)
 
-	TableView sit(1: i64 client_id, 2: i32 table_id, 3: byte seat)
+	void sit(1: i64 client_id, 2: i32 table_id, 3: byte seat)
 		throws (1:InvalidOperation invalid)
 
 	void stand(1: i64 client_id, 2: i32 table_id)

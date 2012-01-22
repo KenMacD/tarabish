@@ -13,7 +13,7 @@ from thrift.protocol import TBinaryProtocol
 
 from PySide.QtCore import (QObject, QThread, QTimer, Signal)
 
-CLIENT_PROTO_VERSION = 2
+CLIENT_PROTO_VERSION = 3
 
 class ServerEvents(QThread):
     eventSignal = Signal(Event)

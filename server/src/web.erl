@@ -81,14 +81,14 @@ handle_request(Req, "/sit/", Client) ->
   {TableIdNum, []} = string:to_integer(TableId),
   SeatId = get_parameter("seat", QS),
   {SeatIdNum, []} = string:to_integer(SeatId),
-  TableView = client:sit(Client, TableIdNum, SeatIdNum), % TODO: handle error
+  ok = client:sit(Client, TableIdNum, SeatIdNum), % TODO: handle error
   Location = ["/table/", TableId, "/", SeatId, "/"],
   Req:respond({302, [{"Location", lists:concat(Location)}], <<>>});
 
 handle_request(Req, Other, Client) ->
   handle_token_request(Req, Client, string:tokens(Other, "/")).
 
-handle_token_request(Req, Client, ["table", TableId, SeatId]) ->
+handle_token_request(Req, _Client, ["table", TableId, SeatId]) ->
   io:format("Start of table ~w seat ~w~n", [TableId, SeatId]),
   Req:serve_file("table.html", "docroot").
 
