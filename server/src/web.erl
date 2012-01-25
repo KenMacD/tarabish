@@ -19,7 +19,7 @@ get_parameter(_, _) -> [].
 
 get_client(Req) ->
   % TODO: check rest?
-  {Cookie, _Rest} = string:to_integer(get_parameter("session", Req:parse_cookie())),
+  {Cookie, _Rest} = string:to_integer(get_parameter("clientid", Req:parse_cookie())),
   tarabish_server:get_client_by_cookie(Cookie).
 
 handle_request(Req, "/cmd/") ->
@@ -34,9 +34,10 @@ handle_request(Req, "/login/") ->
   io:format("Name is ~w~n", [Name]),
   case tarabish_server:get_client_if_new(Name) of
     {ok, _Client, Cookie} ->
-      SessCookie = mochiweb_cookies:cookie("session", Cookie, [{path, "/"}]),
+      SessCookie = mochiweb_cookies:cookie("clientid", Cookie, [{path, "/"}]),
+      NameCookie = mochiweb_cookies:cookie("clientname", Name, [{path, "/"}]),
       io:format("Call received: Cookie: ~w~n", [Cookie]),
-      Req:respond({302, [SessCookie, {"Location", "/lobby/"}], <<>>});
+      Req:respond({302, [SessCookie, NameCookie, {"Location", "/lobby/"}], <<>>});
     error ->
       Req:ok({"text/html;charset=UTF-8", "INVALID"})
   end;
@@ -47,9 +48,12 @@ handle_request(Req, "/") ->
 
 handle_request(Req, "/client_id.js") ->
   io:format("Start of client_id~n"),
-  {Cookie, _Rest} = string:to_integer(get_parameter("session", Req:parse_cookie())),
+  Cookies = Req:parse_cookie(),
+  {Cookie, _Rest} = string:to_integer(get_parameter("clientid", Cookies)),
+  Name = get_parameter("clientname", Cookies),
   Req:ok({"application/javascript",
-      lists:concat(["var client_id=", Cookie, ";"])});
+      lists:concat(["var client_id=", Cookie, ";\n"
+                    "var client_name=\"", Name, "\";\n"])});
 
 
 handle_request(Req, OtherPath) ->
