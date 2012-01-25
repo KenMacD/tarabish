@@ -21,7 +21,7 @@
 % From Game:
 -export([recv_event/2]).
 
--record(state, {id, tables, events, subscriber, cmdRef}).
+-record(state, {id, tables, events=[], subscriber, cmdRef, timer=none, timerRef}).
 
 % Public:
 start(Id) ->
@@ -117,14 +117,12 @@ clear_new_event() ->
 init([Id, none]) ->
   {ok, #state{id=Id,
               tables=orddict:new(),
-              events=[],
               cmdRef=none}};
 
 init([Id, CmdPid]) ->
   Ref = erlang:monitor(process, CmdPid),
   {ok, #state{id=Id,
               tables=orddict:new(),
-              events=[],
               cmdRef=Ref}}.
 
 handle_call({stop}, _From, State) ->
@@ -247,8 +245,9 @@ handle_call({show_run, TableId}, _From, State) ->
   end;
 
 handle_call({get_events}, _From, State) ->
-  Reply = lists:reverse(State#state.events),
-  {reply, Reply, State#state{events=[]}};
+  State1 = clear_timer(State),
+  Reply = lists:reverse(State1#state.events),
+  {reply, Reply, State1#state{events=[]}};
 
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
@@ -259,13 +258,21 @@ handle_cast({subscribe, Pid}, State) ->
   {noreply, State#state{subscriber=Pid}};
 
 handle_cast({event, Event}, State) ->
-  State1 = add_event(Event, State),
-  {noreply, State1};
+  State1 = set_timer(State),
+  State2 = add_event(Event, State1),
+  {noreply, State2};
 
 handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
     [?MODULE, Msg]),
   {stop, "Bad Cast", State}.
+
+% If this is the current timer then quit.
+handle_info({ping, Ref}, #state{timerRef=Ref} = State) ->
+  {stop, normal, State};
+
+handle_info({ping, _Ref}, State) ->
+  {noreply, State};
 
 handle_info({'DOWN',Ref,process,_,_}, #state{cmdRef=Ref} = State) ->
   {stop, normal, State};
@@ -287,6 +294,21 @@ new_event(Subscriber) when is_pid(Subscriber) ->
 
 new_event(_) ->
   ok.
+
+set_timer(#state{timer=none} = State) ->
+  Ref = make_ref(),
+  Timer = erlang:send_after(60000, self(), {ping, Ref}),
+  State#state{timer=Timer, timerRef=Ref};
+
+set_timer(State) ->
+  State.
+
+clear_timer(#state{timer=none} = State) ->
+  State;
+
+clear_timer(#state{timer=Timer} = State) ->
+  erlang:cancel_timer(Timer),
+  State#state{timer=none}.
 
 add_event(Event, State = #state{events=[]}) ->
   Subscriber = State#state.subscriber,
