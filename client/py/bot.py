@@ -85,10 +85,13 @@ game = 0
 ec = join_event(cookie)
 cards = []
 trick = 0
+event_last = 0
 #count = 0
 while True:
     print "Getting Events..."
-    events = ec.getEventsTimeout(cookie, 300000)
+    events = ec.getEventsTimeout(cookie, event_last, 300000)
+    if events:
+        event_last = events[-1].number
     for event in events:
         print_event(event, seatnum)
 #        if event.type == EventType.HAND_DONE:

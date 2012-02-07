@@ -2,7 +2,7 @@
 
 namespace py tarabish.thrift
 
-const i32	PROTOCOL_VERSION = 3
+const i32	PROTOCOL_VERSION = 4
 
 exception InvalidOperation {
 	1: string why
@@ -101,32 +101,34 @@ enum EventType {
 
 struct Event {
   1: EventType	type,
-  2: i32	table,
+  2: i32	number,
 
-  3: string	name,
+  3: i32	table,
 
-  4: string	message,
+  4: string	name,
 
-  5: byte	seat,
+  5: string	message,
 
-  6: list<Card> dealt,
+  6: byte	seat,
 
-  7: byte	suit,
+  7: list<Card> dealt,
 
-  8: Card	card,
+  8: byte	suit,
 
-  9: list<i32>  hand_score,
- 10: list<i32>  score,
- 11: BaitType	bait,
+  9: Card	card,
 
- 12: RunType	run,
- 13: list<Card> cards,
- 14: BetterType	better,
- 15: byte	high_value,
- 16: bool	is_trump,
- 17: byte	other_seat,
+ 10: list<i32>  hand_score,
+ 11: list<i32>  score,
+ 12: BaitType	bait,
 
- 18: TableView	table_view,
+ 13: RunType	run,
+ 14: list<Card> cards,
+ 15: BetterType	better,
+ 16: byte	high_value,
+ 17: bool	is_trump,
+ 18: byte	other_seat,
+
+ 19: TableView	table_view,
 }
 
 service Tarabish
@@ -186,9 +188,9 @@ service Tarabish
 		throws (1:InvalidOperation invalid)
 
 	##### Event processing #####
-	list<Event> getEvents(1: i64 client_id)
+	list<Event> getEvents(1: i64 client_id, 2: i32 event_id)
 		throws (1:InvalidOperation invalid)
 
-	list<Event> getEventsTimeout(1: i64 client_id, 2: i32 timeout_mills)
+	list<Event> getEventsTimeout(1: i64 client_id, 2: i32 event_id, 3: i32 timeout_mills)
 		throws (1:InvalidOperation invalid)
 }

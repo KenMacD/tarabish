@@ -85,11 +85,11 @@ event_call(_Function, _Args, undefined) ->
   throw(#invalidOperation{why="Need login first"});
 
 % For events override missing timeout with zero.
-event_call(Function, [], Client) ->
-  event_call(Function, [0], Client);
+event_call(Function, [LastEventNum], Client) ->
+  event_call(Function, [LastEventNum, 0], Client);
 
-event_call(_Function, [Timeout], Client) ->
-  case (catch client:get_events(Client, Timeout)) of
+event_call(_Function, [LastEventNum, Timeout], Client) ->
+  case (catch client:get_events(Client, LastEventNum, Timeout)) of
     {'EXIT',{noproc,_Stackdump}} ->
       throw(#invalidOperation{why="Client Gone"}); 
     Other ->

@@ -13,7 +13,7 @@ from thrift.protocol import TBinaryProtocol
 
 from PySide.QtCore import (QObject, QThread, QTimer, Signal)
 
-CLIENT_PROTO_VERSION = 3
+CLIENT_PROTO_VERSION = 4
 
 class ServerEvents(QThread):
     eventSignal = Signal(Event)
@@ -21,6 +21,7 @@ class ServerEvents(QThread):
     def __init__(self, parent=None):
         super(ServerEvents, self).__init__(parent)
         self.stopped = False
+        self.last_event = 0
 
     def initialize(self, host, cookie):
         self.transport = TTransport.TBufferedTransport(TSocket.TSocket(host, 42745))
@@ -40,7 +41,10 @@ class ServerEvents(QThread):
         try:
             self.transport.open()
             while not self.stopped:
-                events = self.eclient.getEventsTimeout(self.cookie, 1000)
+                events = self.eclient.getEventsTimeout(self.cookie,
+                        self.last_event, 1000)
+                if events:
+                    self.last_event = events[-1].number
                 for event in events:
                     self.eventSignal.emit(event)
         except InvalidOperation:

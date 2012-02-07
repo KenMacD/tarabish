@@ -16,12 +16,19 @@
     call_run/2, show_run/2]).
 
 % From Msg Socket:
--export([get_events/2, subscribe/2]).
+-export([get_events/3, subscribe/2]).
 
 % From Game:
 -export([recv_event/2]).
 
--record(state, {id, tables, events=[], subscriber, cmdRef, timer=none, timerRef}).
+-record(state, {id,
+                tables,
+                events=[],
+                subscriber,
+                cmdRef,
+                eventCnt=1,
+                timer=none,
+                timerRef}).
 
 % Public:
 start(Id) ->
@@ -73,23 +80,23 @@ show_run(Client, TableId) ->
 recv_event(Client, Event) ->
   gen_server:cast(Client, {event, Event}).
 
-get_events(Client, 0) ->
-  gen_server:call(Client, {get_events});
+get_events(Client, LastEventNum, 0) ->
+  gen_server:call(Client, {get_events, LastEventNum});
 
 % Either of these might fail and throw noproc
-get_events(Client, Timeout) ->
+get_events(Client, LastEventNum, Timeout) ->
   clear_new_event(),
   client:subscribe(Client, self()),
-  Events = gen_server:call(Client, {get_events}),
-  get_events(Client, Timeout, Events).
+  Events = gen_server:call(Client, {get_events, LastEventNum}),
+  get_events(Client, LastEventNum, Timeout, Events).
 
-get_events(Client, Timeout, []) ->
+get_events(Client, LastEventNum, Timeout, []) ->
   Ref = erlang:monitor(process, Client),
   receive
     new_event ->
       erlang:demonitor(Ref),
       clear_possible_down(Ref),
-      gen_server:call(Client, {get_events});
+      gen_server:call(Client, {get_events, LastEventNum});
     {'DOWN',Ref,process,_,_} ->
       []
   after Timeout ->
@@ -97,7 +104,7 @@ get_events(Client, Timeout, []) ->
       []
   end;
 
-get_events(_Client, _Timeout, Events) ->
+get_events(_Client, _LastEventNum, _Timeout, Events) ->
   Events.
 
 clear_possible_down(Ref) ->
@@ -244,10 +251,10 @@ handle_call({show_run, TableId}, _From, State) ->
       {reply, {error, not_at_table}, State}
   end;
 
-handle_call({get_events}, _From, State) ->
-  State1 = clear_timer(State),
+handle_call({get_events, LastEventNum}, _From, State) ->
+  State1 = clear_events_timer(State, LastEventNum),
   Reply = lists:reverse(State1#state.events),
-  {reply, Reply, State1#state{events=[]}};
+  {reply, Reply, State1};
 
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
@@ -303,18 +310,32 @@ set_timer(#state{timer=none} = State) ->
 set_timer(State) ->
   State.
 
-clear_timer(#state{timer=none} = State) ->
+% Check eventCnt == LastEventNum and do nothing?
+clear_events_timer(#state{events=Events} = State, LastEventNum) ->
+  LastSplitter = fun(E) -> E#event.number > LastEventNum end,
+  {New, Before} = lists:splitwith(LastSplitter, Events),
+  State1 = clear_timer(State, Before),
+  State1#state{events=New}.
+
+clear_timer(#state{timer=none} = State, _Events) ->
   State;
 
-clear_timer(#state{timer=Timer} = State) ->
+% No events cleared, so don't clear the timer:
+clear_timer(#state{} = State, []) ->
+  State;
+
+clear_timer(#state{timer=Timer} = State, _Events) ->
   erlang:cancel_timer(Timer),
   State#state{timer=none}.
 
-add_event(Event, State = #state{events=[]}) ->
+% TODO: handle 32bit overflow on eventCnt?
+add_event(Event, State = #state{events=[], eventCnt=Count}) ->
+  Event1 = Event#event{number = Count},
   Subscriber = State#state.subscriber,
   new_event(Subscriber),
-  State#state{events=[Event]};
+  State#state{events=[Event1], eventCnt=Count+1};
 
-add_event(Event, State) ->
-  State#state{events=[Event|State#state.events]}.
+add_event(Event, #state{eventCnt=Count} = State) ->
+  Event1 = Event#event{number = Count},
+  State#state{events=[Event1|State#state.events], eventCnt=Count+1}.
 
