@@ -20,5 +20,5 @@ clean:
 	rm -f erl_crash.dump
 
 start: all
-	erl -pa ebin -noshell -s main start
+	erl -pa ebin -pz deps/cowboy/ebin -pz deps/sockjs/ebin -noshell -s main start
 
