@@ -36,7 +36,7 @@ init({_Any, http}, Req, []) ->
   {ok, Req, []}.
 
 handle(Req, State) ->
-  {ok, Data} = file:read_file("./docroot/test.html"),
+  {ok, Data} = file:read_file("./docroot/index.html"),
   {ok, Req1} = cowboy_http_req:reply(200, [{<<"Content-Type">>, "text/html"}],
                                      Data, Req),
   {ok, Req1, State}.

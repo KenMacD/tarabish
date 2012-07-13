@@ -1,33 +1,34 @@
-<html>
-<head>
-	<!-- <link rel="stylesheet" type="text/css" href="/static/site.css"/> -->
-	<title>Tarabish online</title>
-	<script type="text/javascript" src="/static/thrift.js"></script>
-	<script type="text/javascript" src="/static/prototype.js"></script>
-	<script type="text/javascript" src="/static/tarabish_types.js"></script>
-	<script type="text/javascript" src="/static/Tarabish.js"></script>
-	<script type="text/javascript">
-		function getVersion() {
-			var transport = new Thrift.Transport("/cmd/");
-			var protocol  = new Thrift.Protocol(transport);
-			var client    = new TarabishClient(protocol);
+<!doctype html>
+<html><head>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"> </script>
+  <script src="http://cdn.sockjs.org/sockjs-0.3.min.js"> </script>
+</head><body lang="en">
+  <h2>Tarabish Online</h2>
 
-			var result = client.getVersion();
-			document.getElementById("p_ver").innerHTML = result;
-		}
-	</script>
-</head>
-<body onload="getVersion()">
-	<h1>Tarabish Online</h1>
-	
-	<h3>Login</h3>
-	<p>Please enter a name you would like to use.</p>
-	<form action="/login/" method="post">
-		<input type="text" name="name" /> <input type="submit" value="Login"/>
-	</form>
+<form id="login">
+	Name: <input id="login_name" type="text"/>
+</form>
 
-	<a href="javascript:getVersion">call getVersion</a>
+<script>
 
-	<p><div id="ver">Protocol Version: <div id="p_ver">unknown</div></div></p>
+var sockjs_url = '/test';
+var sockjs = new SockJS(sockjs_url);
+
+sockjs.onopen = function() {
+	sockjs.send("[1,2,3]");
+};
+
+function tcall(method, params) {
+	return {"method": method, "params":params};
+}
+
+$('#login_name').focus();
+$('#login').submit(function() {
+	if (sockjs.readyState === SockJS.OPEN) {
+		sockjs.send(JSON.stringify(tcall("login", [$('#login_name').val()])));
+	}
+	return false;
+});
+</script>
+
 </body>
-</html>
