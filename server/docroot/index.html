@@ -1,7 +1,6 @@
 <!doctype html>
 <html><head>
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"> </script>
-  <script src="http://cdn.sockjs.org/sockjs-0.3.min.js"> </script>
 </head><body lang="en">
   <h2>Tarabish Online</h2>
 
@@ -9,26 +8,80 @@
 	Name: <input id="login_name" type="text"/>
 </form>
 
+<div id="status"></div>
+<div id="output"></div>
+
 <script>
+	var websocket;
+	$(document).ready(init);
 
-var sockjs_url = '/test';
-var sockjs = new SockJS(sockjs_url);
+	var Tarabish = function() {
+	};
 
-sockjs.onopen = function() {
-	sockjs.send("[1,2,3]");
-};
+	Tarabish.prototype.start = function(name) {
+		var login = {
+			method: "login",
+			name: name
+		};
+		websocket.send(JSON.stringify(login));
+		$('form#login').hide();
+	};
 
-function tcall(method, params) {
-	return {"method": method, "params":params};
-}
 
-$('#login_name').focus();
-$('#login').submit(function() {
-	if (sockjs.readyState === SockJS.OPEN) {
-		sockjs.send(JSON.stringify(tcall("login", [$('#login_name').val()])));
-	}
-	return false;
-});
+	function connect()
+	{
+		wsHost = "ws://localhost:42745/websocket";
+		websocket = new WebSocket(wsHost);
+		showScreen('<b>Connecting to: ' +  wsHost + '</b>');
+		websocket.onopen = function(evt) { onOpen(evt) };
+		websocket.onclose = function(evt) { onClose(evt) };
+		websocket.onmessage = function(evt) { onMessage(evt) };
+		websocket.onerror = function(evt) { onError(evt) };
+	};
+
+	function init() {
+		if(!("WebSocket" in window)){
+			$('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
+			$("#navigation").hide();
+		} else {
+			$('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
+			connect();
+		};
+
+		tarabish = new Tarabish();
+
+		$('form#login').submit(function(e) {
+			e.preventDefault();
+			tarabish.start($('#login_name').val());
+			return false;
+		});
+	};
+
+
+	function onOpen(evt) {
+		showScreen('<span style="color: green;">CONNECTED </span>');
+		$("#connected").fadeIn('slow');
+		$("#content").fadeIn('slow');
+	};
+
+	function onClose(evt) {
+		showScreen('<span style="color: red;">DISCONNECTED </span>');
+	};
+
+	function onMessage(evt) {
+		showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
+	};
+
+	function onError(evt) {
+		showScreen('<span style="color: red;">ERROR: ' + evt.data + '</span>');
+	};
+
+	function showScreen(txt) {
+		$('#output').prepend('<p>' + txt + '</p>');
+	};
+
+
+	$('#login_name').focus();
 </script>
 
 </body>
