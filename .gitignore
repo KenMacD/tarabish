@@ -1,5 +1,8 @@
 erl_crash.dump
-server/ebin
+server/ebin/
+server/deps/
 api/target
 *.pyc
+*.swp
+*.swo
 

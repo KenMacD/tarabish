@@ -50,9 +50,19 @@ websocket_init(_TransportName, Req, _Opts) ->
   {ok, Req, undefined_state}.
 
 websocket_handle({text, Msg}, Req, State) ->
-  {reply, {text, << "You said: ", Msg/binary >>}, Req, State};
+  Data = jsx:decode(Msg, [{labels, existing_atom}]),
+
+  io:format("Message: ~p~n", [Data]),
+  Method = proplists:get_value(method, Data),
+  io:format("Method: ~p~n", [Method]),
+  handle_method(Method, Data),
+  {ok, Req, State};
+
 websocket_handle(_Data, Req, State) ->
   {ok, Req, State}.
+
+websocket_info({event, Event}, Req, State) ->
+  {reply, {text, Event}, Req, State};
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
   erlang:start_timer(5000, self(), <<".">>),
@@ -62,3 +72,10 @@ websocket_info(_Info, Req, State) ->
 
 websocket_terminate(_Reason, _Req, _State) ->
   ok.
+
+handle_method(<<"login">>, Data) ->
+  self() ! {event, "Login Done!"};
+
+handle_method(Other, _Date) ->
+  self() ! {event, "Error"}.
+
