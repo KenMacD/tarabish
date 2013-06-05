@@ -8,6 +8,8 @@
 -export([start/0, get_client/1, get_client_by_cookie/1, create_table/0,
     get_table/1, get_tables/0, get_client_if_new/2, get_client_if_new/1]).
 
+-export([login/1]).
+
 %% From tables
 -export([update_table_image/2]).
 
@@ -30,6 +32,9 @@ get_client(Id) ->
 
 get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
+
+login(Name) ->
+  io:format("TODO: fill in tarabish_server:login~n").
 
 get_client_if_new(Id) ->
   gen_server:call({global, ?MODULE}, {get_new_client, Id}).

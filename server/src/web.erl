@@ -14,6 +14,10 @@ start() ->
   ok = application:start(ranch),
   ok = application:start(cowboy),
 
+  % New API:
+  ets:new(webcmd, [named_table, {read_concurrency, true}]),
+  ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name]}),
+
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
   Path = filename:join([Cwd, "docroot"]),
@@ -55,7 +59,8 @@ websocket_handle({text, Msg}, Req, State) ->
   io:format("Message: ~p~n", [Data]),
   Method = proplists:get_value(method, Data),
   io:format("Method: ~p~n", [Method]),
-  handle_method(Method, Data),
+  % TODO: Send error event if this fails:
+  handle_method(ets:lookup(webcmd, Method), Data),
   {ok, Req, State};
 
 websocket_handle(_Data, Req, State) ->
@@ -73,9 +78,19 @@ websocket_info(_Info, Req, State) ->
 websocket_terminate(_Reason, _Req, _State) ->
   ok.
 
-handle_method(<<"login">>, Data) ->
-  self() ! {event, "Login Done!"};
+handle_method([{Binary, Mod, Fun, Params}], Data) ->
+  handle_method(Mod, Fun, [], lists:reverse(Params), Data);
 
-handle_method(Other, _Date) ->
-  self() ! {event, "Error"}.
+handle_method([], Data) ->
+  ok.
 
+handle_method(Mod, Fun, Params, [], Data) ->
+  io:format("Calling ~p ~p with ~p~n", [Mod, Fun, Params]),
+  apply(Mod, Fun, Params);
+
+handle_method(Mod, Fun, Params, [P|Rest], Data) ->
+  Value = proplists:get_value(P, Data),
+  case Value of
+    undefined -> ok;
+    _ -> handle_method(Mod, Fun, [Value|Params], Rest, Data)
+  end.
