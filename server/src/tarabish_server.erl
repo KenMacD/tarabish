@@ -34,7 +34,7 @@ get_client_by_cookie(Cookie) ->
   gen_server:call({global, ?MODULE}, {get_client_by_cookie, Cookie}).
 
 login(Name) ->
-  io:format("TODO: fill in tarabish_server:login~n").
+  gen_server:cast({global, ?MODULE}, {login, Name, self()}).
 
 get_client_if_new(Id) ->
   gen_server:call({global, ?MODULE}, {get_new_client, Id}).
@@ -126,6 +126,21 @@ handle_call(Request, _From, State) ->
 handle_cast({update_table, TableId, #tableView{} = TableView}, State) ->
   TablesView1 = orddict:store(TableId, TableView, State#state.tables_view),
   {noreply, State#state{tables_view=TablesView1}};
+
+handle_cast({login, Id, From}, State) ->
+  case orddict:find(Id, State#state.id) of
+    {ok, {_Client, _Cookie}} ->
+      {noreply, State};
+    error ->
+      {ok, Client} = client:start(Id),
+      Cookie = new_cookie(),
+      NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
+      NewCookie = orddict:store(Cookie, Client, State#state.cookie),
+
+      web:set_client(From, Client, Cookie),
+      {noreply, State#state{id=NewId, cookie=NewCookie}}
+  end;
+
 
 handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
