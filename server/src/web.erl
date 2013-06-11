@@ -25,6 +25,8 @@ start() ->
   ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name], false}),
   ets:insert(webcmd, {<<"get_tables">>, tarabish_server, get_tables, [], false}),
 
+  ets:insert(webcmd, {<<"sit">>, client, sit, [table_id, seat], true}),
+
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
   Path = filename:join([Cwd, "docroot"]),
@@ -108,16 +110,18 @@ websocket_terminate(_Reason, _Req, _State) ->
 
 % Client method with no client:
 handle_method([{_Binary, _Mod, _Fun, _Params, true}], Data, undefined) ->
+  io:format("Bad call, no client~n"),
   % TODO: return an error
   ok;
 
 handle_method([{Binary, Mod, Fun, Params, NeedClient}], Data, Client) ->
   % TODO: handle error
-  {ok, Args} = case NeedClient of
-    true  -> [Client|get_args(lists:reverse(Params), Data)];
-    false -> get_args(lists:reverse(Params), Data) end,
-  io:format("Calling ~p ~p with ~p~n", [Mod, Fun, Params]),
-  apply(Mod, Fun, Params);
+  {ok, Args} = get_args(lists:reverse(Params), Data),
+  Args2 = case NeedClient of
+    true  -> [Client|Args];
+    false -> Args end,
+  io:format("Calling ~p ~p with ~p~n", [Mod, Fun, Args2]),
+  apply(Mod, Fun, Args2);
 
 handle_method([], Data, Client) ->
   ok.

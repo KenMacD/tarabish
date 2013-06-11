@@ -11,6 +11,7 @@
 </form>
 
 <button id="get_tables" class="btn" type="button">Get Tables</button>
+<button id="test_sit" class="btn" type="button">Sit Table 1 Seat 1</button>
 
 <div id="status"></div>
 <div id="output"></div>
@@ -65,6 +66,13 @@
 		$('#get_tables').on('click', function() {
 			var tables = {method: "get_tables"};
 			websocket.send(JSON.stringify(tables));
+		});
+
+		$('#test_sit').on('click', function() {
+			var sit = {method: "sit",
+				table_id: 1,
+				seat: 1};
+			websocket.send(JSON.stringify(sit));
 		});
 		console.log("SETUP");
 	};

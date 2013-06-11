@@ -54,7 +54,7 @@ part_table(Client, TableId) ->
   gen_server:call(Client, {part, TableId}).
 
 sit(Client, TableId, Seat) ->
-  gen_server:call(Client, {sit, TableId, Seat}).
+  gen_server:cast(Client, {sit, TableId, Seat}).
 
 stand(Client, TableId) ->
   gen_server:call(Client, {stand, TableId}).
@@ -160,21 +160,6 @@ handle_call({join, TableId}, _From, State) ->
   end;
 
 
-handle_call({sit, TableId, Seat}, _From, State) ->
-  case tarabish_server:get_table(TableId) of
-    {ok, Table} ->
-      case table:sit(Table, State#state.id, self(), Seat) of
-        ok ->
-          % If we were already watching the table is should overwrite
-          NewTables = orddict:store(TableId, Table, State#state.tables),
-          {reply, ok, State#state{tables=NewTables}};
-        {error, Reason} ->
-          {reply, {error, Reason}, State}
-      end;
-    {error, Reason} ->
-      {reply, {error, Reason}, State}
-  end;
-
 handle_call({stand, TableId}, _From, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
@@ -260,6 +245,23 @@ handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
+
+handle_cast({sit, TableId, Seat}, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:sit(Table, State#state.id, self(), Seat) of
+        ok ->
+          % If we were already watching the table is should overwrite
+          NewTables = orddict:store(TableId, Table, State#state.tables),
+          {noreply, State#state{tables=NewTables}};
+        {error, Reason} ->
+          % TODO: some error
+          {noreply, State}
+      end;
+    {error, Reason} ->
+      % TODO: some error
+      {noreply, State}
+  end;
 
 handle_cast({subscribe, Pid}, State) ->
   {noreply, State#state{subscriber=Pid}};
