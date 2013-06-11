@@ -13,7 +13,7 @@
 % From Cmd Socket:
 -export([chat/3, join_table/2, part_table/2, sit/3, stand/2,
     start_game/2, call_trump/3, play_card/3, play_bella/2,
-    call_run/2, show_run/2]).
+    call_run/2, show_run/2, get_tables/1]).
 
 % From Msg Socket:
 -export([get_events/3, subscribe/2]).
@@ -46,6 +46,9 @@ subscribe(Client, Pid) ->
 
 chat(Client, TableId, Message) ->
   gen_server:call(Client, {chat, TableId, Message}).
+
+get_tables(Client) ->
+  gen_server:cast(Client, {get_tables, self()}).
 
 join_table(Client, TableId) ->
   gen_server:call(Client, {join, TableId}).
@@ -245,6 +248,12 @@ handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
+
+handle_cast({get_tables, From}, State) ->
+  {ok, Tables} = tarabish_server:get_tables(),
+  TablePrint = io_lib:format("Table List: ~p~n", [Tables]),
+  web:send_tables(From, TablePrint),
+  {noreply, State};
 
 handle_cast({sit, TableId, Seat}, State) ->
   case tarabish_server:get_table(TableId) of

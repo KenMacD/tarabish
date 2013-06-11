@@ -23,8 +23,8 @@ start() ->
 
   % Binary, Mod, Function, Params, SendClient?
   ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name], false}),
-  ets:insert(webcmd, {<<"get_tables">>, tarabish_server, get_tables, [], false}),
 
+  ets:insert(webcmd, {<<"get_tables">>, client, get_tables, [], true}),
   ets:insert(webcmd, {<<"sit">>, client, sit, [table_id, seat], true}),
 
   % TODO: setup as application as use priv_dir

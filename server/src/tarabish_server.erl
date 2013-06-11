@@ -49,7 +49,7 @@ get_table(TableId) ->
   gen_server:call({global, ?MODULE}, {get_table, TableId}).
 
 get_tables() ->
-  gen_server:cast({global, ?MODULE}, {get_tables, self()}).
+  gen_server:call({global, ?MODULE}, {get_tables}).
 
 % From Tables:
 update_table_image(TableId, #tableView{} = TableView) ->
@@ -114,6 +114,10 @@ handle_call({get_table, TableId}, _From, State) ->
     error -> {reply, {error, invalid}, State}
   end;
 
+handle_call({get_tables}, _From, State) ->
+  Tables = tables_view_to_list(State#state.tables_view),
+  {reply, {ok, Tables}, State};
+
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
@@ -133,15 +137,10 @@ handle_cast({login, Id, From}, State) ->
       NewId = orddict:store(Id, {Client, Cookie}, State#state.id),
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
 
+      % TODO: make login happen in clint:init to remove web reference from here.
       web:set_client(From, Client, Cookie),
       {noreply, State#state{id=NewId, cookie=NewCookie}}
   end;
-
-handle_cast({get_tables, From}, State) ->
-  Tables = tables_view_to_list(State#state.tables_view),
-  TablePrint = io_lib:format("Table List: ~p~n", [Tables]),
-  web:send_tables(From, TablePrint),
-  {noreply, State};
 
 handle_cast(Msg, State) ->
   io:format("~w received unknown cast ~p~n",
