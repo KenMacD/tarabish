@@ -3,7 +3,7 @@
 -export([start/0]).
 -behaviour(cowboy_websocket_handler).
 
--export([set_client/3]).
+-export([set_client/3, send_tables/2]).
 
 -record(state, {client, cookie}).
 -export([init/3]).
@@ -20,7 +20,10 @@ start() ->
 
   % New API:
   ets:new(webcmd, [named_table, {read_concurrency, true}]),
-  ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name]}),
+
+  % Binary, Mod, Function, Params, SendClient?
+  ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name], false}),
+  ets:insert(webcmd, {<<"get_tables">>, tarabish_server, get_tables, [], false}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
@@ -55,6 +58,9 @@ start() ->
 set_client(Server, Client, Cookie) ->
   Server ! {client, Client, Cookie}.
 
+send_tables(Server, Tables) ->
+  Server ! {tables, Tables}.
+
 % Section 3 - websocket server
 
 % Test of example code.
@@ -65,14 +71,14 @@ websocket_init(_TransportName, Req, _Opts) ->
   erlang:start_timer(1000, self(), <<"Hello!">>),
   {ok, Req, #state{}}.
 
-websocket_handle({text, Msg}, Req, State) ->
+websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
   Data = jsx:decode(Msg, [{labels, existing_atom}]),
 
   io:format("Message: ~p~n", [Data]),
   Method = proplists:get_value(method, Data),
   io:format("Method: ~p~n", [Method]),
   % TODO: Send error event if this fails:
-  handle_method(ets:lookup(webcmd, Method), Data),
+  handle_method(ets:lookup(webcmd, Method), Data, Client),
   {ok, Req, State};
 
 websocket_handle(_Data, Req, State) ->
@@ -83,10 +89,13 @@ websocket_info({event, Event}, Req, State) ->
 
 % TODO prevent double login
 websocket_info({client, Client, Cookie}, Req, State) ->
-  % TODO: link to it?
+  link(Client),
   % TODO: send event
   L = io_lib:format("You are logged in. Cookie ~p~n", [Cookie]),
   {reply, {text, L}, Req, State#state{client=Client, cookie=Cookie}};
+
+websocket_info({tables, Tables}, Req, State) ->
+  {reply, {text, Tables}, Req, State};
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
   erlang:start_timer(5000, self(), <<".">>),
@@ -97,19 +106,31 @@ websocket_info(_Info, Req, State) ->
 websocket_terminate(_Reason, _Req, _State) ->
   ok.
 
-handle_method([{Binary, Mod, Fun, Params}], Data) ->
-  handle_method(Mod, Fun, [], lists:reverse(Params), Data);
+% Client method with no client:
+handle_method([{_Binary, _Mod, _Fun, _Params, true}], Data, undefined) ->
+  % TODO: return an error
+  ok;
 
-handle_method([], Data) ->
-  ok.
-
-handle_method(Mod, Fun, Params, [], Data) ->
+handle_method([{Binary, Mod, Fun, Params, NeedClient}], Data, Client) ->
+  % TODO: handle error
+  {ok, Args} = case NeedClient of
+    true  -> [Client|get_args(lists:reverse(Params), Data)];
+    false -> get_args(lists:reverse(Params), Data) end,
   io:format("Calling ~p ~p with ~p~n", [Mod, Fun, Params]),
   apply(Mod, Fun, Params);
 
-handle_method(Mod, Fun, Params, [P|Rest], Data) ->
+handle_method([], Data, Client) ->
+  ok.
+
+get_args(Params, Data) ->
+  get_args([], Params, Data).
+
+get_args(Values, [], Data) ->
+  {ok, Values};
+
+get_args(Values, [P|Rest], Data) ->
   Value = proplists:get_value(P, Data),
   case Value of
-    undefined -> ok;
-    _ -> handle_method(Mod, Fun, [Value|Params], Rest, Data)
+    undefined -> {error};
+    _ -> get_args([Value|Values], Rest, Data)
   end.

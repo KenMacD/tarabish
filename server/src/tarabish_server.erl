@@ -49,7 +49,7 @@ get_table(TableId) ->
   gen_server:call({global, ?MODULE}, {get_table, TableId}).
 
 get_tables() ->
-  gen_server:call({global, ?MODULE}, {get_tables}).
+  gen_server:call({global, ?MODULE}, {get_tables, self()}).
 
 % From Tables:
 update_table_image(TableId, #tableView{} = TableView) ->
@@ -114,8 +114,9 @@ handle_call({get_table, TableId}, _From, State) ->
     error -> {reply, {error, invalid}, State}
   end;
 
-handle_call({get_tables}, _From, State) ->
+handle_call({get_tables, From2}, _From, State) ->
   Tables = tables_view_to_list(State#state.tables_view),
+  web:send_tables(From2, "Table List"),
   {reply, {ok, Tables}, State};
 
 handle_call(Request, _From, State) ->
