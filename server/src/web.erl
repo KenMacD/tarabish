@@ -21,11 +21,10 @@ start() ->
   % New API:
   ets:new(webcmd, [named_table, {read_concurrency, true}]),
 
-  % Binary, Mod, Function, Params, SendClient?
-  ets:insert(webcmd, {<<"login">>, tarabish_server, login, [name], false}),
-
-  ets:insert(webcmd, {<<"get_tables">>, client, get_tables, [], true}),
-  ets:insert(webcmd, {<<"sit">>, client, sit, [table_id, seat], true}),
+  % Funcation, Mod, Params, SendClient?
+  ets:insert(webcmd, {login, tarabish_server, [name], false}),
+  ets:insert(webcmd, {get_tables, client, [], true}),
+  ets:insert(webcmd, {sit, client, [table_id, seat], true}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
@@ -80,8 +79,13 @@ websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
   Method = proplists:get_value(method, Data),
   io:format("Method: ~p~n", [Method]),
   % TODO: Send error event if this fails:
-  handle_method(ets:lookup(webcmd, Method), Data, Client),
-  {ok, Req, State};
+  try binary_to_existing_atom(Method, utf8) of
+    MethodAtom ->
+      handle_method(ets:lookup(webcmd, MethodAtom), Data, Client),
+      {ok, Req, State}
+  catch
+    error:badarg -> {ok, Req, State}
+  end;
 
 websocket_handle(_Data, Req, State) ->
   {ok, Req, State}.
@@ -109,12 +113,12 @@ websocket_terminate(_Reason, _Req, _State) ->
   ok.
 
 % Client method with no client:
-handle_method([{_Binary, _Mod, _Fun, _Params, true}], Data, undefined) ->
+handle_method([{_Fun, _Mod, _Params, true}], Data, undefined) ->
   io:format("Bad call, no client~n"),
   % TODO: return an error
   ok;
 
-handle_method([{Binary, Mod, Fun, Params, NeedClient}], Data, Client) ->
+handle_method([{Fun, Mod, Params, NeedClient}], Data, Client) ->
   % TODO: handle error
   {ok, Args} = get_args(lists:reverse(Params), Data),
   Args2 = case NeedClient of
