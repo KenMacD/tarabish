@@ -45,7 +45,7 @@ subscribe(Client, Pid) ->
   gen_server:cast(Client, {subscribe, Pid}).
 
 chat(Client, TableId, Message) ->
-  gen_server:call(Client, {chat, TableId, Message}).
+  gen_server:cast(Client, {chat, TableId, Message}).
 
 get_tables(Client) ->
   gen_server:cast(Client, {get_tables, self()}).
@@ -137,15 +137,6 @@ init([Id, CmdPid]) ->
 
 handle_call({stop}, _From, State) ->
   {stop, normal, ok, State};
-
-handle_call({chat, TableId, Message}, _From, State) ->
-  case orddict:find(TableId, State#state.tables) of
-    {ok, Table} ->
-      R = table:chat(Table, State#state.id, Message),
-      {reply, R, State};
-    error ->
-      {reply, {error, no_table}, State}
-  end;
 
 % TODO: any risk of deadlock?
 handle_call({join, TableId}, _From, State) ->
@@ -240,6 +231,18 @@ handle_cast({get_tables, From}, State) ->
   TablePrint = io_lib:format("Table List: ~p~n", [Tables]),
   web:send_tables(From, TablePrint),
   {noreply, State};
+
+handle_cast({chat, TableId, Message}, State) ->
+  io:format("Received chat ~p~n", [Message]),
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      % TODO: R could be error?
+      R = table:chat(Table, State#state.id, Message),
+      {noreply, State};
+    error ->
+      % TODO: some error
+      {noreply, State}
+  end;
 
 handle_cast({sit, TableId, Seat}, State) ->
   case tarabish_server:get_table(TableId) of

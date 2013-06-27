@@ -6,13 +6,23 @@
   <h2>Tarabish Online</h2>
 
 <form id="login">
-	<label class="control-label" for="inputEmail">Name</label>
+	<label class="control-label" for="login_name">Name</label>
 	<input id="login_name" type="text" placeholder="name">
 </form>
 
 <button id="get_tables" class="btn" type="button">Get Tables</button>
 <button id="test_sit" class="btn" type="button">Sit Table 1 Seat 1</button>
 <button id="test_stand" class="btn" type="button">Stand Table 1 Seat 1</button>
+
+<p>
+<form id="chat">
+	<div class="input-append">
+		<label class="control-label" for="chat_msg">Chat:</label>
+		<input class="span2" id="chat_msg" type="text" placeholder="message">
+		<button class="btn" type="submit">send</button>
+	</div>
+</form>
+</p>
 
 <div id="status"></div>
 <div id="output"></div>
@@ -81,6 +91,16 @@
 				table_id: 1};
 			websocket.send(JSON.stringify(stand));
 		});
+
+		$('form#chat').submit(function(e) {
+			e.preventDefault();
+			var chat = {method: "chat",
+				table_id: 1,
+				message: $('#chat_msg').val()};
+			websocket.send(JSON.stringify(chat));
+			return false;
+		});
+
 		console.log("SETUP");
 	};
 
