@@ -60,7 +60,7 @@ sit(Client, TableId, Seat) ->
   gen_server:cast(Client, {sit, TableId, Seat}).
 
 stand(Client, TableId) ->
-  gen_server:call(Client, {stand, TableId}).
+  gen_server:cast(Client, {stand, TableId}).
 
 start_game(Client, TableId) ->
   gen_server:call(Client, {start_game, TableId}).
@@ -163,20 +163,6 @@ handle_call({join, TableId}, _From, State) ->
   end;
 
 
-handle_call({stand, TableId}, _From, State) ->
-  case tarabish_server:get_table(TableId) of
-    {ok, Table} ->
-      case table:stand(Table, State#state.id) of
-        ok ->
-          % Stay at table, but as observer
-          {reply, ok, State};
-        {error, Reason} ->
-          {reply, {error, Reason}, State}
-      end;
-    {error, Reason} ->
-      {reply, {error, Reason}, State}
-  end;
-
 handle_call({part, TableId}, _From, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
@@ -271,6 +257,23 @@ handle_cast({sit, TableId, Seat}, State) ->
       % TODO: some error
       {noreply, State}
   end;
+
+handle_cast({stand, TableId}, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:stand(Table, State#state.id) of
+        ok ->
+          % Stay at table, but as observer
+          {noreply, State};
+        {error, Reason} ->
+          % TODO: some error
+          {noreply, State}
+      end;
+    {error, Reason} ->
+      % TODO: some error
+      {noreply, State}
+  end;
+
 
 handle_cast({subscribe, Pid}, State) ->
   {noreply, State#state{subscriber=Pid}};

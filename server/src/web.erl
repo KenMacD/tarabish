@@ -25,6 +25,7 @@ start() ->
   ets:insert(webcmd, {login, tarabish_server, [name], false}),
   ets:insert(webcmd, {get_tables, client, [], true}),
   ets:insert(webcmd, {sit, client, [table_id, seat], true}),
+  ets:insert(webcmd, {stand, client, [table_id], true}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
