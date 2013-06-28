@@ -1,6 +1,9 @@
 erl_crash.dump
 server/ebin/
 server/deps/
+client/dart/web/out/*
+client/dart/packages/*
+client/dart/web/packages
 api/target
 *.pyc
 *.swp
