@@ -138,7 +138,7 @@ handle_cast({login, Id, From}, State) ->
       NewCookie = orddict:store(Cookie, Client, State#state.cookie),
 
       % TODO: make login happen in clint:init to remove web reference from here.
-      web:set_client(From, Client, Cookie),
+      web:set_client(From, Client, Id, Cookie),
       {noreply, State#state{id=NewId, cookie=NewCookie}}
   end;
 

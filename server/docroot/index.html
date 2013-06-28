@@ -42,7 +42,6 @@
 			name: name
 		};
 		websocket.send(JSON.stringify(login));
-//		$('form#login').hide();
 	};
 
 
@@ -67,10 +66,13 @@
 		};
 
 		tarabish = new Tarabish();
+		loggedin = false;
 
 		$('form#login').submit(function(e) {
 			e.preventDefault();
-			tarabish.start($('#login_name').val());
+			if (!loggedin) {
+				tarabish.start($('#login_name').val());
+			}
 			return false;
 		});
 
@@ -104,6 +106,21 @@
 		console.log("SETUP");
 	};
 
+	function log(msg) {
+		showScreen('<span style="color: blue;">LOG: ' + msg + '</span>');
+	}
+
+	function handle_valid_login(login) {
+		var welcome = "Welcome " + login.name;
+		welcome += " your cookie is: " + login.cookie;
+
+		log(welcome);
+
+		cookie = login.cookie;
+		name = login.name;
+		loggedin = true;
+		$('form#login').hide();
+	};
 
 	function onOpen(evt) {
 		showScreen('<span style="color: green;">CONNECTED </span>');
@@ -117,6 +134,17 @@
 
 	function onMessage(evt) {
 		showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>');
+
+		var message = {};
+		try {
+			message = JSON.parse(evt.data);
+		} catch(e) {
+		}
+
+		if ('type' in message) {
+			// Call handler
+			window['handle_' + message['type']](message)
+		}
 	};
 
 	function onError(evt) {

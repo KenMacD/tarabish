@@ -3,7 +3,7 @@
 -export([start/0]).
 -behaviour(cowboy_websocket_handler).
 
--export([set_client/3, send_tables/2]).
+-export([set_client/4, send_tables/2]).
 
 -record(state, {client, cookie}).
 -export([init/3]).
@@ -58,8 +58,8 @@ start() ->
 % Section 2 - API
 
 
-set_client(Server, Client, Cookie) ->
-  Server ! {client, Client, Cookie}.
+set_client(Server, Client, Id, Cookie) ->
+  Server ! {client, Client, Id, Cookie}.
 
 send_tables(Server, Tables) ->
   Server ! {tables, Tables}.
@@ -96,17 +96,22 @@ websocket_info({event, Event}, Req, State) ->
   {reply, {text, Event}, Req, State};
 
 % TODO prevent double login
-websocket_info({client, Client, Cookie}, Req, State) ->
+websocket_info({client, Client, Id, Cookie}, Req, State) ->
   link(Client),
   % TODO: send event
-  L = io_lib:format("You are logged in. Cookie ~p~n", [Cookie]),
-  {reply, {text, L}, Req, State#state{client=Client, cookie=Cookie}};
+
+  Event = jsx:encode([
+    {type, <<"valid_login">>},
+    {name, Id},
+    {cookie, Cookie}]),
+  %L = io_lib:format("{\You are logged in. Cookie ~p~n", [Cookie]),
+  {reply, {text, Event}, Req, State#state{client=Client, cookie=Cookie}};
 
 websocket_info({tables, Tables}, Req, State) ->
   {reply, {text, Tables}, Req, State};
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
-  erlang:start_timer(5000, self(), <<".">>),
+  % erlang:start_timer(5000, self(), <<".">>),
   {reply, {text, Msg}, Req, State};
 websocket_info(_Info, Req, State) ->
   {ok, Req, State}.
