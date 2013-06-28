@@ -14,6 +14,11 @@
 
     <p>Hello world from Dart!</p>
 
+    <p>Login Input, you are {{loginName}}</p>
+    <form on-submit="do_login($event)">
+      <input id="login-name" type="text" placeholder="Name">
+      <input type="submit">
+    </form>
     <!--
     <div id="sample_container_id">
       <div is="x-click-counter" id="click_counter" count="{{startingCount}}"></div>
