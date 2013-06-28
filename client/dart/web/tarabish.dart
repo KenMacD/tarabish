@@ -51,16 +51,23 @@ class TarabishSrv {
     }
   }
 
+  _login(String name) {
+    var login = {
+                 "method": "login",
+                 "name": name
+    };
+    webSocket.send(json.stringify(login));
+  }
 }
+TarabishSrv tserver;
 
 @observable
 String loginName = "Nobody";
 
-
 void do_login(Event e) {
   e.preventDefault();
   InputElement loginNameElement = query("#login-name");
-  loginName = loginNameElement.value;
+  tserver._login(loginNameElement.value);
   print("Login called");
 }
 
@@ -72,8 +79,6 @@ void do_login(Event e) {
 void main() {
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
-  TarabishSrv server = new TarabishSrv("ws://localhost:42745/websocket");
-
-
+  tserver = new TarabishSrv("ws://localhost:42745/websocket");
 
 }
