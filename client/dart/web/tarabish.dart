@@ -3,13 +3,15 @@ import 'dart:async';
 import 'dart:json' as json;
 import 'package:web_ui/web_ui.dart';
 
+typedef void MessageCallback(String data);
 
-class TarabishSrv {
-  String url;
+class ReconnectingSocket {
   WebSocket webSocket;
-  int cookie;
+  String url;
+  MessageCallback callback;
+  bool connected = false;
 
-  TarabishSrv(this.url) {
+  ReconnectingSocket(this.url, this.callback) {
     _init();
   }
 
@@ -27,13 +29,30 @@ class TarabishSrv {
     }
 
     webSocket.onOpen.listen((e) {
-        print('Connected');
-        retrySeconds = 2;
+      connected = true;
+      print('Connected');
+      retrySeconds = 2;
     });
 
     webSocket.onClose.listen((e) => scheduleReconnect());
     webSocket.onError.listen((e) => scheduleReconnect());
-    webSocket.onMessage.listen((MessageEvent e) => _receiveEvent(e.data));
+    webSocket.onMessage.listen((e) => callback(e.data));
+  }
+
+  send(String data) {
+    webSocket.send(data);
+  }
+}
+
+class TarabishSocket {
+  // TODO: add logged_in, and queue for messages while not logged_in
+  ReconnectingSocket webSocket;
+  int cookie;
+  Map<String, dynamic> eventMap;
+
+  TarabishSocket(url) {
+    eventMap = new Map();
+    webSocket = new ReconnectingSocket(url, _receiveEvent);
   }
 
   _receiveEvent(String encodedMessage) {
@@ -59,7 +78,7 @@ class TarabishSrv {
     webSocket.send(json.stringify(login));
   }
 }
-TarabishSrv tserver;
+TarabishSocket tserver;
 
 @observable
 String loginName = "Nobody";
@@ -79,6 +98,6 @@ void do_login(Event e) {
 void main() {
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
-  tserver = new TarabishSrv("ws://localhost:42745/websocket");
+  tserver = new TarabishSocket("ws://localhost:42745/websocket");
 
 }
