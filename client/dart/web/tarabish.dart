@@ -52,7 +52,7 @@ class TarabishSocket {
     webSocket.onMessage.listen((e) => _receiveEvent(e.data));
   }
 
-  _send(String data) {
+  send(String data) {
     if (_connected) {
       webSocket.send(data);
     } else {
@@ -73,14 +73,6 @@ class TarabishSocket {
       print("Received message with type $type");
       // TODO: handle
     }
-  }
-
-  _login(String name) {
-    var login = {
-                 "method": "login",
-                 "name": name
-    };
-    _send(json.stringify(login));
   }
 }
 
@@ -105,8 +97,17 @@ class Tarabish {
     _setup_socket();
 
     InputElement loginNameElement = query("#login-name");
-    _tsocket._login(loginNameElement.value);
+    var login = {
+                 "method": "login",
+                 "name": loginNameElement.value
+    };
+    _tsocket.send(json.stringify(login));
     print("Login called");
+  }
+  refresh_tables(Event e) {
+    e.preventDefault();
+    var table_req = {"method": "get_tables"};
+    _tsocket.send(json.stringify(table_req));
   }
 }
 Tarabish tarabish;

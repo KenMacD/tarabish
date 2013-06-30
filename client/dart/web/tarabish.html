@@ -19,6 +19,11 @@
       <input id="login-name" type="text" placeholder="Name">
       <input type="submit">
     </form>
+
+    <form on-submit="tarabish.refresh_tables($event)">
+      <!-- TODO: button instead -->
+      <input type="submit" value="Refresh">
+    </form>
     <!--
     <div id="sample_container_id">
       <div is="x-click-counter" id="click_counter" count="{{startingCount}}"></div>
