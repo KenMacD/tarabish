@@ -1,15 +1,22 @@
 import 'dart:html';
 import 'dart:async';
+import 'dart:collection';
 import 'dart:json' as json;
 import 'package:web_ui/web_ui.dart';
 
 typedef void MessageCallback(String data);
 
-class ReconnectingSocket {
-  WebSocket webSocket;
+class TarabishSocket {
+  // TODO: add logged_in
   String url;
+  WebSocket webSocket;
+  bool _connected = false;
+  int cookie;
+  Map<String, dynamic> eventMap;
+  var waiting_msgs = new Queue<String>();
 
-  ReconnectingSocket(this.url) {
+  TarabishSocket(this.url) {
+    eventMap = new Map();
     _init();
   }
 
@@ -19,44 +26,38 @@ class ReconnectingSocket {
 
     scheduleReconnect() {
       if (!reconnectScheduled) {
+        reconnectScheduled = true;
+        _connected = false;
         print('web socket closed, retrying in $retrySeconds seconds');
         new Timer(new Duration(seconds: retrySeconds),
             () => _init(retrySeconds * 2));
       }
-      reconnectScheduled = true;
     }
 
     webSocket.onOpen.listen((e) {
-      print('Connected');
+      print("Connected with ${waiting_msgs.length} messages to send");
       retrySeconds = 2;
+      _connected = true;
+
+      // Send waiting messages:
+      for (var message in waiting_msgs) {
+        webSocket.send(message);
+        // TODO: handle only a few sent?
+      }
+      waiting_msgs.clear();
     });
 
     webSocket.onClose.listen((e) => scheduleReconnect());
     webSocket.onError.listen((e) => scheduleReconnect());
-  }
-
-  send(String data) {
-    webSocket.send(data);
-  }
-
-  // There's probably a better way to proxy these, I don't know it.
-  Stream<Event> get onOpen => webSocket.onOpen;
-  Stream<CloseEvent> get onClose => webSocket.onClose;
-  Stream<Event> get onError => webSocket.onError;
-  Stream<MessageEvent> get onMessage => webSocket.onMessage;
-
-}
-
-class TarabishSocket {
-  // TODO: add logged_in, and queue for messages while not logged_in
-  ReconnectingSocket webSocket;
-  int cookie;
-  Map<String, dynamic> eventMap;
-
-  TarabishSocket(url) {
-    eventMap = new Map();
-    webSocket = new ReconnectingSocket(url);
     webSocket.onMessage.listen((e) => _receiveEvent(e.data));
+  }
+
+  _send(String data) {
+    if (_connected) {
+      webSocket.send(data);
+    } else {
+      waiting_msgs.add(data);
+    }
   }
 
   _receiveEvent(String encodedMessage) {
@@ -79,20 +80,36 @@ class TarabishSocket {
                  "method": "login",
                  "name": name
     };
-    webSocket.send(json.stringify(login));
+    _send(json.stringify(login));
   }
 }
-TarabishSocket tserver;
 
 @observable
-String loginName = "Nobody";
+class Tarabish {
+  TarabishSocket _tsocket;
 
-void do_login(Event e) {
-  e.preventDefault();
-  InputElement loginNameElement = query("#login-name");
-  tserver._login(loginNameElement.value);
-  print("Login called");
+  bool loggedin = false;
+  String loginName = "Nobody";
+
+  Tarabish();
+
+  // Lazy start socket on first login
+  _setup_socket() {
+    if (_tsocket == null) {
+      _tsocket = new TarabishSocket("ws://localhost:42745/websocket");
+    }
+  }
+
+  do_login(Event e) {
+    e.preventDefault();
+    _setup_socket();
+
+    InputElement loginNameElement = query("#login-name");
+    _tsocket._login(loginNameElement.value);
+    print("Login called");
+  }
 }
+Tarabish tarabish;
 
 
 /**
@@ -102,6 +119,6 @@ void do_login(Event e) {
 void main() {
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
-  tserver = new TarabishSocket("ws://localhost:42745/websocket");
+  tarabish = new Tarabish();
 
 }
