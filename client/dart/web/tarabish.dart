@@ -8,10 +8,8 @@ typedef void MessageCallback(String data);
 class ReconnectingSocket {
   WebSocket webSocket;
   String url;
-  MessageCallback callback;
-  bool connected = false;
 
-  ReconnectingSocket(this.url, this.callback) {
+  ReconnectingSocket(this.url) {
     _init();
   }
 
@@ -29,19 +27,24 @@ class ReconnectingSocket {
     }
 
     webSocket.onOpen.listen((e) {
-      connected = true;
       print('Connected');
       retrySeconds = 2;
     });
 
     webSocket.onClose.listen((e) => scheduleReconnect());
     webSocket.onError.listen((e) => scheduleReconnect());
-    webSocket.onMessage.listen((e) => callback(e.data));
   }
 
   send(String data) {
     webSocket.send(data);
   }
+
+  // There's probably a better way to proxy these, I don't know it.
+  Stream<Event> get onOpen => webSocket.onOpen;
+  Stream<CloseEvent> get onClose => webSocket.onClose;
+  Stream<Event> get onError => webSocket.onError;
+  Stream<MessageEvent> get onMessage => webSocket.onMessage;
+
 }
 
 class TarabishSocket {
@@ -52,7 +55,8 @@ class TarabishSocket {
 
   TarabishSocket(url) {
     eventMap = new Map();
-    webSocket = new ReconnectingSocket(url, _receiveEvent);
+    webSocket = new ReconnectingSocket(url);
+    webSocket.onMessage.listen((e) => _receiveEvent(e.data));
   }
 
   _receiveEvent(String encodedMessage) {
