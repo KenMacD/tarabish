@@ -108,7 +108,10 @@ websocket_info({client, Client, Id, Cookie}, Req, State) ->
   {reply, {text, Event}, Req, State#state{client=Client, cookie=Cookie}};
 
 websocket_info({tables, Tables}, Req, State) ->
-  {reply, {text, Tables}, Req, State};
+  Event = jsx:encode([
+      {type, <<"tables">>},
+      {tables, Tables}]),
+  {reply, {text, Event}, Req, State};
 
 websocket_info({timeout, _Ref, Msg}, Req, State) ->
   % erlang:start_timer(5000, self(), <<".">>),

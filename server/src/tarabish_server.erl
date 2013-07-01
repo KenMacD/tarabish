@@ -52,7 +52,7 @@ get_tables() ->
   gen_server:call({global, ?MODULE}, {get_tables}).
 
 % From Tables:
-update_table_image(TableId, #tableView{} = TableView) ->
+update_table_image(TableId, TableView) ->
   gen_server:cast({global, ?MODULE}, {update_table, TableId, TableView}).
 
 % gen_server:
@@ -100,12 +100,7 @@ handle_call({create_table}, _From, State) ->
   NextId = State#state.table_cnt + 1,
   {ok, NewTable} = table:start(NextId),
   Tables1 = orddict:store(NextId, NewTable, State#state.tables),
-  % Store new view:
-  TablesView1 = orddict:store(NextId,
-                              #tableView{tableId=NextId},
-                              State#state.tables_view),
   {reply, {ok, NewTable, NextId}, State#state{tables=Tables1,
-                                              tables_view=TablesView1,
                                               table_cnt=NextId}};
 
 handle_call({get_table, TableId}, _From, State) ->
@@ -123,7 +118,7 @@ handle_call(Request, _From, State) ->
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
 
-handle_cast({update_table, TableId, #tableView{} = TableView}, State) ->
+handle_cast({update_table, TableId, TableView}, State) ->
   TablesView1 = orddict:store(TableId, TableView, State#state.tables_view),
   {noreply, State#state{tables_view=TablesView1}};
 

@@ -377,9 +377,9 @@ update_server(State) ->
 make_table_view(State) ->
   Seats = erlang:tuple_to_list(State#state.seats),
   ViewSeats = make_seats_views(Seats),
-  #tableView{tableId=State#state.id,
-             seats=ViewSeats,
-             observers=State#state.observers}.
+  [{tableId, State#state.id},
+   {seats, ViewSeats},
+   {observers, State#state.observers}].
 
 make_seats_views(Seats) ->
   make_seats_views(Seats, []).
@@ -393,10 +393,10 @@ make_seats_views([Seat|Rest], Views) ->
 
 % Seat name to empty string for UI
 make_one_seat_view(empty) ->
-  #seatView{isOpen=true, name=""};
+  [{isOpen, true}, {name, <<"">>}];
 
 make_one_seat_view(Seat) ->
-  #seatView{isOpen=false, name=Seat#client.name}.
+  [{isOpen, false}, {name, Seat#client.name}].
 
 is_full(Seats) when is_tuple(Seats) ->
   is_full(tuple_to_list(Seats));

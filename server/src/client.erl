@@ -228,8 +228,7 @@ handle_call(Request, _From, State) ->
 
 handle_cast({get_tables, From}, State) ->
   {ok, Tables} = tarabish_server:get_tables(),
-  TablePrint = io_lib:format("Table List: ~p~n", [Tables]),
-  web:send_tables(From, TablePrint),
+  web:send_tables(From, Tables),
   {noreply, State};
 
 handle_cast({chat, TableId, Message}, State) ->
