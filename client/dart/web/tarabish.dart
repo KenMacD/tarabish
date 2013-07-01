@@ -4,7 +4,7 @@ import 'dart:collection';
 import 'dart:json' as json;
 import 'package:web_ui/web_ui.dart';
 
-typedef void MessageCallback(String data);
+typedef void MessageCallback(dynamic data);
 
 class TarabishSocket {
   // TODO: add logged_in
@@ -12,7 +12,7 @@ class TarabishSocket {
   WebSocket webSocket;
   bool _connected = false;
   int cookie;
-  Map<String, dynamic> eventMap;
+  Map<String, List<MessageCallback>> eventMap;
   var waiting_msgs = new Queue<String>();
 
   TarabishSocket(this.url) {
@@ -69,18 +69,34 @@ class TarabishSocket {
       return;
     }
     if (message['type'] == "tables") {
+      List<TableView> tables = new List();
       print ("Received tables message, parsing");
       for (var table in message['tables']) {
-        var view = new TableView.from_json(table);
-        print ("$view");
+        tables.add(new TableView.from_json(table));
       }
-
+      _publish("tables", tables);
+    } else if (message['type'] == "valid_login") {
+      _publish("valid_login", message['name']);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
       print("Message: $message");
       // TODO: handle
     }
+  }
+
+  _publish(String messageType, dynamic data) {
+    for (var callback in eventMap[messageType]) {
+      callback(data);
+    }
+  }
+
+  subscribe(String messageType, MessageCallback callback) {
+    // TODO: if types are predefined then create the map structure once
+    if (!eventMap.containsKey(messageType)) {
+      eventMap[messageType] = new List();
+    }
+    eventMap[messageType].add(callback);
   }
 }
 
@@ -130,12 +146,16 @@ class Tarabish {
   bool loggedin = false;
   String loginName = "Nobody";
 
+  List<TableView> tableViews;
+
   Tarabish();
 
   // Lazy start socket on first login
   _setup_socket() {
     if (_tsocket == null) {
       _tsocket = new TarabishSocket("ws://localhost:42745/websocket");
+      _tsocket.subscribe("valid_login", (e) => loginName = e);
+      _tsocket.subscribe("tables", (e) => tableViews = e);
     }
   }
 
