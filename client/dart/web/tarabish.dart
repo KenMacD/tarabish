@@ -68,11 +68,58 @@ class TarabishSocket {
       print("Invalid message $encodedMessage");
       return;
     }
-    if (message['type'] != null) {
+    if (message['type'] == "tables") {
+      print ("Received tables message, parsing");
+      for (var table in message['tables']) {
+        var view = new TableView.from_json(table);
+        print ("$view");
+      }
+
+    } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
+      print("Message: $message");
       // TODO: handle
     }
+  }
+}
+
+class SeatView {
+  bool isOpen;
+  String name;
+
+  SeatView(this.isOpen, [this.name]);
+
+  factory SeatView.from_json(json) {
+    return new SeatView(json['isOpen'], json['name']);
+  }
+
+  String toString() {
+    if (isOpen) return "Seat open";
+    else return "Seat occupied by $name";
+  }
+}
+
+class TableView {
+  int tableId;
+  List<SeatView> seats;
+
+  TableView(this.tableId, this.seats);
+
+  factory TableView.from_json(json) {
+    var seats = new List<SeatView>();
+    for (var seat in json['seats']) {
+      seats.add(new SeatView.from_json(seat));
+    }
+    return new TableView(json['tableId'], seats);
+  }
+
+  String toString() {
+    String view = "Table $tableId -- ";
+    for (var seat in seats) {
+      view += "[ $seat ] ";
+    }
+    return view;
   }
 }
 
