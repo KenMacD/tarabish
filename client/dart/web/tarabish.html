@@ -14,7 +14,7 @@
 
     <p>Hello world from Dart!</p>
 
-    <p>Login Input, you are {{tarabish.loginName}}</p>
+    <p>Login Input, you are {{tarabish.loginName}} cookie {{tarabish.cookie}}</p>
     <form on-submit="tarabish.do_login($event)">
       <input id="login-name" type="text" placeholder="Name">
       <input type="submit">
@@ -24,6 +24,8 @@
       <!-- TODO: button instead -->
       <input type="submit" value="Refresh">
     </form>
+
+    <button id="disconnect">Disconnect</button>
     <!--
     <div id="sample_container_id">
       <div is="x-click-counter" id="click_counter" count="{{startingCount}}"></div>

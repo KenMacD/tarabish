@@ -76,7 +76,7 @@ class TarabishSocket {
       }
       _publish("tables", tables);
     } else if (message['type'] == "valid_login") {
-      _publish("valid_login", message['name']);
+      _publish("valid_login", message);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -145,6 +145,7 @@ class Tarabish {
 
   bool loggedin = false;
   String loginName = "Nobody";
+  int cookie;
 
   List<TableView> tableViews;
 
@@ -153,10 +154,22 @@ class Tarabish {
   // Lazy start socket on first login
   _setup_socket() {
     if (_tsocket == null) {
-      _tsocket = new TarabishSocket("ws://localhost:42745/websocket");
-      _tsocket.subscribe("valid_login", (e) => loginName = e);
+      _tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
+      _tsocket.subscribe("valid_login", (e) {
+        loginName = e['name'];
+        cookie = e['cookie'];
+        document.cookie = "cookie=$cookie; path=/";
+        print("Cookie set");
+      });
       _tsocket.subscribe("tables", (e) => tableViews = e);
     }
+  }
+
+  // Temporary disconnect to test re-attach
+  do_disconnect(Event e) {
+    e.preventDefault();
+    _tsocket.webSocket.close();
+    _tsocket.webSocket = null;
   }
 
   do_login(Event e) {
@@ -189,4 +202,5 @@ void main() {
   //useShadowDom = true;
   tarabish = new Tarabish();
 
+  query('#disconnect').onClick.listen((e) => tarabish.do_disconnect(e));
 }

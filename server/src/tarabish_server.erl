@@ -91,7 +91,8 @@ handle_call({get_client, Id}, _From, State) ->
   end;
 
 handle_call({get_client_by_cookie, Cookie}, _From, State) ->
-  case orddict:find(Cookie, State#state.cookie) of
+  IntCookie = list_to_integer(binary_to_list(Cookie)),
+  case orddict:find(IntCookie, State#state.cookie) of
     {ok, Client} -> {reply, {ok, Client}, State};
     error -> {reply, {error, invalid}, State}
   end;

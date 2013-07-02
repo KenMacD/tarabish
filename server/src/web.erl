@@ -71,8 +71,11 @@ init({tcp, http}, _Req, _Opts) ->
   {upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
+  {Cookie, Req2} = cowboy_req:cookie(<<"cookie">>, Req),
+  io:format("Cookie ~p~n", [Cookie]),
+  State = setup_state(Cookie),
   erlang:start_timer(1000, self(), <<"Hello!">>),
-  {ok, Req, #state{}}.
+  {ok, Req2, State}.
 
 websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
   Data = jsx:decode(Msg, [{labels, existing_atom}]),
@@ -121,6 +124,15 @@ websocket_info(_Info, Req, State) ->
 
 websocket_terminate(_Reason, _Req, _State) ->
   ok.
+
+setup_state(undefined) ->
+  #state{};
+
+setup_state(Cookie) ->
+  % TODO: ping client to keep alive?
+  case tarabish_server:get_client_by_cookie(Cookie) of
+    {ok, Client} -> #state{client=Client, cookie=Cookie};
+    {error, Reason} -> #state{} end.
 
 % Client method with no client:
 handle_method([{_Fun, _Mod, _Params, true}], Data, undefined) ->
