@@ -3,9 +3,9 @@
 -export([start/0]).
 -behaviour(cowboy_websocket_handler).
 
--export([set_client/4, send_tables/2]).
+-export([set_client/3, send_tables/2]).
 
--record(state, {client, cookie}).
+-record(state, {client}).
 -export([init/3]).
 -export([websocket_init/3]).
 -export([websocket_handle/3]).
@@ -22,7 +22,7 @@ start() ->
   ets:new(webcmd, [named_table, {read_concurrency, true}]),
 
   % Funcation, Mod, Params, SendClient?
-  ets:insert(webcmd, {login, tarabish_server, [name], false}),
+  ets:insert(webcmd, {login, client, [name], false}),
   ets:insert(webcmd, {get_tables, client, [], true}),
   ets:insert(webcmd, {sit, client, [table_id, seat], true}),
   ets:insert(webcmd, {stand, client, [table_id], true}),
@@ -58,8 +58,8 @@ start() ->
 % Section 2 - API
 
 
-set_client(Server, Client, Id, Cookie) ->
-  Server ! {client, Client, Id, Cookie}.
+set_client(Server, Client, Id) ->
+  Server ! {client, Client, Id}.
 
 send_tables(Server, Tables) ->
   Server ! {tables, Tables}.
@@ -71,11 +71,8 @@ init({tcp, http}, _Req, _Opts) ->
   {upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
-  {Cookie, Req2} = cowboy_req:cookie(<<"cookie">>, Req),
-  io:format("Cookie ~p~n", [Cookie]),
-  State = setup_state(Cookie),
   erlang:start_timer(1000, self(), <<"Hello!">>),
-  {ok, Req2, State}.
+  {ok, Req, #state{}}.
 
 websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
   Data = jsx:decode(Msg, [{labels, existing_atom}]),
@@ -99,16 +96,15 @@ websocket_info({event, Event}, Req, State) ->
   {reply, {text, Event}, Req, State};
 
 % TODO prevent double login
-websocket_info({client, Client, Id, Cookie}, Req, State) ->
+websocket_info({client, Client, Id}, Req, State) ->
   link(Client),
   % TODO: send event
 
   Event = jsx:encode([
     {type, <<"valid_login">>},
-    {name, Id},
-    {cookie, Cookie}]),
+    {name, Id}]),
   %L = io_lib:format("{\You are logged in. Cookie ~p~n", [Cookie]),
-  {reply, {text, Event}, Req, State#state{client=Client, cookie=Cookie}};
+  {reply, {text, Event}, Req, State#state{client=Client}};
 
 websocket_info({tables, Tables}, Req, State) ->
   Event = jsx:encode([
@@ -122,17 +118,15 @@ websocket_info({timeout, _Ref, Msg}, Req, State) ->
 websocket_info(_Info, Req, State) ->
   {ok, Req, State}.
 
-websocket_terminate(_Reason, _Req, _State) ->
+
+websocket_terminate(_Reason, _Req, #state{client=undefined}) ->
+  io:format("Websocket terminated~n"),
+  ok;
+
+websocket_terminate(_Reason, _Req, #state{client=Client}) ->
+  io:format("Websocket terminated~n"),
+  client:quit(Client),
   ok.
-
-setup_state(undefined) ->
-  #state{};
-
-setup_state(Cookie) ->
-  % TODO: ping client to keep alive?
-  case tarabish_server:get_client_by_cookie(Cookie) of
-    {ok, Client} -> #state{client=Client, cookie=Cookie};
-    {error, Reason} -> #state{} end.
 
 % Client method with no client:
 handle_method([{_Fun, _Mod, _Params, true}], Data, undefined) ->
