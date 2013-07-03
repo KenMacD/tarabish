@@ -11,7 +11,6 @@ class TarabishSocket {
   String url;
   WebSocket webSocket;
   bool _connected = false;
-  int cookie;
   Map<String, List<MessageCallback>> eventMap;
   var waiting_msgs = new Queue<String>();
 
@@ -145,7 +144,6 @@ class Tarabish {
 
   bool loggedin = false;
   String loginName = "Nobody";
-  int cookie;
 
   List<TableView> tableViews;
 
@@ -157,9 +155,6 @@ class Tarabish {
       _tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
       _tsocket.subscribe("valid_login", (e) {
         loginName = e['name'];
-        cookie = e['cookie'];
-        document.cookie = "cookie=$cookie; path=/";
-        print("Cookie set");
       });
       _tsocket.subscribe("tables", (e) => tableViews = e);
     }
