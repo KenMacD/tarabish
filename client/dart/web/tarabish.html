@@ -27,7 +27,7 @@
 
     <button id="disconnect">Disconnect</button>
 
-    <template instantiate="if tarabish.tableViews != null">
+    <template if="tarabish.tableViews != null">
       <table>
         <thead>
           <tr><th>Id</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
@@ -35,10 +35,13 @@
         <tbody template iterate="table in tarabish.tableViews">
           <tr>
             <td>{{table.tableId}}</td>
-            <td>{{table.seats.elementAt(0).isOpen}}</td>
-            <td>{{table.seats.elementAt(1).isOpen}}</td>
-            <td>{{table.seats.elementAt(2).isOpen}}</td>
-            <td>{{table.seats.elementAt(3).isOpen}}</td>
+            <td template repeat="seat in table.seats">
+              <template if="seat.isOpen">
+                <button on-click="tarabish.sit(table.tableId, seat.num)">Sit</button>
+              </template>
+              <template if="!seat.isOpen">
+                {{seat.name}}
+              </template>
           </tr>
         </tbody>
       </table>

@@ -382,21 +382,21 @@ make_table_view(State) ->
    {observers, State#state.observers}].
 
 make_seats_views(Seats) ->
-  make_seats_views(Seats, []).
+  make_seats_views(Seats, [], 0).
 
-make_seats_views([], Views) ->
+make_seats_views([], Views, _Count) ->
   lists:reverse(Views);
 
-make_seats_views([Seat|Rest], Views) ->
-  SeatView = make_one_seat_view(Seat),
-  make_seats_views(Rest, [SeatView|Views]).
+make_seats_views([Seat|Rest], Views, Count) ->
+  SeatView = make_one_seat_view(Seat, Count),
+  make_seats_views(Rest, [SeatView|Views], Count + 1).
 
 % Seat name to empty string for UI
-make_one_seat_view(empty) ->
-  [{isOpen, true}, {name, <<"">>}];
+make_one_seat_view(empty, Count) ->
+  [{isOpen, true}, {name, <<"">>}, {num, Count}];
 
-make_one_seat_view(Seat) ->
-  [{isOpen, false}, {name, Seat#client.name}].
+make_one_seat_view(Seat, Count) ->
+  [{isOpen, false}, {name, Seat#client.name}, {num, Count}].
 
 is_full(Seats) when is_tuple(Seats) ->
   is_full(tuple_to_list(Seats));

@@ -102,11 +102,12 @@ class TarabishSocket {
 class SeatView {
   bool isOpen;
   String name;
+  int num;
 
-  SeatView(this.isOpen, [this.name]);
+  SeatView(this.isOpen, this.name, this.num);
 
   factory SeatView.from_json(json) {
-    return new SeatView(json['isOpen'], json['name']);
+    return new SeatView(json['isOpen'], json['name'], json['num']);
   }
 
   String toString() {
@@ -183,6 +184,10 @@ class Tarabish {
     e.preventDefault();
     var table_req = {"method": "get_tables"};
     _tsocket.send(json.stringify(table_req));
+  }
+
+  sit(table, seat) {
+    print("Sit called $table -- $seat");
   }
 }
 Tarabish tarabish;
