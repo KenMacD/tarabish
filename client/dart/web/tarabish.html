@@ -26,11 +26,23 @@
     </form>
 
     <button id="disconnect">Disconnect</button>
-    <!--
-    <div id="sample_container_id">
-      <div is="x-click-counter" id="click_counter" count="{{startingCount}}"></div>
-    </div>
-    -->
+
+    <template instantiate="if tarabish.tableViews != null">
+      <table>
+        <thead>
+          <tr><th>Id</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
+        </thead>
+        <tbody template iterate="table in tarabish.tableViews">
+          <tr>
+            <td>{{table.tableId}}</td>
+            <td>{{table.seats.elementAt(0).isOpen}}</td>
+            <td>{{table.seats.elementAt(1).isOpen}}</td>
+            <td>{{table.seats.elementAt(2).isOpen}}</td>
+            <td>{{table.seats.elementAt(3).isOpen}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
 
     <script type="application/dart" src="tarabish.dart"></script>
     <script src="packages/browser/dart.js"></script>
