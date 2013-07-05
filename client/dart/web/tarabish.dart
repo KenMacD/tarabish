@@ -187,6 +187,12 @@ class Tarabish {
   }
 
   sit(table, seat) {
+    var sit = {
+               "method": "sit",
+               "table_id": table,
+               "seat": seat
+    };
+    _tsocket.send(json.stringify(sit));
     print("Sit called $table -- $seat");
   }
 }
