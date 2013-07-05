@@ -213,8 +213,8 @@ handle_cast({stand, TableId}, State) ->
       {noreply, State}
   end;
 
-handle_cast({event, Event} = E, #state{socket=Socket} = State) ->
-  web:send_event(Socket, E),
+handle_cast({event, Event}, #state{socket=Socket} = State) ->
+  web:send_event(Socket, Event),
   {noreply, State};
 
 handle_cast(Msg, State) ->

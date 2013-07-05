@@ -180,6 +180,8 @@ class Tarabish {
     _tsocket.send(json.stringify(login));
     print("Login called");
   }
+
+  // TODO: add a @require_socket
   refresh_tables(Event e) {
     e.preventDefault();
     var table_req = {"method": "get_tables"};

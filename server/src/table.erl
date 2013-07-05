@@ -128,9 +128,9 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
   if Seat == empty ->
     ClientRec = #client{name=ClientName, pid=Client},
     NewSeats = setelement(SeatNum + 1, State#state.seats, ClientRec),
-    Event = #event{type=?tarabish_EventType_SIT,
-                   name=ClientName,
-                   seat=SeatNum},
+    Event = [ {type, <<"sit">>},
+              {name, ClientName},
+              {seat, SeatNum}],
     case orddict:find(ClientName, State#state.members) of
       {ok, #person{seat=none} = Person} ->
         send_event_all(Event, State),
@@ -150,8 +150,10 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
         update_server(NewState),
 
         % Send a new client a table view
-        send_event_one(#event{type=?tarabish_EventType_TABLEVIEW,
-                              table_view=make_table_view(NewState)}, NewState, Client),
+        % TODO: send table view
+        EventT = [ {type, <<"table_view">>},
+          {table_view, make_table_view(NewState)}],
+        send_event_one(EventT, State, Client),
         {reply, ok, NewState}
     end;
   true ->
@@ -334,13 +336,14 @@ cancel_game(#state{game=Game} = State) ->
 send_event_all(Event, State) ->
   send_event(State#state.id, Event, State#state.members).
 
+% TODO: why does one use State id, and the other passed in the Id.
 send_event_one(Event, State, Client) ->
-  TableEvent = Event#event{table=State#state.id},
+  TableEvent = [{tableId, State#state.id}] ++ Event,
   client:recv_event(Client, TableEvent).
 
 send_event(TableId, Event, MemberDict) ->
   {_Ids, Members} = lists:unzip(orddict:to_list(MemberDict)),
-  TableEvent = Event#event{table=TableId},
+  TableEvent = [{tableId, TableId}] ++ Event,
   lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
 

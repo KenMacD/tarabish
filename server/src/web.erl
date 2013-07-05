@@ -3,7 +3,7 @@
 -export([start/0]).
 -behaviour(cowboy_websocket_handler).
 
--export([set_client/3, send_tables/2]).
+-export([set_client/3, send_tables/2, send_event/2]).
 
 -record(state, {client}).
 -export([init/3]).
@@ -64,6 +64,9 @@ set_client(Server, Client, Id) ->
 send_tables(Server, Tables) ->
   Server ! {tables, Tables}.
 
+send_event(Server, Event) ->
+  Server ! {event, Event}.
+
 % Section 3 - websocket server
 
 % Test of example code.
@@ -92,8 +95,12 @@ websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
 websocket_handle(_Data, Req, State) ->
   {ok, Req, State}.
 
+%websocket_info({event, Event}, Req, State) ->
+%  {reply, {text, Event}, Req, State};
+
 websocket_info({event, Event}, Req, State) ->
-  {reply, {text, Event}, Req, State};
+  Eventj = jsx:encode(Event),
+  {reply, {text, Eventj}, Req, State};
 
 % TODO prevent double login
 websocket_info({client, Client, Id}, Req, State) ->
