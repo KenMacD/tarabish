@@ -145,6 +145,23 @@ class TableView {
   }
 }
 
+class Table {
+  TarabishSocket _tsocket;
+  int id;
+  TableView view;
+
+  // TODO: subscribe to messages to this table
+  Table(this._tsocket, this.id, this.view);
+
+  factory Table.from_event(socket, event) {
+    var view = event['table_view'];
+    var id = event['tableId'];
+    print("Received table view for table $id: $view");
+    return new Table(socket, id, view);
+  }
+
+}
+
 @observable
 class Tarabish {
   TarabishSocket _tsocket;
@@ -154,8 +171,7 @@ class Tarabish {
 
   List<TableView> tableViews;
 
-  TableView table;
-  int tableId;
+  Table table;
 
   Tarabish();
 
@@ -167,14 +183,8 @@ class Tarabish {
         loginName = e['name'];
       });
       _tsocket.subscribe("tables", (e) => tableViews = e);
-      _tsocket.subscribe("table_view", recv_table_view);
+      _tsocket.subscribe("table_view", (e) => table = new Table.from_event(_tsocket, e));
     }
-  }
-
-  recv_table_view(Map event) {
-    table = event['table_view'];
-    tableId = event['tableId'];
-    print("Received table view for table $tableId: $table");
   }
 
   // Temporary disconnect to test re-attach
