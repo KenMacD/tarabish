@@ -93,6 +93,10 @@ class TarabishSocket {
       var view = new TableView.from_json(message['table_view']);
       var id = message['tableId'];
       table = new Table(id, view);
+    } else if (message['type'] == "chat") {
+      var chat_msg = message['message'];
+      var chat_name = message['name'];
+      table.recv_chat(chat_name, chat_msg);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -163,7 +167,17 @@ class Table {
     // TODO: is there a better way to get these values?
     InputElement chat_msg_elm = query("#chat-msg");
     var chat = mkmsg("chat", {"table_id": id, "message": chat_msg_elm.value});
+    chat_msg_elm.value = "";
     tsocket.send(json.stringify(chat));
+  }
+
+  recv_chat(name, message) {
+    var output = query('#chat-display');
+    var text = "$name: $message";
+    if (!output.text.isEmpty) {
+      text = "${text}\n${output.text}";
+    }
+    output.text = text;
   }
 }
 
