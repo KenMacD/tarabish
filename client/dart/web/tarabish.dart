@@ -67,6 +67,7 @@ class TarabishSocket {
       print("Invalid message $encodedMessage");
       return;
     }
+    // TODO: preprocess messages before sending? Or in socket?
     if (message['type'] == "tables") {
       List<TableView> tables = new List();
       print ("Received tables message, parsing");
@@ -76,6 +77,9 @@ class TarabishSocket {
       _publish("tables", tables);
     } else if (message['type'] == "valid_login") {
       _publish("valid_login", message);
+    } else if (message['type'] == "table_view") {
+      message['table_view'] = new TableView.from_json(message['table_view']);
+      _publish("table_view", message);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -85,8 +89,10 @@ class TarabishSocket {
   }
 
   _publish(String messageType, dynamic data) {
-    for (var callback in eventMap[messageType]) {
-      callback(data);
+    if (eventMap.containsKey(messageType)) {
+      for (var callback in eventMap[messageType]) {
+        callback(data);
+      }
     }
   }
 
@@ -148,6 +154,9 @@ class Tarabish {
 
   List<TableView> tableViews;
 
+  TableView table;
+  int tableId;
+
   Tarabish();
 
   // Lazy start socket on first login
@@ -158,7 +167,14 @@ class Tarabish {
         loginName = e['name'];
       });
       _tsocket.subscribe("tables", (e) => tableViews = e);
+      _tsocket.subscribe("table_view", recv_table_view);
     }
+  }
+
+  recv_table_view(Map event) {
+    table = event['table_view'];
+    tableId = event['tableId'];
+    print("Received table view for table $tableId: $table");
   }
 
   // Temporary disconnect to test re-attach

@@ -47,6 +47,11 @@
       </table>
     </template>
 
+    <template if="tarabish.table != null">
+      <p>You're on table {{tarabish.tableId}}</p>
+      <p>Table view: {{tarabish.table}}</p>
+    </template>
+
     <script type="application/dart" src="tarabish.dart"></script>
     <script src="packages/browser/dart.js"></script>
   </body>
