@@ -6,6 +6,15 @@ import 'package:web_ui/web_ui.dart';
 
 typedef void MessageCallback(dynamic data);
 
+// Global state
+TarabishSocket tsocket;
+
+Tarabish tarabish;
+
+@observable
+Table table;
+
+
 class TarabishSocket {
   // TODO: add logged_in
   String url;
@@ -16,10 +25,13 @@ class TarabishSocket {
 
   TarabishSocket(this.url) {
     eventMap = new Map();
-    _init();
+    init();
   }
 
-  _init([int retrySeconds = 2]) {
+  init([int retrySeconds = 2]) {
+    if (_connected) {
+      return;
+    }
     bool reconnectScheduled = false;
     webSocket = new WebSocket(url);
 
@@ -29,7 +41,7 @@ class TarabishSocket {
         _connected = false;
         print('web socket closed, retrying in $retrySeconds seconds');
         new Timer(new Duration(seconds: retrySeconds),
-            () => _init(retrySeconds * 2));
+            () => init(retrySeconds * 2));
       }
     }
 
@@ -67,32 +79,25 @@ class TarabishSocket {
       print("Invalid message $encodedMessage");
       return;
     }
-    // TODO: preprocess messages before sending? Or in socket?
     if (message['type'] == "tables") {
       List<TableView> tables = new List();
       print ("Received tables message, parsing");
       for (var table in message['tables']) {
         tables.add(new TableView.from_json(table));
       }
-      _publish("tables", tables);
+      // TODO: create lobby.
+      tarabish.update_lobby(tables);
     } else if (message['type'] == "valid_login") {
-      _publish("valid_login", message);
+      tarabish.valid_login(message['name']);
     } else if (message['type'] == "table_view") {
-      message['table_view'] = new TableView.from_json(message['table_view']);
-      _publish("table_view", message);
+      var view = new TableView.from_json(message['table_view']);
+      var id = message['tableId'];
+      table = new Table(id, view);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
       print("Message: $message");
       // TODO: handle
-    }
-  }
-
-  _publish(String messageType, dynamic data) {
-    if (eventMap.containsKey(messageType)) {
-      for (var callback in eventMap[messageType]) {
-        callback(data);
-      }
     }
   }
 
@@ -145,53 +150,41 @@ class TableView {
   }
 }
 
+@observable
 class Table {
-  TarabishSocket _tsocket;
   int id;
   TableView view;
 
-  // TODO: subscribe to messages to this table
-  Table(this._tsocket, this.id, this.view);
-
-  factory Table.from_event(socket, event) {
-    var view = event['table_view'];
-    var id = event['tableId'];
-    print("Received table view for table $id: $view");
-    return new Table(socket, id, view);
-  }
-
+  Table(this.id, this.view);
 }
 
 @observable
 class Tarabish {
-  TarabishSocket _tsocket;
-
   bool loggedin = false;
   String loginName = "Nobody";
 
   List<TableView> tableViews;
 
-  Table table;
-
   Tarabish();
 
   // Lazy start socket on first login
   _setup_socket() {
-    if (_tsocket == null) {
-      _tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
-      _tsocket.subscribe("valid_login", (e) {
-        loginName = e['name'];
-      });
-      _tsocket.subscribe("tables", (e) => tableViews = e);
-      _tsocket.subscribe("table_view", (e) => table = new Table.from_event(_tsocket, e));
-    }
+    tsocket.init();
+  }
+
+  valid_login(name) {
+    loggedin = true;
+    loginName = name;
+  }
+
+  update_lobby(tables) {
+    tableViews = tables;
   }
 
   // Temporary disconnect to test re-attach
   do_disconnect(Event e) {
     e.preventDefault();
-    _tsocket.webSocket.close();
-    _tsocket.webSocket = null;
+    tsocket.webSocket.close();
   }
 
   do_login(Event e) {
@@ -203,7 +196,7 @@ class Tarabish {
                  "method": "login",
                  "name": loginNameElement.value
     };
-    _tsocket.send(json.stringify(login));
+    tsocket.send(json.stringify(login));
     print("Login called");
   }
 
@@ -211,7 +204,7 @@ class Tarabish {
   refresh_tables(Event e) {
     e.preventDefault();
     var table_req = {"method": "get_tables"};
-    _tsocket.send(json.stringify(table_req));
+    tsocket.send(json.stringify(table_req));
   }
 
   sit(table, seat) {
@@ -220,12 +213,10 @@ class Tarabish {
                "table_id": table,
                "seat": seat
     };
-    _tsocket.send(json.stringify(sit));
+    tsocket.send(json.stringify(sit));
     print("Sit called $table -- $seat");
   }
 }
-Tarabish tarabish;
-
 
 /**
  * Learn about the Web UI package by visiting
@@ -234,6 +225,7 @@ Tarabish tarabish;
 void main() {
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
+  tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
   tarabish = new Tarabish();
 
   query('#disconnect').onClick.listen((e) => tarabish.do_disconnect(e));
