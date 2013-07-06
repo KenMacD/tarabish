@@ -156,6 +156,15 @@ class Table {
   TableView view;
 
   Table(this.id, this.view);
+
+  chat(Event e) {
+    e.preventDefault();
+
+    // TODO: is there a better way to get these values?
+    InputElement chat_msg_elm = query("#chat-msg");
+    var chat = mkmsg("chat", {"table_id": id, "message": chat_msg_elm.value});
+    tsocket.send(json.stringify(chat));
+  }
 }
 
 @observable
@@ -192,10 +201,7 @@ class Tarabish {
     _setup_socket();
 
     InputElement loginNameElement = query("#login-name");
-    var login = {
-                 "method": "login",
-                 "name": loginNameElement.value
-    };
+    var login = mkmsg("login", {"name": loginNameElement.value});
     tsocket.send(json.stringify(login));
     print("Login called");
   }
@@ -203,19 +209,25 @@ class Tarabish {
   // TODO: add a @require_socket
   refresh_tables(Event e) {
     e.preventDefault();
-    var table_req = {"method": "get_tables"};
-    tsocket.send(json.stringify(table_req));
+    tsocket.send(json.stringify(mkmsg("get_tables")));
   }
 
   sit(table, seat) {
-    var sit = {
-               "method": "sit",
-               "table_id": table,
-               "seat": seat
-    };
+    var sit = mkmsg("sit", {
+      "table_id": table,
+      "seat": seat
+    });
     tsocket.send(json.stringify(sit));
     print("Sit called $table -- $seat");
   }
+}
+
+mkmsg(String method, [Map others = null]) {
+  var message = {"method": method};
+  if (others != null) {
+    message.addAll(others);
+  }
+  return message;
 }
 
 /**
@@ -223,6 +235,7 @@ class Tarabish {
  * http://www.dartlang.org/articles/dart-web-components/.
  */
 void main() {
+
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
   tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");

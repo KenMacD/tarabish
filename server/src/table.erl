@@ -27,8 +27,8 @@ start(Id) ->
 
 %% TODO: check if table is still alive
 chat(Table, From, Message) ->
-  Event = #event{type=?tarabish_EventType_CHAT, table=Table,
-    name=From, message=Message},
+  Event = [ {type, <<"chat">>},
+    {name, From}, {message, Message}],
   broadcast(Table, Event).
 
 join(Table, ClientName, Client) ->

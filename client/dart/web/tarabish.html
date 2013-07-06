@@ -50,6 +50,11 @@
     <template if="table != null">
       <p>You're on table {{table.id}}</p>
       <p>Table view: {{table.view}}</p>
+      <p>Chat:
+        <form on-submit="table.chat($event)">
+          <input id="chat-msg" type="text" placeholder="chat">
+          <input type="submit">
+        </form>
     </template>
 
     <script type="application/dart" src="tarabish.dart"></script>
