@@ -97,6 +97,8 @@ class TarabishSocket {
       var chat_msg = message['message'];
       var chat_name = message['name'];
       table.recv_chat(chat_name, chat_msg);
+    } else if (message['type'] == "sit") {
+      table.recv_sit(message['seat'], message['name']);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -114,6 +116,7 @@ class TarabishSocket {
   }
 }
 
+@observable
 class SeatView {
   bool isOpen;
   String name;
@@ -131,6 +134,7 @@ class SeatView {
   }
 }
 
+@observable
 class TableView {
   int tableId;
   List<SeatView> seats;
@@ -178,6 +182,14 @@ class Table {
       text = "${text}\n${output.text}";
     }
     output.text = text;
+  }
+
+  recv_sit(seat_num, name) {
+    var seat = view.seats.elementAt(seat_num);
+    seat.isOpen = false;
+    seat.name = name;
+    // TODO: refactor to recv_chat to accept server messages.
+    recv_chat("Table", "$name sat"); // TODO: print which seat
   }
 }
 
