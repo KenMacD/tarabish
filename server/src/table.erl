@@ -106,17 +106,19 @@ handle_call({part, ClientName}, _From, State) ->
 %      NewState = State#state{members=NewMembers, observers=NewObservers},
 %      update_server(NewState),
 %      {reply, ok, NewState};
-    {ok, #person{seat=SeatNum} = _Person} ->
+    {ok, #person{seat=SeatNum, client=Client} = _Person} ->
       % No stand yet, as no observers for client.
 %      send_event_all(StandEvent#event{seat=SeatNum}, State),
       Event = [ {type, <<"part">>},
                 {name, ClientName},
                 {seat, SeatNum}],
-      send_event_all(Event, State),
-      cancel_game(State),
       NewMembers = orddict:erase(ClientName, State#state.members),
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
       NewState = State#state{members=NewMembers, seats=NewSeats, game=none},
+      % Only send these events to people left at the table:
+      send_event_all(Event, NewState),
+      cancel_game(NewState),
+      send_event_one([{type, <<"you_part">>}], NewState, Client),
       update_server(NewState),
       {reply, ok, NewState};
     error ->

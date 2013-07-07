@@ -101,6 +101,8 @@ class TarabishSocket {
       table.recv_sit(message['seat'], message['name']);
     } else if (message['type'] == "part") {
       table.recv_part(message['seat'], message['name']);
+    } else if (message['type'] == "you_part") {
+      table.recv_you_part();
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -204,6 +206,10 @@ class Table {
     seat.isOpen = true;
     seat.name = null;
     recv_chat("Table", "$name left the table");
+  }
+
+  recv_you_part() {
+    table = null;
   }
 }
 
