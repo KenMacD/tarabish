@@ -37,7 +37,7 @@ join_table(Client, TableId) ->
   gen_server:call(Client, {join, TableId}).
 
 part_table(Client, TableId) ->
-  gen_server:call(Client, {part, TableId}).
+  gen_server:cast(Client, {part, TableId}).
 
 sit(Client, TableId, Seat) ->
   gen_server:cast(Client, {sit, TableId, Seat}).
@@ -95,20 +95,6 @@ handle_call({join, TableId}, _From, State) ->
       {reply, {error, Reason}, State}
   end;
 
-
-handle_call({part, TableId}, _From, State) ->
-  case tarabish_server:get_table(TableId) of
-    {ok, Table} ->
-      case table:part(Table, State#state.id) of
-        ok ->
-          Tables = orddict:erase(TableId, State#state.tables),
-          {reply, ok, State#state{tables=Tables}};
-        {error, Reason} ->
-          {reply, {error, Reason}, State}
-      end;
-    {error, Reason} ->
-      {reply, {error, Reason}, State}
-  end;
 
 handle_call({start_game, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
@@ -188,6 +174,22 @@ handle_cast({sit, TableId, Seat}, State) ->
           % If we were already watching the table is should overwrite
           NewTables = orddict:store(TableId, Table, State#state.tables),
           {noreply, State#state{tables=NewTables}};
+        {error, Reason} ->
+          % TODO: some error
+          {noreply, State}
+      end;
+    {error, Reason} ->
+      % TODO: some error
+      {noreply, State}
+  end;
+
+handle_cast({part, TableId}, State) ->
+  case tarabish_server:get_table(TableId) of
+    {ok, Table} ->
+      case table:part(Table, State#state.id) of
+        ok ->
+          Tables = orddict:erase(TableId, State#state.tables),
+          {noreply, State#state{tables=Tables}};
         {error, Reason} ->
           % TODO: some error
           {noreply, State}

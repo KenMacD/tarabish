@@ -99,6 +99,8 @@ class TarabishSocket {
       table.recv_chat(chat_name, chat_msg);
     } else if (message['type'] == "sit") {
       table.recv_sit(message['seat'], message['name']);
+    } else if (message['type'] == "part") {
+      table.recv_part(message['seat'], message['name']);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -190,6 +192,18 @@ class Table {
     seat.name = name;
     // TODO: refactor to recv_chat to accept server messages.
     recv_chat("Table", "$name sat"); // TODO: print which seat
+  }
+
+  part() {
+    var part = mkmsg("part_table", {"table_id": id});
+    tsocket.send(json.stringify(part));
+  }
+
+  recv_part(seat_num, name) {
+    var seat = view.seats.elementAt(seat_num);
+    seat.isOpen = true;
+    seat.name = null;
+    recv_chat("Table", "$name left the table");
   }
 }
 

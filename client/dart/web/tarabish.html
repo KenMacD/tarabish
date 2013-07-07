@@ -50,6 +50,7 @@
     <template if="table != null">
       <p>You're on table {{table.id}}</p>
       <p>Table view: {{table.view}}</p>
+      <p><button on-click="table.part()">Leave Table</button></p>
       <p>Chat:
       <div>
         <textarea id="chat-display" rows="10" disabled></textarea>

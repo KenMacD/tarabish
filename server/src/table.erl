@@ -97,20 +97,21 @@ handle_call({join, ClientName, Client}, _From, State) ->
   end;
 
 handle_call({part, ClientName}, _From, State) ->
-  StandEvent = #event{type=?tarabish_EventType_STAND,
-                      name=ClientName},
-  Event = #event{type=?tarabish_EventType_PART,
-                 name=ClientName},
   case orddict:find(ClientName, State#state.members) of
-    {ok, #person{seat=none} = _Person} ->
-      send_event_all(Event, State),
-      NewMembers = orddict:erase(ClientName, State#state.members),
-      NewObservers = lists:delete(ClientName, State#state.observers),
-      NewState = State#state{members=NewMembers, observers=NewObservers},
-      update_server(NewState),
-      {reply, ok, NewState};
+    % Not called as you can only sit/part so far.
+%    {ok, #person{seat=none} = _Person} ->
+%      send_event_all(Event, State),
+%      NewMembers = orddict:erase(ClientName, State#state.members),
+%      NewObservers = lists:delete(ClientName, State#state.observers),
+%      NewState = State#state{members=NewMembers, observers=NewObservers},
+%      update_server(NewState),
+%      {reply, ok, NewState};
     {ok, #person{seat=SeatNum} = _Person} ->
-      send_event_all(StandEvent#event{seat=SeatNum}, State),
+      % No stand yet, as no observers for client.
+%      send_event_all(StandEvent#event{seat=SeatNum}, State),
+      Event = [ {type, <<"part">>},
+                {name, ClientName},
+                {seat, SeatNum}],
       send_event_all(Event, State),
       cancel_game(State),
       NewMembers = orddict:erase(ClientName, State#state.members),
