@@ -99,8 +99,16 @@ websocket_handle(_Data, Req, State) ->
 %  {reply, {text, Event}, Req, State};
 
 websocket_info({event, Event}, Req, State) ->
-  Eventj = jsx:encode(Event),
-  {reply, {text, Eventj}, Req, State};
+  try jsx:encode(Event) of
+    Eventj -> {reply, {text, Eventj}, Req, State}
+  catch
+    error:badarg ->
+      io:format("Badarg message ~p~n", [Event]),
+      {ok, Req, State};
+    error:function_clause ->
+      io:format("Function clause message ~p~n", [Event]),
+      {ok, Req, State}
+  end;
 
 % TODO prevent double login
 websocket_info({client, Client, Id}, Req, State) ->
