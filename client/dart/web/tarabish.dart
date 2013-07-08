@@ -4,6 +4,15 @@ import 'dart:collection';
 import 'dart:json' as json;
 import 'package:web_ui/web_ui.dart';
 
+import 'dart:math';
+debug_sit() {
+  var rng = new Random();
+  var login_elm = query("#login-name");
+  login_elm.value = "User" + rng.nextInt(1000).toString();
+  tarabish.do_login(new Event("fake"));
+  tarabish.refresh_tables(new Event("fake"));
+}
+
 typedef void MessageCallback(dynamic data);
 
 // Global state
