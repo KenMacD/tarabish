@@ -350,6 +350,13 @@ send_event(TableId, Event, MemberDict) ->
   lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
 
+seralize_card(#card{value=Value, suit=Suit}) ->
+  [{value, Value}, {suit, Suit}].
+
+seralize_cards(Cards) ->
+  Hand = fun(H) -> lists:map(fun seralize_card/1, H) end,
+  lists:map(Hand, Cards).
+
 send_cards1(_Event, _Cards, []) ->
   ok;
 
@@ -359,7 +366,7 @@ send_cards1(Event, Cards, [#person{} = Person|Rest])
   send_cards1(Event, Cards, Rest);
 
 send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
-  Event1 = Event#event{dealt = lists:nth(Person#person.seat + 1, Cards)},
+  Event1 = Event ++ [{dealt, lists:nth(Person#person.seat + 1, Cards)}],
 
   client:recv_event(Person#person.client, Event1),
   send_cards1(Event, Cards, Rest).
@@ -367,10 +374,10 @@ send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
 send_cards(TableId, Dealer, Cards, MembersDict) ->
   {_Ids, Persons} = lists:unzip(orddict:to_list(MembersDict)),
 
-  Event = #event{type=?tarabish_EventType_DEAL,
-                 table=TableId,
-                 seat=Dealer},
-  send_cards1(Event, Cards, Persons).
+  SerCards = seralize_cards(Cards),
+
+  Event = [{type, <<"deal">>}, {tableId, TableId}, {dealer, Dealer}],
+  send_cards1(Event, SerCards, Persons).
 
 % Passes a list, but returns a tuple.
 get_seat(State, SeatNum) ->
