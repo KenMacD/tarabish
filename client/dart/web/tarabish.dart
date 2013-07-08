@@ -220,6 +220,11 @@ class Table {
   recv_you_part() {
     table = null;
   }
+
+  new_game() {
+    var start = mkmsg("start_game", {"table_id": id});
+    tsocket.send(json.stringify(start));
+  }
 }
 
 @observable

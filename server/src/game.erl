@@ -92,7 +92,7 @@ init([Table]) ->
   % in 0, 1, 2, 3
   Dealer = determine_dealer(Table, deck:shuffle(deck:new())),
 
-  DealerEvent = #event{type=?tarabish_EventType_DEALER, seat=Dealer},
+  DealerEvent = [{type, <<"dealer">>}, {seat, Dealer}],
   table:broadcast(Table, DealerEvent),
 
   State = new_hand(Dealer, #state{table=Table, score={0,0}}),

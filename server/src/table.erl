@@ -166,6 +166,24 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
 handle_call({sit, _ClientName, _Client, _SeatNum}, _From, State) ->
     {reply, {error, invalid_seat}, State};
 
+handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
+  case orddict:find(ClientName, State#state.members) of
+    {ok, #person{seat=none}} ->
+      {reply, {error, not_authorized}, State};
+    {ok, _Person} ->
+      case is_full(State#state.seats) of
+        true ->
+          Event = [{type, <<"new_game">>}],
+          send_event_all(Event, State),
+          {ok, Game} = game:start_link(self()),
+          {reply, ok, State#state{game=Game}};
+        false ->
+          {reply, {error, need_full_table}, State}
+      end;
+    error ->
+      {reply, {error, not_at_table}, State}
+  end;
+
 handle_call({stand, ClientName}, _From, State) ->
   Event = #event{type=?tarabish_EventType_STAND,
                  name=ClientName},
@@ -184,24 +202,6 @@ handle_call({stand, ClientName}, _From, State) ->
         observers=NewObservers, game=none},
       update_server(NewState),
       {reply, ok, NewState};
-    error ->
-      {reply, {error, not_at_table}, State}
-  end;
-
-handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
-  case orddict:find(ClientName, State#state.members) of
-    {ok, #person{seat=none}} ->
-      {reply, {error, not_authorized}, State};
-    {ok, _Person} ->
-      case is_full(State#state.seats) of
-        true ->
-          Event = #event{type=?tarabish_EventType_NEW_GAME},
-          send_event_all(Event, State),
-          {ok, Game} = game:start_link(self()),
-          {reply, ok, State#state{game=Game}};
-        false ->
-          {reply, {error, need_full_table}, State}
-      end;
     error ->
       {reply, {error, not_at_table}, State}
   end;

@@ -24,9 +24,11 @@ start() ->
   % Funcation, Mod, Params, SendClient?
   ets:insert(webcmd, {login, client, [name], false}),
   ets:insert(webcmd, {get_tables, client, [], true}),
+
   ets:insert(webcmd, {sit, client, [table_id, seat], true}),
   ets:insert(webcmd, {part_table, client, [table_id], true}),
   ets:insert(webcmd, {chat, client, [table_id, message], true}),
+  ets:insert(webcmd, {start_game, client, [table_id], true}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),

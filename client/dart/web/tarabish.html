@@ -21,12 +21,14 @@
       <input type="submit">
     </form>
 
+    <button id="disconnect">Disconnect</button>
+
+    <hr>
+
     <form on-submit="tarabish.refresh_tables($event)">
       <!-- TODO: button instead -->
       <input type="submit" value="Refresh">
     </form>
-
-    <button id="disconnect">Disconnect</button>
 
     <template if="tarabish.tableViews != null">
       <table>
@@ -49,6 +51,7 @@
     </template>
 
     <template if="table != null">
+      <hr>
       <p>You're on table {{table.id}}</p>
       <p>Table view: {{table.view}}</p>
       <p><button on-click="table.part()">Leave Table</button></p>
@@ -56,11 +59,14 @@
       <div>
         <textarea id="chat-display" rows="10" disabled></textarea>
       </div>
-        <form on-submit="table.chat($event)">
-          <input id="chat-msg" type="text" placeholder="chat">
-          <input type="submit">
-        </form>
+      <form on-submit="table.chat($event)">
+        <input id="chat-msg" type="text" placeholder="chat">
+        <input type="submit">
+      </form>
+      <!-- TODO: only enable if 4 people at the table -->
+      <p><button on-click="table.new_game()">Start Game</button></p>
     </template>
+
 
     <script type="application/dart" src="tarabish.dart"></script>
     <script src="packages/browser/dart.js"></script>
