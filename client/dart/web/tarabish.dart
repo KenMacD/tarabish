@@ -13,6 +13,11 @@ debug_sit() {
   tarabish.refresh_tables(new Event("fake"));
 }
 
+debug_clone() {
+  var url = window.location.toString();
+  window.open(url, "_blank");
+}
+
 typedef void MessageCallback(dynamic data);
 
 // Global state
