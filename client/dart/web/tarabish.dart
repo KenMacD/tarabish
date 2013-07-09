@@ -116,6 +116,10 @@ class TarabishSocket {
       table = new Table(id, view, seat);
     } else if (message['type'] == "ask_trump") {
       table.recv_ask_trump(message['seat']);
+    } else if (message['type'] == "trump_passed") {
+      table.recv_trump_passed(message['seat']);
+    } else if (message['type'] == "trump_called") {
+      table.recv_trump_called(message['seat'], message['suit']);
     } else if (message['type'] == "chat") {
       var chat_msg = message['message'];
       var chat_name = message['name'];
@@ -272,6 +276,16 @@ class Table {
     var call = mkmsg("call_trump", {"table_id": id, "suit": suit});
     tsocket.send(json.stringify(call));
   }
+
+  recv_trump_passed(seat) {
+    recv_chat("Table", "Seat $seat passed on trump");
+  }
+
+  recv_trump_called(seat, suit) {
+    askTrump = false;
+    var suitStr = suit_toString(suit);
+    recv_chat("Table", "Seat $seat called trump $suitStr");
+  }
 }
 
 class Card {
@@ -361,6 +375,10 @@ mkmsg(String method, [Map others = null]) {
     message.addAll(others);
   }
   return message;
+}
+
+suit_toString(suit) {
+  return ["clubs", "diamonds", "spades", "hearts"][suit - 1];
 }
 
 /**
