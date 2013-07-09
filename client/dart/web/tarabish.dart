@@ -18,6 +18,11 @@ debug_clone() {
   window.open(url, "_blank");
 }
 
+const int CLUBS = 1;
+const int DIAMONDS = 2;
+const int SPADES = 3;
+const int HEARTS = 4;
+
 typedef void MessageCallback(dynamic data);
 
 // Global state
@@ -117,6 +122,13 @@ class TarabishSocket {
       table.recv_part(message['seat'], message['name']);
     } else if (message['type'] == "you_part") {
       table.recv_you_part();
+    } else if (message['type'] == "deal") {
+      var dealer = message['dealer'];
+      List<Card> cards = new List();
+      for (var card in message['dealt']) {
+        cards.add(new Card.from_json(card));
+      }
+      table.recv_deal(dealer, cards);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -181,6 +193,9 @@ class Table {
   int id;
   TableView view;
 
+  List<Card> cards = new List();
+  int dealer;
+
   Table(this.id, this.view);
 
   chat(Event e) {
@@ -229,6 +244,29 @@ class Table {
   new_game() {
     var start = mkmsg("start_game", {"table_id": id});
     tsocket.send(json.stringify(start));
+  }
+
+  recv_deal(new_dealer, new_cards) {
+    cards.addAll(new_cards);
+    dealer = new_dealer;
+    print("Received new dealer $dealer and cards $new_cards");
+  }
+}
+
+class Card {
+  int value;
+  int suit;
+
+  Card(this.value, this.suit);
+
+  factory Card.from_json(json) {
+    var value = json['value'];
+    var suit = json['suit'];
+    return new Card(value, suit);
+  }
+
+  String toString() {
+    return "Card v: $value s: $suit";
   }
 }
 
