@@ -108,10 +108,11 @@ class TarabishSocket {
       tarabish.update_lobby(tables);
     } else if (message['type'] == "valid_login") {
       tarabish.valid_login(message['name']);
-    } else if (message['type'] == "table_view") {
+    } else if (message['type'] == "table_view_sit") {
       var view = new TableView.from_json(message['table_view']);
       var id = message['tableId'];
-      table = new Table(id, view);
+      var seat = message['seat'];
+      table = new Table(id, view, seat);
     } else if (message['type'] == "chat") {
       var chat_msg = message['message'];
       var chat_name = message['name'];
@@ -192,11 +193,12 @@ class TableView {
 class Table {
   int id;
   TableView view;
+  int seat; // Your seat
 
   List<Card> cards = new List();
   int dealer;
 
-  Table(this.id, this.view);
+  Table(this.id, this.view, this.seat);
 
   chat(Event e) {
     e.preventDefault();

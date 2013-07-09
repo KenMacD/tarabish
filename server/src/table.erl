@@ -154,8 +154,9 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
 
         % Send a new client a table view
         % TODO: send table view
-        EventT = [ {type, <<"table_view">>},
-          {table_view, make_table_view(NewState)}],
+        EventT = [ {type, <<"table_view_sit">>},
+          {table_view, make_table_view(NewState)},
+          {seat, SeatNum}],
         send_event_one(EventT, State, Client),
         {reply, ok, NewState}
     end;
