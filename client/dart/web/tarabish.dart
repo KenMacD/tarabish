@@ -18,6 +18,7 @@ debug_clone() {
   window.open(url, "_blank");
 }
 
+const int PASS = 0;
 const int CLUBS = 1;
 const int DIAMONDS = 2;
 const int SPADES = 3;
@@ -113,6 +114,8 @@ class TarabishSocket {
       var id = message['tableId'];
       var seat = message['seat'];
       table = new Table(id, view, seat);
+    } else if (message['type'] == "ask_trump") {
+      table.recv_ask_trump(message['seat']);
     } else if (message['type'] == "chat") {
       var chat_msg = message['message'];
       var chat_name = message['name'];
@@ -254,6 +257,20 @@ class Table {
     cards.addAll(new_cards);
     dealer = new_dealer;
     print("Received new dealer $dealer and cards $new_cards");
+  }
+
+  recv_ask_trump(seat) {
+    recv_chat("Table", "Seat $seat asked to call trump");
+    if (seat == this.seat) {
+      askTrump = true;
+    } else {
+      askTrump = false;
+    }
+  }
+
+  call_trump(suit) {
+    var call = mkmsg("call_trump", {"table_id": id, "suit": suit});
+    tsocket.send(json.stringify(call));
   }
 }
 

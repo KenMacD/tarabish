@@ -29,6 +29,7 @@ start() ->
   ets:insert(webcmd, {part_table, client, [table_id], true}),
   ets:insert(webcmd, {chat, client, [table_id, message], true}),
   ets:insert(webcmd, {start_game, client, [table_id], true}),
+  ets:insert(webcmd, {call_trump, client, [table_id, suit], true}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),

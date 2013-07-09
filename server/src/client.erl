@@ -49,7 +49,7 @@ start_game(Client, TableId) ->
   gen_server:cast(Client, {start_game, TableId}).
 
 call_trump(Client, TableId, Suit) ->
-  gen_server:call(Client, {call_trump, TableId, Suit}).
+  gen_server:cast(Client, {call_trump, TableId, Suit}).
 
 play_card(Client, TableId, Card) ->
   gen_server:call(Client, {play_card, TableId, Card}).
@@ -95,14 +95,6 @@ handle_call({join, TableId}, _From, State) ->
       {reply, {error, Reason}, State}
   end;
 
-
-handle_call({call_trump, TableId, Suit}, _From, State) ->
-  case orddict:find(TableId, State#state.tables) of
-    {ok, Table} ->
-      {reply, table:call_trump(Table, State#state.id, Suit), State};
-    _ ->
-      {reply, {error, not_at_table}, State}
-  end;
 
 handle_call({play_card, TableId, Card}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
@@ -202,6 +194,16 @@ handle_cast({start_game, TableId}, State) ->
       {noreply, State}
   end;
 
+handle_cast({call_trump, TableId, Suit}, State) ->
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      % TODO: handle return
+      table:call_trump(Table, State#state.id, Suit),
+      {noreply, State};
+    _ ->
+      % TODO: some error
+      {noreply, State}
+  end;
 
 handle_cast({stand, TableId}, State) ->
   case tarabish_server:get_table(TableId) of

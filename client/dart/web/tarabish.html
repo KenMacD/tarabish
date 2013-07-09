@@ -68,6 +68,16 @@
       <p><button on-click="table.new_game()">Start Game</button></p>
 
       <p>Hand: <template iterate="card in table.cards">{{card.toString()}} </template></p>
+      <template if="table.askTrump == true">
+        <p><button on-click="table.call_trump(CLUBS)">Clubs</button>
+           <button on-click="table.call_trump(DIAMONDS)">Diamonds</button>
+           <button on-click="table.call_trump(SPADES)">Spades</button>
+           <button on-click="table.call_trump(HEARTS)">Hearts</button>
+           <template if="table.seat != table.dealer">
+             <button on-click="table.call_trump(PASS)">Pass</button>
+           </template>
+        </p>
+      </template>
     </template>
 
 
