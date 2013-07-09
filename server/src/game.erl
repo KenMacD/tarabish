@@ -106,13 +106,13 @@ wait_trump({call_trump, Seat, ?tarabish_PASS}, _From,
   {reply, {error, forced_to_call}, wait_trump, State};
 
 % Other player passes
-wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From,
+wait_trump({call_trump, Seat, ?tarabish_PASS}, _From,
     #state{order=[Seat|Rest]} = State) ->
 
-  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
+  Event = [{type, <<"trump_passed">>}, {seat, Seat}],
   table:broadcast(State#state.table, Event),
 
-  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP, seat=hd(Rest)},
+  AskTrumpEvent = [{type, <<"ask_trump">>}, {seat, hd(Rest)}],
   table:broadcast(State#state.table, AskTrumpEvent),
 
   {reply, ok, wait_trump, State#state{order=Rest}};
@@ -121,7 +121,7 @@ wait_trump({call_trump, Seat, ?tarabish_PASS = Suit}, _From,
 wait_trump({call_trump, Seat, Suit}, _From,
     #state{order=[Seat|_Rest]} = State) ->
 
-  Event = #event{type=?tarabish_EventType_CALL_TRUMP, seat=Seat, suit=Suit},
+  Event = [{type, <<"trump_called">>}, {seat, Seat}, {suit, Suit}],
   table:broadcast(State#state.table, Event),
   State1 = deal3(State),
   Runs = runs:new(tuple_to_list(State1#state.hands), Suit),
@@ -418,8 +418,7 @@ new_hand(Dealer, #state{table=Table} = State) ->
   FirstSeat = hd(State4#state.order),
 
   % TODO: add to_wait_trump() to send these events:
-  AskTrumpEvent = #event{type=?tarabish_EventType_ASK_TRUMP,
-                         seat=FirstSeat},
+  AskTrumpEvent = [{type, <<"ask_trump">>}, {seat, FirstSeat}],
   table:broadcast(Table, AskTrumpEvent),
 
   State4.
