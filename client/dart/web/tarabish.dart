@@ -195,8 +195,10 @@ class Table {
   TableView view;
   int seat; // Your seat
 
-  List<Card> cards = new List();
+  List<Card> cards = toObservable(new List());
   int dealer;
+
+  bool askTrump = false;
 
   Table(this.id, this.view, this.seat);
 
@@ -268,7 +270,16 @@ class Card {
   }
 
   String toString() {
-    return "Card v: $value s: $suit";
+    String valueStr;
+    if (value <= 10) {
+      valueStr = "$value";
+    } else {
+      var values = ["J", "Q", "K", "A"];
+      valueStr = values[(value - 11)];
+    }
+
+    String suitStr = ["c", "d", "s", "h"][(suit - 1)];
+    return "[$valueStr$suitStr]";
   }
 }
 
