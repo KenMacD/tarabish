@@ -292,6 +292,11 @@ class Table {
   recv_ask_card(seat) {
     recv_chat("Table", "Seat $seat asked to play a card");
   }
+
+  play_card(value, suit) {
+    var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
+    tsocket.send(json.stringify(play));
+  }
 }
 
 class Card {

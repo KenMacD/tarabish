@@ -50,7 +50,8 @@ call_trump(Table, Suit) ->
   gen_server:call(Table, {call_trump, self(), Suit}).
 
 play_card(Table, Card) ->
-  gen_server:call(Table, {play_card, self(), Card}).
+  DCard = deseralize_card(Card),
+  gen_server:call(Table, {play_card, self(), DCard}).
 
 play_bella(Table) ->
   gen_server:call(Table, {play_bella, self()}).
@@ -350,6 +351,11 @@ send_event(TableId, Event, MemberDict) ->
   TableEvent = [{tableId, TableId}] ++ Event,
   lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
+
+deseralize_card(Card) ->
+  Value = proplists:get_value(value, Card),
+  Suit = proplists:get_value(suit, Card),
+  #card{value=Value, suit=Suit}.
 
 seralize_card(#card{value=Value, suit=Suit}) ->
   [{value, Value}, {suit, Suit}].

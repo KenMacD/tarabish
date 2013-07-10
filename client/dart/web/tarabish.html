@@ -67,7 +67,9 @@
       <!-- TODO: only enable if 4 people at the table -->
       <p><button on-click="table.new_game()">Start Game</button></p>
 
-      <p>Hand: <template iterate="card in table.cards">{{card.toString()}} </template></p>
+      <p>Hand: <template iterate="card in table.cards">
+        <button on-click="table.play_card(card.value, card.suit)">{{card.toString()}}</button>
+      </template></p>
       <template if="table.askTrump == true">
         <p><button on-click="table.call_trump(CLUBS)">Clubs</button>
            <button on-click="table.call_trump(DIAMONDS)">Diamonds</button>
