@@ -11,9 +11,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3, part/2, sit/4, stand/2,
-    start_game/2, call_trump/3, play_card/3, play_bella/2,
-    call_run/2, show_run/2]).
+-export([chat/3, join/3, part/1, sit/3, stand/1,
+    start_game/1, call_trump/2, play_card/2, play_bella/1,
+    call_run/1, show_run/1]).
 
 %% From game
 -export([broadcast/2, deal3/3]).
@@ -34,32 +34,32 @@ chat(Table, From, Message) ->
 join(Table, ClientName, Client) ->
   gen_server:call(Table, {join, ClientName, Client}).
 
-part(Table, ClientName) ->
-  gen_server:call(Table, {part, ClientName}).
+part(Table) ->
+  gen_server:call(Table, {part, self()}).
 
-sit(Table, ClientName, Client, Seat) ->
-  gen_server:call(Table, {sit, ClientName, Client, Seat}).
+sit(Table, ClientName, Seat) ->
+  gen_server:call(Table, {sit, ClientName, self(), Seat}).
 
-stand(Table, ClientName) ->
-  gen_server:call(Table, {stand, ClientName}).
+stand(Table) ->
+  gen_server:call(Table, {stand, self()}).
 
-start_game(Table, ClientName) ->
-  gen_server:call(Table, {start_game, ClientName}).
+start_game(Table) ->
+  gen_server:call(Table, {start_game, self()}).
 
-call_trump(Table, ClientName, Suit) ->
-  gen_server:call(Table, {call_trump, ClientName, Suit}).
+call_trump(Table, Suit) ->
+  gen_server:call(Table, {call_trump, self(), Suit}).
 
-play_card(Table, ClientName, Card) ->
-  gen_server:call(Table, {play_card, ClientName, Card}).
+play_card(Table, Card) ->
+  gen_server:call(Table, {play_card, self(), Card}).
 
-play_bella(Table, ClientName) ->
-  gen_server:call(Table, {play_bella, ClientName}).
+play_bella(Table) ->
+  gen_server:call(Table, {play_bella, self()}).
 
-call_run(Table, ClientName) ->
-  gen_server:call(Table, {call_run, ClientName}).
+call_run(Table) ->
+  gen_server:call(Table, {call_run, self()}).
 
-show_run(Table, ClientName) ->
-  gen_server:call(Table, {show_run, ClientName}).
+show_run(Table) ->
+  gen_server:call(Table, {show_run, self()}).
 
 % From Game:
 broadcast(Table, Event) ->
@@ -87,7 +87,7 @@ handle_call({join, ClientName, Client}, _From, State) ->
                      name=ClientName},
       send_event_all(Event, State),
       Person = #person{name=ClientName, client=Client, seat=none},
-      NewMembers = orddict:store(ClientName, Person, State#state.members),
+      NewMembers = orddict:store(Client, Person, State#state.members),
       Observers = [ClientName|State#state.observers],
       NewState = State#state{members=NewMembers, observers=Observers},
       update_server(NewState),
@@ -96,8 +96,8 @@ handle_call({join, ClientName, Client}, _From, State) ->
       {reply, ok, NewState}
   end;
 
-handle_call({part, ClientName}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({part, Client}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
     % Not called as you can only sit/part so far.
 %    {ok, #person{seat=none} = _Person} ->
 %      send_event_all(Event, State),
@@ -106,13 +106,13 @@ handle_call({part, ClientName}, _From, State) ->
 %      NewState = State#state{members=NewMembers, observers=NewObservers},
 %      update_server(NewState),
 %      {reply, ok, NewState};
-    {ok, #person{seat=SeatNum, client=Client} = _Person} ->
+    {ok, #person{name=ClientName, seat=SeatNum} = _Person} ->
       % No stand yet, as no observers for client.
 %      send_event_all(StandEvent#event{seat=SeatNum}, State),
       Event = [ {type, <<"part">>},
                 {name, ClientName},
                 {seat, SeatNum}],
-      NewMembers = orddict:erase(ClientName, State#state.members),
+      NewMembers = orddict:erase(Client, State#state.members),
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
       NewState = State#state{members=NewMembers, seats=NewSeats, game=none},
       % Only send these events to people left at the table:
@@ -134,11 +134,11 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
     Event = [ {type, <<"sit">>},
               {name, ClientName},
               {seat, SeatNum}],
-    case orddict:find(ClientName, State#state.members) of
+    case orddict:find(Client, State#state.members) of
       {ok, #person{seat=none} = Person} ->
         send_event_all(Event, State),
         NewPerson = Person#person{seat=SeatNum},
-        NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+        NewMembers = orddict:store(Client, NewPerson, State#state.members),
         NewObservers = lists:delete(ClientName, State#state.observers),
         NewState = State#state{members=NewMembers, seats=NewSeats, observers=NewObservers},
         update_server(NewState),
@@ -148,7 +148,7 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
       error -> % Not at table, join
         send_event_all(Event, State),
         NewPerson = #person{name=ClientName, client=Client, seat=SeatNum},
-        NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+        NewMembers = orddict:store(Client, NewPerson, State#state.members),
         NewState = State#state{members=NewMembers, seats=NewSeats},
         update_server(NewState),
 
@@ -167,8 +167,8 @@ handle_call({sit, ClientName, Client, SeatNum}, _From, State)
 handle_call({sit, _ClientName, _Client, _SeatNum}, _From, State) ->
     {reply, {error, invalid_seat}, State};
 
-handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({start_game, Client}, _From, #state{game=none} = State) ->
+  case orddict:find(Client, State#state.members) of
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, _Person} ->
@@ -185,18 +185,18 @@ handle_call({start_game, ClientName}, _From, #state{game=none} = State) ->
       {reply, {error, not_at_table}, State}
   end;
 
-handle_call({stand, ClientName}, _From, State) ->
-  Event = #event{type=?tarabish_EventType_STAND,
-                 name=ClientName},
-  case orddict:find(ClientName, State#state.members) of
+handle_call({stand, Client}, _From, State) ->
+ case orddict:find(Client, State#state.members) of
     {ok, #person{seat=none} = _Person} ->
       {reply, {error, not_seated}, State};
-    {ok, #person{seat=SeatNum} = Person} ->
+    {ok, #person{name=ClientName, seat=SeatNum} = Person} ->
+      Event = #event{type=?tarabish_EventType_STAND,
+                 name=ClientName},
       send_event_all(Event#event{seat=SeatNum}, State),
       cancel_game(State),
       NewPerson = Person#person{seat=none},
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
-      NewMembers = orddict:store(ClientName, NewPerson, State#state.members),
+      NewMembers = orddict:store(Client, NewPerson, State#state.members),
       NewObservers = [ClientName|State#state.observers],
 
       NewState = State#state{members=NewMembers, seats=NewSeats,
@@ -213,8 +213,8 @@ handle_call({start_game, _ClientName}, _From, State) ->
 handle_call({call_trump, _ClientName, _Suit}, _From, #state{game=none} = State) ->
   {reply, {error, no_game}, State};
 
-handle_call({call_trump, ClientName, Suit}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({call_trump, Client, Suit}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
       {ok, #person{seat=none}} ->
         {reply, {error, not_authorized}, State};
       {ok, Person} ->
@@ -228,8 +228,8 @@ handle_call({play_card, _ClientName, _Card}, _From, #state{game=none} = State) -
   {reply, {error, no_game}, State};
 
 % TODO: not_authorized isn't really needed here, as it shoudl be checked in the game
-handle_call({play_card, ClientName, Card}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({play_card, Client, Card}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
       {ok, #person{seat=none}} ->
         {reply, {error, not_authorized}, State};
       {ok, Person} ->
@@ -242,8 +242,8 @@ handle_call({play_card, ClientName, Card}, _From, State) ->
 handle_call({play_bella, _ClientName}, _From, #state{game=none} = State) ->
   {reply, {error, no_game}, State};
 
-handle_call({play_bella, ClientName}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({play_bella, Client}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, Person} ->
@@ -256,8 +256,8 @@ handle_call({play_bella, ClientName}, _From, State) ->
 handle_call({call_run, _ClientName}, _From, #state{game=none} = State) ->
   {reply, {error, no_game}, State};
 
-handle_call({call_run, ClientName}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({call_run, Client}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, Person} ->
@@ -270,8 +270,8 @@ handle_call({call_run, ClientName}, _From, State) ->
 handle_call({show_run, _ClientName}, _From, #state{game=none} = State) ->
   {reply, {error, no_game}, State};
 
-handle_call({show_run, ClientName}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
+handle_call({show_run, Client}, _From, State) ->
+  case orddict:find(Client, State#state.members) of
     {ok, #person{seat=none}} ->
       {reply, {error, not_authorized}, State};
     {ok, Person} ->

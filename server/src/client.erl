@@ -99,7 +99,7 @@ handle_call({join, TableId}, _From, State) ->
 handle_call({play_card, TableId, Card}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      {reply, table:play_card(Table, State#state.id, Card), State};
+      {reply, table:play_card(Table, Card), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -107,7 +107,7 @@ handle_call({play_card, TableId, Card}, _From, State) ->
 handle_call({play_bella, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      {reply, table:play_bella(Table, State#state.id), State};
+      {reply, table:play_bella(Table), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -115,7 +115,7 @@ handle_call({play_bella, TableId}, _From, State) ->
 handle_call({call_run, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      {reply, table:call_run(Table, State#state.id), State};
+      {reply, table:call_run(Table), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -123,7 +123,7 @@ handle_call({call_run, TableId}, _From, State) ->
 handle_call({show_run, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      {reply, table:show_run(Table, State#state.id), State};
+      {reply, table:show_run(Table), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -153,7 +153,7 @@ handle_cast({chat, TableId, Message}, State) ->
 handle_cast({sit, TableId, Seat}, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
-      case table:sit(Table, State#state.id, self(), Seat) of
+      case table:sit(Table, State#state.id, Seat) of
         ok ->
           % If we were already watching the table is should overwrite
           NewTables = orddict:store(TableId, Table, State#state.tables),
@@ -170,7 +170,7 @@ handle_cast({sit, TableId, Seat}, State) ->
 handle_cast({part, TableId}, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
-      case table:part(Table, State#state.id) of
+      case table:part(Table) of
         ok ->
           Tables = orddict:erase(TableId, State#state.tables),
           {noreply, State#state{tables=Tables}};
@@ -187,7 +187,7 @@ handle_cast({start_game, TableId}, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
       % TODO: handle return?
-      table:start_game(Table, State#state.id),
+      table:start_game(Table),
       {noreply, State};
     _ ->
       % TODO: some error
@@ -198,7 +198,7 @@ handle_cast({call_trump, TableId, Suit}, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
       % TODO: handle return
-      table:call_trump(Table, State#state.id, Suit),
+      table:call_trump(Table, Suit),
       {noreply, State};
     _ ->
       % TODO: some error
@@ -208,7 +208,7 @@ handle_cast({call_trump, TableId, Suit}, State) ->
 handle_cast({stand, TableId}, State) ->
   case tarabish_server:get_table(TableId) of
     {ok, Table} ->
-      case table:stand(Table, State#state.id) of
+      case table:stand(Table) of
         ok ->
           % Stay at table, but as observer
           {noreply, State};
@@ -238,8 +238,8 @@ handle_info(Info, State) ->
     [?MODULE, Info]),
   {noreply, State}.
 
-terminate(_Reason, #state{id=Id, tables=Tables} = _State) ->
-  orddict:map(fun(_TableId, Table) -> table:part(Table, Id) end, Tables),
+terminate(_Reason, #state{tables=Tables} = _State) ->
+  orddict:map(fun(_TableId, Table) -> table:part(Table) end, Tables),
   ok.
 
 code_change(_OldVsn, State, _Extra) ->
