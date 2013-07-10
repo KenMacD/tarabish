@@ -116,6 +116,8 @@ class TarabishSocket {
       table = new Table(id, view, seat);
     } else if (message['type'] == "ask_trump") {
       table.recv_ask_trump(message['seat']);
+    } else if (message['type'] == "ask_card") {
+      table.recv_ask_card(message['seat']);
     } else if (message['type'] == "trump_passed") {
       table.recv_trump_passed(message['seat']);
     } else if (message['type'] == "trump_called") {
@@ -285,6 +287,10 @@ class Table {
     askTrump = false;
     var suitStr = suit_toString(suit);
     recv_chat("Table", "Seat $seat called trump $suitStr");
+  }
+
+  recv_ask_card(seat) {
+    recv_chat("Table", "Seat $seat asked to play a card");
   }
 }
 

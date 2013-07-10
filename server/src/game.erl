@@ -129,8 +129,8 @@ wait_trump({call_trump, Seat, Suit}, _From,
   State2 = new_trick(State1#state.dealer + 1,
       State1#state{trick=1, trump=Suit, caller=(Seat rem 2), runs=Runs}),
 
-  AskCardEvent = #event{type=?tarabish_EventType_ASK_CARD,
-    seat=hd(State2#state.order)},
+  AskCardEvent = [{type, <<"ask_card">>},
+    {seat, hd(State2#state.order)}],
   table:broadcast(State#state.table, AskCardEvent),
 
   {reply, ok, wait_card, State2};
@@ -196,7 +196,7 @@ process_trick(LastWin, #state{trick=9} = State) ->
   process_hand(State1);
 
 process_trick(LastWin, #state{trick=Trick} = State) ->
-  Event = #event{type=?tarabish_EventType_ASK_CARD, seat=LastWin},
+  Event = [{type, <<"ask_card">>}, {seat, LastWin}],
   table:broadcast(State#state.table, Event),
 
   {reply, ok, wait_card,
@@ -220,7 +220,7 @@ process_card(Seat, Card, [], State) ->
   process_trick(BestSeat, State1);
 
 process_card(Seat, Card, Rest, State) ->
-      Event1 = #event{type=?tarabish_EventType_ASK_CARD, seat=hd(Rest)},
+      Event1 = [{type, <<"ask_card">>}, {seat, hd(Rest)}],
       table:broadcast(State#state.table, Event1),
 
       InPlay = [{Card, Seat}|State#state.inplay],
