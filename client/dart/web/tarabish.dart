@@ -99,53 +99,71 @@ class TarabishSocket {
       print("Invalid message $encodedMessage");
       return;
     }
-    if (message['type'] == "tables") {
-      List<TableView> tables = new List();
-      print ("Received tables message, parsing");
-      for (var table in message['tables']) {
-        tables.add(new TableView.from_json(table));
-      }
-      // TODO: create lobby.
-      tarabish.update_lobby(tables);
-    } else if (message['type'] == "valid_login") {
-      tarabish.valid_login(message['name']);
-    } else if (message['type'] == "table_view_sit") {
-      var view = new TableView.from_json(message['table_view']);
-      var id = message['tableId'];
-      var seat = message['seat'];
-      table = new Table(id, view, seat);
-    } else if (message['type'] == "ask_trump") {
-      table.recv_ask_trump(message['seat']);
-    } else if (message['type'] == "ask_card") {
-      table.recv_ask_card(message['seat']);
-    } else if (message['type'] == "trump_passed") {
-      table.recv_trump_passed(message['seat']);
-    } else if (message['type'] == "trump_called") {
-      table.recv_trump_called(message['seat'], message['suit']);
-    } else if (message['type'] == "chat") {
-      var chat_msg = message['message'];
-      var chat_name = message['name'];
-      table.recv_chat(chat_name, chat_msg);
-    } else if (message['type'] == "sit") {
-      table.recv_sit(message['seat'], message['name']);
-    } else if (message['type'] == "part") {
-      table.recv_part(message['seat'], message['name']);
-    } else if (message['type'] == "you_part") {
-      table.recv_you_part();
-    } else if (message['type'] == "deal") {
-      var dealer = message['dealer'];
-      List<Card> cards = new List();
-      for (var card in message['dealt']) {
-        cards.add(new Card.from_json(card));
-      }
-      table.recv_deal(dealer, cards);
-    } else if (message['type'] == "play_card") {
-      table.recv_play_card(message['seat'], message['card']);
-    } else if (message['type'] != null) {
-      var type = message['type'];
-      print("Received message with type $type");
-      print("Message: $message");
-      // TODO: handle
+    if (!message.containsKey('type')) {
+      print("Invalid message, no type: $encodedMessage");
+      return;
+    }
+    switch (message['type']) {
+      case "tables":
+        List<TableView> tables = new List();
+        print ("Received tables message, parsing");
+        for (var table in message['tables']) {
+          tables.add(new TableView.from_json(table));
+        }
+        // TODO: create lobby.
+        tarabish.update_lobby(tables);
+        break;
+      case "valid_login":
+        tarabish.valid_login(message['name']);
+        break;
+      case "table_view_sit":
+        var view = new TableView.from_json(message['table_view']);
+        var id = message['tableId'];
+        var seat = message['seat'];
+        table = new Table(id, view, seat);
+        break;
+      case "ask_trump":
+        table.recv_ask_trump(message['seat']);
+        break;
+      case "ask_card":
+        table.recv_ask_card(message['seat']);
+        break;
+      case "trump_passed":
+        table.recv_trump_passed(message['seat']);
+        break;
+      case "trump_called":
+        table.recv_trump_called(message['seat'], message['suit']);
+        break;
+      case "chat":
+        var chat_msg = message['message'];
+        var chat_name = message['name'];
+        table.recv_chat(chat_name, chat_msg);
+        break;
+      case "sit":
+        table.recv_sit(message['seat'], message['name']);
+        break;
+      case "part":
+        table.recv_part(message['seat'], message['name']);
+        break;
+      case "you_part":
+        table.recv_you_part();
+        break;
+      case "deal":
+        var dealer = message['dealer'];
+        List<Card> cards = new List();
+        for (var card in message['dealt']) {
+          cards.add(new Card.from_json(card));
+        }
+        table.recv_deal(dealer, cards);
+        break;
+      case "play_card":
+        table.recv_play_card(message['seat'], message['card']);
+        break;
+      default:
+        var type = message['type'];
+        print("Received message with type $type");
+        print("Message: $message");
+        // TODO: handle
     }
   }
 
