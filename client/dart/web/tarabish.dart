@@ -139,6 +139,8 @@ class TarabishSocket {
         cards.add(new Card.from_json(card));
       }
       table.recv_deal(dealer, cards);
+    } else if (message['type'] == "play_card") {
+      table.recv_play_card(message['seat'], message['card']);
     } else if (message['type'] != null) {
       var type = message['type'];
       print("Received message with type $type");
@@ -296,6 +298,14 @@ class Table {
   play_card(value, suit) {
     var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
     tsocket.send(json.stringify(play));
+  }
+
+  recv_play_card(seat, card) {
+    var value = card['value'];
+    var suit = card['suit'];
+    var played_card = new Card(value, suit);
+    // TODO: remove card from hand if I played it
+    recv_chat("Table", "Seat $seat played card $played_card");
   }
 }
 

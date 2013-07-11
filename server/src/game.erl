@@ -281,7 +281,8 @@ wait_card({play_card, Seat, #card{suit=Suit, value=Value} = Card}, _From,
   case rules:valid_play(Card, Hand, LedIn, Trump, HighTrump) of
     true ->
 
-      Event = #event{type=?tarabish_EventType_PLAY_CARD, seat=Seat, card=Card},
+      Event = [{type, <<"play_card">>}, {seat, Seat},
+        {card, protocol:seralize_card(Card)}],
       table:broadcast(State#state.table, Event),
 
       NewHand = lists:delete(Card, Hand),
