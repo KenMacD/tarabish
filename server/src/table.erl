@@ -50,7 +50,7 @@ call_trump(Table, Suit) ->
   gen_server:call(Table, {call_trump, self(), Suit}).
 
 play_card(Table, Card) ->
-  DCard = deseralize_card(Card),
+  DCard = protocol:deseralize_card(Card),
   gen_server:call(Table, {play_card, self(), DCard}).
 
 play_bella(Table) ->
@@ -352,18 +352,6 @@ send_event(TableId, Event, MemberDict) ->
   lists:map(fun(Person) -> client:recv_event(Person#person.client, TableEvent) end,
             Members).
 
-deseralize_card(Card) ->
-  Value = proplists:get_value(value, Card),
-  Suit = proplists:get_value(suit, Card),
-  #card{value=Value, suit=Suit}.
-
-seralize_card(#card{value=Value, suit=Suit}) ->
-  [{value, Value}, {suit, Suit}].
-
-seralize_cards(Cards) ->
-  Hand = fun(H) -> lists:map(fun seralize_card/1, H) end,
-  lists:map(Hand, Cards).
-
 send_cards1(_Event, _Cards, []) ->
   ok;
 
@@ -381,7 +369,7 @@ send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
 send_cards(TableId, Dealer, Cards, MembersDict) ->
   {_Ids, Persons} = lists:unzip(orddict:to_list(MembersDict)),
 
-  SerCards = seralize_cards(Cards),
+  SerCards = protocol:seralize_cards(Cards),
 
   Event = [{type, <<"deal">>}, {tableId, TableId}, {dealer, Dealer}],
   send_cards1(Event, SerCards, Persons).
