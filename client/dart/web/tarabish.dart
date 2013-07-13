@@ -145,8 +145,8 @@ class TarabishSocket {
       case "part":
         table.recv_part(message['seat'], message['name']);
         break;
-      case "you_part":
-        table.recv_you_part();
+      case "game_cancel":
+        table.recv_game_cancel();
         break;
       case "deal":
         var dealer = message['dealer'];
@@ -264,14 +264,14 @@ class Table {
   }
 
   recv_part(seat_num, name) {
-    var seat = view.seats.elementAt(seat_num);
-    seat.isOpen = true;
-    seat.name = null;
-    recv_chat("Table", "$name left the table");
-  }
-
-  recv_you_part() {
-    table = null;
+    if (seat_num == seat) {
+      table = null;
+    } else {
+      var seat = view.seats.elementAt(seat_num);
+      seat.isOpen = true;
+      seat.name = null;
+      recv_chat("Table", "$name left the table");
+    }
   }
 
   new_game() {
@@ -324,6 +324,13 @@ class Table {
     var played_card = new Card(value, suit);
     // TODO: remove card from hand if I played it
     recv_chat("Table", "Seat $seat played card $played_card");
+  }
+
+  recv_game_cancel() {
+    // TODO: move to a 'game' class
+    cards.clear();
+    askTrump = false;
+    dealer = null;
   }
 }
 

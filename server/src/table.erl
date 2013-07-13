@@ -113,13 +113,12 @@ handle_call({part, Client}, _From, State) ->
       Event = [ {type, <<"part">>},
                 {name, ClientName},
                 {seat, SeatNum}],
+      send_event_all(Event, State),
+      cancel_game(State),
+
       NewMembers = orddict:erase(Client, State#state.members),
       NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
       NewState = State#state{members=NewMembers, seats=NewSeats, game=none},
-      % Only send these events to people left at the table:
-      send_event_all(Event, NewState),
-      cancel_game(NewState),
-      send_event_one([{type, <<"you_part">>}], NewState, Client),
       update_server(NewState),
       {reply, ok, NewState};
     error ->
@@ -334,7 +333,7 @@ cancel_game(#state{game=none}) ->
   ok;
 
 cancel_game(#state{game=Game} = State) ->
-  Event = #event{type=?tarabish_EventType_GAME_CANCEL},
+  Event = [{type, <<"game_cancel">>}],
   game:stop(Game),
   send_event_all(Event, State).
 
