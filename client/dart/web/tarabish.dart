@@ -318,12 +318,15 @@ class Table {
     tsocket.send(json.stringify(play));
   }
 
-  recv_play_card(seat, card) {
+  recv_play_card(seat_num, card) {
     var value = card['value'];
     var suit = card['suit'];
     var played_card = new Card(value, suit);
-    // TODO: remove card from hand if I played it
-    recv_chat("Table", "Seat $seat played card $played_card");
+
+    if (seat_num == seat) {
+      cards.remove(played_card);
+    }
+    recv_chat("Table", "Seat $seat_num played card $played_card");
   }
 
   recv_game_cancel() {
@@ -357,6 +360,18 @@ class Card {
 
     String suitStr = ["c", "d", "s", "h"][(suit - 1)];
     return "[$valueStr$suitStr]";
+  }
+
+  int get hashCode {
+    int result = 17;
+    result = 37 * result + value.hashCode;
+    result = 37 * result + suit.hashCode;
+    return result;
+  }
+
+  bool operator==(other) {
+    if (identical(other, this)) return true;
+    return (other.value == value && other.suit == suit);
   }
 }
 
