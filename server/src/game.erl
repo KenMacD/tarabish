@@ -237,7 +237,7 @@ wait_card({call_run, Seat}, _From,
       {reply, {error, Reason}, wait_card, State#state{runs=Runs2}};
     {Type, Runs2} ->
       EType = to_RunType(Type),
-      Event = #event{type=?tarabish_EventType_CALL_RUN, seat=Seat, run=EType},
+      Event = [{type, <<"call_run">>}, {seat, Seat}, {run, EType}],
       table:broadcast(State#state.table, Event),
       {reply, ok, wait_card, State#state{runs=Runs2}}
   end;

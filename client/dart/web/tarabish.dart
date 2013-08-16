@@ -24,6 +24,9 @@ const int DIAMONDS = 2;
 const int SPADES = 3;
 const int HEARTS = 4;
 
+const int TWENTY = 1;
+const int FIFTY = 2;
+
 typedef void MessageCallback(dynamic data);
 
 // Global state
@@ -161,6 +164,9 @@ class TarabishSocket {
         break;
       case "take_trick":
         table.recv_take_trick(message['seat']);
+        break;
+      case "call_run":
+        table.recv_call_run(message['seat'], message['run']);
         break;
       default:
         var type = message['type'];
@@ -341,6 +347,15 @@ class Table {
     cards.clear();
     askTrump = false;
     dealer = null;
+  }
+
+  call_run() {
+    var call_run = mkmsg("call_run", {"table_id": id});
+    tsocket.send(json.stringify(call_run));
+  }
+
+  recv_call_run(seat_num, run_type) {
+    recv_chat("Table", "Seat $seat_num called a run type $run_type");
   }
 }
 
