@@ -63,6 +63,11 @@ def on_message(ws, message):
             suit = card['suit']
             value = card['value']
             cards.append((value, suit))
+    elif mtype == "play_card" and tome(event):
+        card = event["card"]
+        value = card["value"]
+        suit = card["suit"]
+        cards.remove((value, suit))
     elif mtype == "ask_trump" and tome(event):
         wssend(ws, "call_trump", table_id=1, suit=1)
     elif mtype == "game_cancel":
