@@ -159,6 +159,9 @@ class TarabishSocket {
       case "play_card":
         table.recv_play_card(message['seat'], message['card']);
         break;
+      case "take_trick":
+        table.recv_take_trick(message['seat']);
+        break;
       default:
         var type = message['type'];
         print("Received message with type $type");
@@ -327,6 +330,10 @@ class Table {
       cards.remove(played_card);
     }
     recv_chat("Table", "Seat $seat_num played card $played_card");
+  }
+
+  recv_take_trick(seat_num) {
+    recv_chat("Table", "Seat $seat_num took down the trick");
   }
 
   recv_game_cancel() {

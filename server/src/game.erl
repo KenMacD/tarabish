@@ -210,7 +210,7 @@ process_card(Seat, Card, [], State) ->
 
   InPlay = lists:reverse([{Card, Seat}|State#state.inplay]),
   BestSeat = best_hand(InPlay, State#state.trump),
-  Event = #event{type=?tarabish_EventType_TAKE_TRICK, seat=BestSeat},
+  Event = [{type, <<"take_trick">>}, {seat, BestSeat}],
   table:broadcast(State#state.table, Event),
 
   {Cards, _Seats} = lists:unzip(InPlay),
