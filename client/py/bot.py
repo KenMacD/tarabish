@@ -3,36 +3,59 @@
 # Basic bot to join a table and call trump.
 
 import sys
+import json
 import random
-import string
-from time import sleep
-sys.path.append('api/target/gen-py')
 
-from tarabish.thrift import Tarabish
-from tarabish.thrift.ttypes import *
-from tarabish.thrift.constants import *
+import websocket
 
-from thrift import Thrift
-from thrift.transport import TSocket
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+def wssend(ws, method, **kwargs):
+    print "Sending method %s" %(method,)
+    message = {"method": method}
+    message.update(kwargs)
+    jmsg = json.dumps(message)
+    ws.send(jmsg)
 
-from event import print_event
+def on_open(ws):
+    print "On open called"
+    name = "User%d" %(random.randint(1000, 9999))
+    print "Name: " + name
+    wssend(ws, "login", name=name)
 
-# Make socket
-transport = TSocket.TSocket('localhost', 42745)
+def on_message(ws, message):
+    print("< " + message)
+    try:
+        event = json.loads(message)
+    except:
+        print "Load failed"
+        return
 
-# Buffering is critical. Raw sockets are very slow
-transport = TTransport.TBufferedTransport(transport)
+    mtype = event['type']
+    print "Type: %s" %(mtype,)
 
-# Wrap in a protocol
-protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    if mtype == "valid_login":
+        wssend(ws, "get_tables")
+    elif mtype == "tables":
+        tables = event['tables']
+        for table in tables:
+            tid = table['tableId']
+            # Only join table 1 so far
+            if tid != 1:
+                return
+            for seat in table['seats']:
+                if seat['isOpen']:
+                    wssend(ws, "sit", table_id=tid, seat=seat["num"])
+                    return
 
-# Create a client to use the protocol encoder
-client = Tarabish.Client(protocol)
 
-# Connect!
-transport.open()
+ws = websocket.WebSocketApp("ws://127.0.0.1:42745/websocket",
+        on_message = on_message)
+ws.on_open = on_open
+ws.run_forever()
+sys.exit(1)
+
+################################################################################
+# Old version:
+################################################################################
 
 print "Get Version:" + str(client.getVersion())
 
