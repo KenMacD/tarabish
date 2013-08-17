@@ -368,7 +368,7 @@ send_cards1(Event, Cards, [#person{} = Person|Rest]) ->
 send_cards(TableId, Dealer, Cards, MembersDict) ->
   {_Ids, Persons} = lists:unzip(orddict:to_list(MembersDict)),
 
-  SerCards = protocol:seralize_cards(Cards),
+  SerCards = protocol:seralize_hands(Cards),
 
   Event = [{type, <<"deal">>}, {tableId, TableId}, {dealer, Dealer}],
   send_cards1(Event, SerCards, Persons).

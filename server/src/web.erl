@@ -32,6 +32,7 @@ start() ->
   ets:insert(webcmd, {call_trump, client, [table_id, suit], true}),
   ets:insert(webcmd, {play_card, client, [table_id, card], true}),
   ets:insert(webcmd, {call_run, client, [table_id], true}),
+  ets:insert(webcmd, {show_run, client, [table_id], true}),
 
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),

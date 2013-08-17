@@ -61,7 +61,7 @@ call_run(Client, TableId) ->
   gen_server:cast(Client, {call_run, TableId}).
 
 show_run(Client, TableId) ->
-  gen_server:call(Client, {show_run, TableId}).
+  gen_server:cast(Client, {show_run, TableId}).
 
 recv_event(Client, Event) ->
   gen_server:cast(Client, {event, Event}).
@@ -108,14 +108,6 @@ handle_call({play_bella, TableId}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
       {reply, table:play_bella(Table), State};
-    _ ->
-      {reply, {error, not_at_table}, State}
-  end;
-
-handle_call({show_run, TableId}, _From, State) ->
-  case orddict:find(TableId, State#state.tables) of
-    {ok, Table} ->
-      {reply, table:show_run(Table), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -200,8 +192,19 @@ handle_cast({call_trump, TableId, Suit}, State) ->
 handle_cast({call_run, TableId}, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
-      % TODO: hadle return?
+      % TODO: handle return?
       table:call_run(Table),
+      {noreply, State};
+    _ ->
+      % TODO: some error
+      {noreply, State}
+  end;
+
+handle_cast({show_run, TableId}, State) ->
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      % TODO: handle return?
+      table:show_run(Table),
       {noreply, State};
     _ ->
       % TODO: some error

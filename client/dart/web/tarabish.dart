@@ -149,7 +149,10 @@ class TarabishSocket {
         table.recv_part(message['seat'], message['name']);
         break;
       case "game_cancel":
-        table.recv_game_cancel();
+        // TODO: current this message can be sent after a part message. fix
+        if (table != null) {
+          table.recv_game_cancel();
+        }
         break;
       case "deal":
         var dealer = message['dealer'];
@@ -167,6 +170,17 @@ class TarabishSocket {
         break;
       case "call_run":
         table.recv_call_run(message['seat'], message['run']);
+        break;
+      case "show_run":
+        List<Card> cards = new List();
+        for (var card in message['cards']) {
+          cards.add(new Card.from_json(card));
+        }
+        table.recv_show_run(message['seat'], message['run'], cards);
+        break;
+      case "noshow_run":
+        table.recv_noshow_run(message['seat'], message['better'], message['run'],
+            message['high_value'], message['is_trump'], message['other_seat']);
         break;
       default:
         var type = message['type'];
@@ -356,6 +370,20 @@ class Table {
 
   recv_call_run(seat_num, run_type) {
     recv_chat("Table", "Seat $seat_num called a run type $run_type");
+  }
+
+  show_run() {
+    var show_run = mkmsg("show_run", {"table_id": id});
+    tsocket.send(json.stringify(show_run));
+  }
+
+  recv_show_run(seat_num, run_type, cards) {
+    recv_chat("Table", "Seat $seat_num showed their run: $cards");
+  }
+
+  recv_noshow_run(seat_num, better_type, run_type, high_value, is_trump, other_seat) {
+    recv_chat("Table", "Seat $seat_num was not able to show their run.");
+    recv_chat("Table", "Reason $better_type at $other_seat");
   }
 }
 

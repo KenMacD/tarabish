@@ -250,25 +250,25 @@ wait_card({show_run, Seat}, _From,
       {reply, {error, Reason}, wait_card, State#state{runs=Runs2}};
     {{Type, Cards, Score}, Runs2} ->
       EType = to_RunType(Type),
-      Event = #event{type=?tarabish_EventType_SHOW_RUN, seat=Seat,
-                     run=EType, cards=Cards},
+      SerCards = protocol:seralize_cards(Cards),
+      Event = [{type, <<"show_run">>}, {seat, Seat}, {run, EType}, {cards, SerCards}],
       table:broadcast(State#state.table, Event),
       State1 = add_hscore(Seat, Score, State),
       {reply, ok, wait_card, State1#state{runs=Runs2, runShown=true}};
     {{equal, Type, High, Trump, OtherSeat}, Runs2} ->
       EType = to_RunType(Type),
-      Event = #event{type=?tarabish_EventType_NOSHOW_RUN, seat=Seat,
-                     better=?tarabish_BetterType_EQUAL, run=EType,
-                     high_value=High, is_trump=Trump, other_seat=OtherSeat},
+      Event = [{type, <<"noshow_run">>}, {seat, Seat},
+          {better, ?tarabish_BetterType_EQUAL}, {run, EType},
+          {high_value, High}, {is_trump, Trump}, {other_seat, OtherSeat}],
       table:broadcast(State#state.table, Event),
       % Run counts for no one:
       {reply, ok, wait_card, State#state{runs=Runs2, runShown=true}};
     % TODO: should we always announce trump, or only when same high?
     {{better, Type, High, Trump, OtherSeat}, Runs2} ->
       EType = to_RunType(Type),
-      Event = #event{type=?tarabish_EventType_NOSHOW_RUN, seat=Seat,
-                     better=?tarabish_BetterType_BETTER, run=EType,
-                     high_value=High, is_trump=Trump, other_seat=OtherSeat},
+      Event = [{type, <<"noshow_run">>}, {seat, Seat},
+          {better, ?tarabish_BetterType_BETTER}, {run, EType},
+          {high_value, High}, {is_trump, Trump}, {other_seat, OtherSeat}],
       table:broadcast(State#state.table, Event),
       % Not Shown, the better can still show:
       {reply, ok, wait_card, State#state{runs=Runs2}}
