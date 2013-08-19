@@ -55,7 +55,7 @@ play_card(Client, TableId, Card) ->
   gen_server:call(Client, {play_card, TableId, Card}).
 
 play_bella(Client, TableId) ->
-  gen_server:call(Client, {play_bella, TableId}).
+  gen_server:cast(Client, {play_bella, TableId}).
 
 call_run(Client, TableId) ->
   gen_server:cast(Client, {call_run, TableId}).
@@ -100,14 +100,6 @@ handle_call({play_card, TableId, Card}, _From, State) ->
   case orddict:find(TableId, State#state.tables) of
     {ok, Table} ->
       {reply, table:play_card(Table, Card), State};
-    _ ->
-      {reply, {error, not_at_table}, State}
-  end;
-
-handle_call({play_bella, TableId}, _From, State) ->
-  case orddict:find(TableId, State#state.tables) of
-    {ok, Table} ->
-      {reply, table:play_bella(Table), State};
     _ ->
       {reply, {error, not_at_table}, State}
   end;
@@ -205,6 +197,17 @@ handle_cast({show_run, TableId}, State) ->
     {ok, Table} ->
       % TODO: handle return?
       table:show_run(Table),
+      {noreply, State};
+    _ ->
+      % TODO: some error
+      {noreply, State}
+  end;
+
+handle_cast({play_bella, TableId}, State) ->
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      % TODO: handle return?
+      table:play_bella(Table),
       {noreply, State};
     _ ->
       % TODO: some error

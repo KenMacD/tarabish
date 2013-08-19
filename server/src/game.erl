@@ -308,7 +308,7 @@ wait_card({play_bella, Seat}, From,
       Hand = element(Seat + 1, State#state.hands),
       case rules:valid_bella(Hand, LedIn, Trump, HighTrump) of
         {true, Card} ->
-          EventB = #event{type=?tarabish_EventType_CALL_BELLA, seat=Seat},
+          EventB = [{type, <<"call_bella">>}, {seat, Seat}],
           table:broadcast(State#state.table, EventB),
 
           State1 = add_hscore(Seat, 20, State),

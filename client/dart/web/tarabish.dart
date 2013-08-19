@@ -182,6 +182,9 @@ class TarabishSocket {
         table.recv_noshow_run(message['seat'], message['better'], message['run'],
             message['high_value'], message['is_trump'], message['other_seat']);
         break;
+      case "call_bella":
+        table.recv_call_bella(message['seat']);
+        break;
       default:
         var type = message['type'];
         print("Received message with type $type");
@@ -384,6 +387,15 @@ class Table {
   recv_noshow_run(seat_num, better_type, run_type, high_value, is_trump, other_seat) {
     recv_chat("Table", "Seat $seat_num was not able to show their run.");
     recv_chat("Table", "Reason $better_type at $other_seat");
+  }
+
+  play_bella() {
+    var play_bella = mkmsg("play_bella", {"table_id": id});
+    tsocket.send(json.stringify(play_bella));
+  }
+
+  recv_call_bella(seat_num) {
+    recv_chat("Table", "Seat $seat_num called bella.");
   }
 }
 
