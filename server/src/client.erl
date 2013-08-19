@@ -52,7 +52,7 @@ call_trump(Client, TableId, Suit) ->
   gen_server:cast(Client, {call_trump, TableId, Suit}).
 
 play_card(Client, TableId, Card) ->
-  gen_server:call(Client, {play_card, TableId, Card}).
+  gen_server:cast(Client, {play_card, TableId, Card}).
 
 play_bella(Client, TableId) ->
   gen_server:cast(Client, {play_bella, TableId}).
@@ -95,15 +95,6 @@ handle_call({join, TableId}, _From, State) ->
       {reply, {error, Reason}, State}
   end;
 
-
-handle_call({play_card, TableId, Card}, _From, State) ->
-  case orddict:find(TableId, State#state.tables) of
-    {ok, Table} ->
-      {reply, table:play_card(Table, Card), State};
-    _ ->
-      {reply, {error, not_at_table}, State}
-  end;
-
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
@@ -123,6 +114,17 @@ handle_cast({chat, TableId, Message}, State) ->
       {noreply, State};
     error ->
       % TODO: some error
+      {noreply, State}
+  end;
+
+handle_cast({play_card, TableId, Card}, State) ->
+  case orddict:find(TableId, State#state.tables) of
+    {ok, Table} ->
+      % TODO: handle return
+      table:play_card(Table, Card),
+      {noreply, State};
+    _ ->
+      % TODO: handle error
       {noreply, State}
   end;
 
