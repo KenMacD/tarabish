@@ -46,6 +46,7 @@ show_run(#run_record{called=false}, _Other) ->
 show_run(#run_record{best_run=#best_run{type=Type}, score=Score, to_show=Cards}, []) ->
   {Type, Cards, Score};
 
+% TODO: this is broken in edge cases where everyone has a run. Fix.
 show_run(#run_record{best_run=Best} = Record,
          [{OSeat, #run_record{best_run=BestOther}}|Rest]) ->
   case compare_best(BestOther, Best) of
