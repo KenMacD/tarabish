@@ -3,8 +3,11 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:json' as json;
 import 'package:web_ui/web_ui.dart';
-
 import 'dart:math';
+
+import 'package:tarabish/canvas.dart';
+
+
 debug_sit() {
   var rng = new Random();
   var login_elm = query("#login-name");
@@ -514,6 +517,10 @@ void main() {
   //useShadowDom = true;
   tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
   tarabish = new Tarabish();
+
+  CanvasElement _canvas = query("#tableCanvas");
+  var ttable = new TarabishCanvas(_canvas);
+  ttable.start();
 
   query('#disconnect').onClick.listen((e) => tarabish.do_disconnect(e));
 }
