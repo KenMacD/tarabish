@@ -1,93 +1,14 @@
 <!DOCTYPE html>
 
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Sample app</title>
-    <link rel="stylesheet" href="tarabish.css">
+<link rel="import" href="tarabish_login.html">
 
-    <!-- import the click-counter -->
-    <!-- <link rel="import" href="xclickcounter.html"> -->
-  </head>
-  <body>
-    <h1>Tarabish</h1>
-
-    <p>Hello world from Dart!</p>
-    <p><button on-click="debug_sit()">Debug Login</button>
-    <button on-click="debug_clone()">New Tab</button></p>
-
-    <p>Login Input, you are {{tarabish.loginName}}</p>
-    <form on-submit="tarabish.do_login($event)">
-      <input id="login-name" type="text" placeholder="Name">
-      <input type="submit">
-    </form>
-
-    <button id="disconnect">Disconnect</button>
-
-    <hr>
-
-    <form on-submit="tarabish.refresh_tables($event)">
-      <!-- TODO: button instead -->
-      <input type="submit" value="Refresh">
-    </form>
-
-    <template if="tarabish.tableViews != null">
-      <table>
-        <thead>
-          <tr><th>Id</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
-        </thead>
-        <tbody template iterate="table in tarabish.tableViews">
-          <tr>
-            <td>{{table.tableId}}</td>
-            <td template repeat="seat in table.seats">
-              <template if="seat.isOpen">
-                <button on-click="tarabish.sit(table.tableId, seat.num)">Sit</button>
-              </template>
-              <template if="!seat.isOpen">
-                {{seat.name}}
-              </template>
-          </tr>
-        </tbody>
-      </table>
-    </template>
-
-    <canvas id='tableCanvas' width='1024' height='768'></canvas>
-    <template if="table != null">
-      <hr>
-      <p>You're on table {{table.id}} in seat {{table.seat}}</p>
-      <p>Table view: {{table.view}}</p>
-      <p><button on-click="table.part()">Leave Table</button></p>
-      <p>Chat:
-      <div>
-        <textarea id="chat-display" rows="10" cols="80" disabled></textarea>
-      </div>
-      <form on-submit="table.chat($event)">
-        <input id="chat-msg" type="text" placeholder="chat">
-        <input type="submit">
-      </form>
-      <!-- TODO: only enable if 4 people at the table -->
-      <p><button on-click="table.new_game()">Start Game</button></p>
-
-      <p>Hand: <template iterate="card in table.cards">
-        <button on-click="table.play_card(card.value, card.suit)">{{card.toString()}}</button>
-      </template></p>
-      <template if="table.askTrump == true">
-        <p><button on-click="table.call_trump(CLUBS)">Clubs</button>
-           <button on-click="table.call_trump(DIAMONDS)">Diamonds</button>
-           <button on-click="table.call_trump(SPADES)">Spades</button>
-           <button on-click="table.call_trump(HEARTS)">Hearts</button>
-           <template if="table.seat != table.dealer">
-             <button on-click="table.call_trump(PASS)">Pass</button>
-           </template>
-        </p>
-      </template>
-      <p><button on-click="table.call_run()">Call Run</button>
-         <button on-click="table.show_run()">Show Run</button>
-         <button on-click="table.play_bella()">Bella</button></p>
-    </template>
-
-
-    <script type="application/dart" src="tarabish.dart"></script>
-    <script src="packages/browser/dart.js"></script>
-  </body>
-</html>
+<polymer-element name="tarabish-app">
+  <template>
+    <p>Start</p>
+    <p>
+    <login-form></login-form>
+    </p>
+    <p>End</p>
+  </template>
+  <script type="application/dart" src="tarabish.dart"></script>
+</polymer-element>

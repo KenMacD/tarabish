@@ -1,38 +1,43 @@
 import 'dart:html';
 import 'dart:async';
 import 'dart:collection';
-import 'dart:json' as json;
-import 'package:web_ui/web_ui.dart';
+import 'dart:convert';
 import 'dart:math';
 
-import 'package:tarabish/canvas.dart';
+import 'package:polymer/polymer.dart';
 
 
-debug_sit() {
-  var rng = new Random();
-  var login_elm = query("#login-name");
-  login_elm.value = "User" + rng.nextInt(1000).toString();
-  tarabish.do_login(new Event("fake"));
-  tarabish.refresh_tables(new Event("fake"));
-}
-
-debug_clone() {
-  var url = window.location.toString();
-  window.open(url, "_blank");
-}
-
-const int PASS = 0;
-const int CLUBS = 1;
-const int DIAMONDS = 2;
-const int SPADES = 3;
-const int HEARTS = 4;
-
-const int TWENTY = 1;
-const int FIFTY = 2;
-
+//
+//
+////export 'package:polymer/init.dart';
+//// import 'package:tarabish/canvas.dart';
+//
+//
+//debug_sit() {
+//  var rng = new Random();
+//  var login_elm = querySelector("#login-name");
+//  login_elm.value = "User" + rng.nextInt(1000).toString();
+//  tarabish.do_login(new Event("fake"));
+//  tarabish.refresh_tables(new Event("fake"));
+//}
+//
+//debug_clone() {
+//  var url = window.location.toString();
+//  window.open(url, "_blank");
+//}
+//
+//const int PASS = 0;
+//const int CLUBS = 1;
+//const int DIAMONDS = 2;
+//const int SPADES = 3;
+//const int HEARTS = 4;
+//
+//const int TWENTY = 1;
+//const int FIFTY = 2;
+//
 typedef void MessageCallback(dynamic data);
 
-// Global state
+//// Global state
 TarabishSocket tsocket;
 
 Tarabish tarabish;
@@ -100,7 +105,7 @@ class TarabishSocket {
   _receiveEvent(String encodedMessage) {
     Map message;
     try {
-      message = json.parse(encodedMessage);
+      message = JSON.decode(encodedMessage);
     } on FormatException {
       print("Invalid message $encodedMessage");
       return;
@@ -264,14 +269,14 @@ class Table {
     e.preventDefault();
 
     // TODO: is there a better way to get these values?
-    InputElement chat_msg_elm = query("#chat-msg");
+    InputElement chat_msg_elm = querySelector("#chat-msg");
     var chat = mkmsg("chat", {"table_id": id, "message": chat_msg_elm.value});
     chat_msg_elm.value = "";
-    tsocket.send(json.stringify(chat));
+    tsocket.send(JSON.encode(chat));
   }
 
   recv_chat(name, message) {
-    var output = query('#chat-display');
+    var output = querySelector('#chat-display');
     var text = "$name: $message";
     if (!output.text.isEmpty) {
       text = "${text}\n${output.text}";
@@ -289,7 +294,7 @@ class Table {
 
   part() {
     var part = mkmsg("part_table", {"table_id": id});
-    tsocket.send(json.stringify(part));
+    tsocket.send(JSON.encode(part));
   }
 
   recv_part(seat_num, name) {
@@ -305,7 +310,7 @@ class Table {
 
   new_game() {
     var start = mkmsg("start_game", {"table_id": id});
-    tsocket.send(json.stringify(start));
+    tsocket.send(JSON.encode(start));
   }
 
   recv_deal(new_dealer, new_cards) {
@@ -325,7 +330,7 @@ class Table {
 
   call_trump(suit) {
     var call = mkmsg("call_trump", {"table_id": id, "suit": suit});
-    tsocket.send(json.stringify(call));
+    tsocket.send(JSON.encode(call));
   }
 
   recv_trump_passed(seat) {
@@ -344,7 +349,7 @@ class Table {
 
   play_card(value, suit) {
     var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
-    tsocket.send(json.stringify(play));
+    tsocket.send(JSON.encode(play));
   }
 
   recv_play_card(seat_num, card) {
@@ -371,7 +376,7 @@ class Table {
 
   call_run() {
     var call_run = mkmsg("call_run", {"table_id": id});
-    tsocket.send(json.stringify(call_run));
+    tsocket.send(JSON.encode(call_run));
   }
 
   recv_call_run(seat_num, run_type) {
@@ -380,7 +385,7 @@ class Table {
 
   show_run() {
     var show_run = mkmsg("show_run", {"table_id": id});
-    tsocket.send(json.stringify(show_run));
+    tsocket.send(JSON.encode(show_run));
   }
 
   recv_show_run(seat_num, run_type, cards) {
@@ -394,7 +399,7 @@ class Table {
 
   play_bella() {
     var play_bella = mkmsg("play_bella", {"table_id": id});
-    tsocket.send(json.stringify(play_bella));
+    tsocket.send(JSON.encode(play_bella));
   }
 
   recv_call_bella(seat_num) {
@@ -438,16 +443,26 @@ class Card {
     if (identical(other, this)) return true;
     return (other.value == value && other.suit == suit);
   }
+
+  ImageElement get imgElement {
+    return new ImageElement(src: "../images/2.png");
+    // return "../images/2.png";
+  }
 }
 
-@observable
-class Tarabish {
-  bool loggedin = false;
+
+@CustomTag('tarabish-app')
+class Tarabish extends PolymerElement {
+  @observable bool loggedin = false;
   String loginName = "Nobody";
 
   List<TableView> tableViews;
 
-  Tarabish();
+  Tarabish.created() : super.created() {
+    tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
+    print ("Tarabish Created");
+    tarabish = this;
+  }
 
   // Lazy start socket on first login
   _setup_socket() {
@@ -473,16 +488,16 @@ class Tarabish {
     e.preventDefault();
     _setup_socket();
 
-    InputElement loginNameElement = query("#login-name");
+    InputElement loginNameElement = querySelector("#login-name");
     var login = mkmsg("login", {"name": loginNameElement.value});
-    tsocket.send(json.stringify(login));
+    tsocket.send(JSON.encode(login));
     print("Login called");
   }
 
   // TODO: add a @require_socket
   refresh_tables(Event e) {
     e.preventDefault();
-    tsocket.send(json.stringify(mkmsg("get_tables")));
+    tsocket.send(JSON.encode(mkmsg("get_tables")));
   }
 
   sit(table, seat) {
@@ -490,7 +505,7 @@ class Tarabish {
       "table_id": table,
       "seat": seat
     });
-    tsocket.send(json.stringify(sit));
+    tsocket.send(JSON.encode(sit));
     print("Sit called $table -- $seat");
   }
 }
@@ -507,20 +522,21 @@ suit_toString(suit) {
   return ["clubs", "diamonds", "spades", "hearts"][suit - 1];
 }
 
-/**
- * Learn about the Web UI package by visiting
- * http://www.dartlang.org/articles/dart-web-components/.
- */
+///**
+// * Learn about the Web UI package by visiting
+// * http://www.dartlang.org/articles/dart-web-components/.
+// */
 void main() {
+  print ("Main called");
 
   // Enable this to use Shadow DOM in the browser.
   //useShadowDom = true;
-  tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
-  tarabish = new Tarabish();
 
-  CanvasElement _canvas = query("#tableCanvas");
-  var ttable = new TarabishCanvas(_canvas);
-  ttable.start();
-
-  query('#disconnect').onClick.listen((e) => tarabish.do_disconnect(e));
+//  tarabish = new Tarabish();
+//
+////  CanvasElement _canvas = querySelectorAll("#tableCanvas");
+////  var ttable = new TarabishCanvas(_canvas);
+////  ttable.start();
+//
+////  querySelector('#disconnect').onClick.listen((e) => tarabish.do_disconnect(e));
 }
