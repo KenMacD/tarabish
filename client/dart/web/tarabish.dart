@@ -454,7 +454,9 @@ class Card {
 @CustomTag('tarabish-app')
 class Tarabish extends PolymerElement {
   @observable bool loggedin = false;
-  String loginName = "Nobody";
+
+  @observable String newLoginName;
+  @observable String loginName = "Nobody";
 
   List<TableView> tableViews;
 
@@ -479,17 +481,14 @@ class Tarabish extends PolymerElement {
   }
 
   // Temporary disconnect to test re-attach
-  do_disconnect(Event e) {
-    e.preventDefault();
+  doDisconnect() {
+    print("Disconnected");
     tsocket.webSocket.close();
   }
 
-  do_login(Event e) {
-    e.preventDefault();
+  doLogin() {
     _setup_socket();
-
-    InputElement loginNameElement = querySelector("#login-name");
-    var login = mkmsg("login", {"name": loginNameElement.value});
+    var login = mkmsg("login", {"name": newLoginName});
     tsocket.send(JSON.encode(login));
     print("Login called");
   }
