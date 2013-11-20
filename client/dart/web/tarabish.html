@@ -14,8 +14,29 @@
     <input type="text" value="{{newLoginName}}">
     <button on-click="{{doLogin}}">Login</button>
     <button on-click="{{doDisconnect}}">Disconnect</button>
+-   <hr>
 
--    <hr>
+    <template if="{{showTables}}">
+      <button on-click="{{refreshTables}}">Refresh Tables</button>
+      <table>
+        <thead>
+          <tr><th>Id</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
+        </thead>
+        <template repeat="{{table in tableViews}}">
+          <tr>
+            <td>{{table.tableId}}</td>
+            <td template repeat="{{seat in table.seats}}">
+              <template if="{{seat.isOpen}}">
+                <button on-click="{{sit}}" data-table="{{table.tableId}}" data-seat="{{seat.num)}}">Sit</button>
+              </template>
+              <template if="{{!seat.isOpen}}">
+                {{seat.name}}
+              </template>
+            </td>
+          </tr>
+        </template>
+      <p>TABLES</p>
+    </template>
     <p>Start</p>
     <p>
     <login-form></login-form>

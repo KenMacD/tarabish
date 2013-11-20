@@ -453,12 +453,12 @@ class Card {
 
 @CustomTag('tarabish-app')
 class Tarabish extends PolymerElement {
-  @observable bool loggedin = false;
-
+  @observable bool isLoggedIn = false;
   @observable String newLoginName;
   @observable String loginName = "Nobody";
 
-  List<TableView> tableViews;
+  @observable bool showTables = false;
+  @observable List<TableView> tableViews = [];
 
   Tarabish.created() : super.created() {
     tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket");
@@ -472,15 +472,18 @@ class Tarabish extends PolymerElement {
   }
 
   valid_login(name) {
-    loggedin = true;
+    isLoggedIn = true;
     loginName = name;
+
+    showTables = true;
+    refreshTables();
   }
 
   update_lobby(tables) {
     tableViews = tables;
   }
 
-  // Temporary disconnect to test re-attach
+  // Temporary  to test re-attach
   doDisconnect() {
     print("Disconnected");
     tsocket.webSocket.close();
@@ -494,12 +497,17 @@ class Tarabish extends PolymerElement {
   }
 
   // TODO: add a @require_socket
-  refresh_tables(Event e) {
-    e.preventDefault();
+  refreshTables() {
     tsocket.send(JSON.encode(mkmsg("get_tables")));
   }
 
-  sit(table, seat) {
+  sit(Event event, var detail, var target) {
+//    var table = int.parse(target.attributes['data-table']);
+//    var seat = int.parse(target.attributes['data-seat']);
+    var table = target.attributes['data-table'];
+    var seat = target.attributes['data-seat'];
+
+
     var sit = mkmsg("sit", {
       "table_id": table,
       "seat": seat
