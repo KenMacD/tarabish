@@ -1,4 +1,4 @@
-name: tarabish
+name: tarabishdart
 description: A sample WebUI application
 dependencies:
   browser: any
