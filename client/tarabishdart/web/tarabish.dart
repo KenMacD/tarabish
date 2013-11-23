@@ -5,9 +5,10 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:polymer/polymer.dart';
-import 'package:tarabishdart/canvas.dart';
 import 'package:tarabishdart/src/model.dart';
 import 'package:tarabishdart/src/tsocket.dart';
+
+import 'the_table.dart';
 
 
 //debug_clone() {
@@ -46,6 +47,9 @@ class Tarabish extends PolymerElement {
 
   @observable bool showTables = false;
   @observable List<TableView> tableViews = [];
+
+  @observable bool showTable = true; /* TODO: should be false */
+  TheTable _theTable;
 
   Tarabish.created() : super.created() {
     tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket",

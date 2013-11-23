@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 
 <link rel="import" href="tarabish_login.html">
+<link rel="import" href="the_table.html">
 
 <polymer-element name="tarabish-app">
   <template>
@@ -36,6 +37,11 @@
           </tr>
         </template>
       <p>TABLES</p>
+    </template>
+    
+    <template if="{{showTable}}">
+      <p>Showing Table</p>
+      <canvas is="the-table" id="table"></canvas>
     </template>
     <p>Start</p>
     <p>

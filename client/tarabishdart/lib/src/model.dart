@@ -1,3 +1,5 @@
+library models;
+
 import 'package:polymer/polymer.dart';
 
 @observable
