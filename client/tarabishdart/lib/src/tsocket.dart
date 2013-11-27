@@ -10,6 +10,34 @@ import 'model.dart';
 typedef void validLoginFun(String name);
 typedef void lobbyUpdateFun(List<TableView> tables);
 
+mkmsg(String method, [Map others = null]) {
+  var message = {"method": method};
+  if (others != null) {
+    message.addAll(others);
+  }
+  return message;
+}
+
+suit_toString(suit) {
+  return ["clubs", "diamonds", "spades", "hearts"][suit - 1];
+}
+
+abstract class TarabishCallbacks {
+  void validLogin(String name);
+  void lobbyUpdate(List<TableView> tables);
+
+  TableCallbacks youSat(int tableId, TableView tableView, int seatNum);
+
+  // This is per-table, but we're only single table now:
+  void recvChat(String chat_name, String chat_msg);
+}
+
+abstract class TableCallbacks {
+  void recvSit(int seat, String name);
+  void recvPart(int seat, String name);
+}
+
+
 /* A connection to the back end, it could be made more generic */
 class TarabishSocket {
   // TODO: add logged_in
@@ -20,10 +48,12 @@ class TarabishSocket {
 
   validLoginFun onValidLogin;
   lobbyUpdateFun onLobbyUpdate;
+  TarabishCallbacks callbacks;
+  TableCallbacks tableCallbacks;
 
-  Table table;
+  @deprecated var table;
 
-  TarabishSocket(this.url, this.onValidLogin, this.onLobbyUpdate) {
+  TarabishSocket(this.url, this.callbacks, this.tableCallbacks) {
     init();
   }
 
@@ -62,7 +92,7 @@ class TarabishSocket {
     webSocket.onMessage.listen((e) => _receiveEvent(e.data));
   }
 
-  send(String data) {
+  _send(String data) {
     if (_connected) {
       webSocket.send(data);
     } else {
@@ -90,16 +120,16 @@ class TarabishSocket {
           tables.add(new TableView.from_json(table));
         }
         // TODO: create lobby.
-        this.onLobbyUpdate(tables);
+        callbacks.lobbyUpdate(tables);
         break;
       case "valid_login":
-        onValidLogin(message['name']);
+        callbacks.validLogin(message['name']);
         break;
       case "table_view_sit":
         var view = new TableView.from_json(message['table_view']);
         var id = message['tableId'];
         var seat = message['seat'];
-        table = new Table(id, view, seat);
+        callbacks.youSat(id, view, seat);
         break;
       case "ask_trump":
         table.recv_ask_trump(message['seat']);
@@ -116,13 +146,13 @@ class TarabishSocket {
       case "chat":
         var chat_msg = message['message'];
         var chat_name = message['name'];
-        table.recv_chat(chat_name, chat_msg);
+        callbacks.recvChat(chat_name, chat_msg);
         break;
       case "sit":
-        table.recv_sit(message['seat'], message['name']);
+        tableCallbacks.recvSit(message['seat'], message['name']);
         break;
       case "part":
-        table.recv_part(message['seat'], message['name']);
+        tableCallbacks.recvPart(message['seat'],  message['name']);
         break;
       case "game_cancel":
         // TODO: current this message can be sent after a part message. fix
@@ -166,5 +196,32 @@ class TarabishSocket {
         print("Message: $message");
         // TODO: handle
     }
+  }
+
+  void login(String name) {
+    var login = mkmsg("login", {"name": name});
+    _send(JSON.encode(login));
+  }
+
+  void getTables() {
+    _send(JSON.encode(mkmsg("get_tables")));
+  }
+
+  void sit(int table, int seat) {
+    var sit = mkmsg("sit", {
+      "table_id": table,
+      "seat": seat
+    });
+    _send(JSON.encode(sit));
+  }
+
+  void startGame(int table) {
+    var start = mkmsg("start_game", {"table_id": table});
+    _send(JSON.encode(start));
+  }
+
+  void sendChat(int table, String message) {
+    var chat = mkmsg("chat", {"table_id": table, "message": message});
+    _send(JSON.encode(chat));
   }
 }

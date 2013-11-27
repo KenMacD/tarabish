@@ -36,18 +36,19 @@
             </td>
           </tr>
         </template>
+      </table>
       <p>TABLES</p>
     </template>
     
-    <template if="{{showTable}}">
-      <p>Showing Table</p>
-      <canvas is="the-table" id="table"></canvas>
-    </template>
-    <p>Start</p>
+    <!-- Show always for now, can't query if it's not there
+         TODO: figure out if I can data-bind it
+         <template if="{{showTable}}"> -->
+      <canvas id="thetable" is="the-table"></canvas>
+    <!-- </template> -->
+    <button on-click="{{startGame}}">Start Game</button>
     <p>
-    <login-form></login-form>
-    </p>
-    <p>End</p>
+    <input type="text" value="{{chatLine}}"><button on-click="{{sendChat}}">Send</button>
+    <textarea rows="10" cols="80" value="{{chatText}}" disabled></textarea>
   </template>
   <script type="application/dart" src="tarabish.dart"></script>
 </polymer-element>

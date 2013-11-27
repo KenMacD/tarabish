@@ -27,20 +27,12 @@ import 'the_table.dart';
 //
 typedef void MessageCallback(dynamic data);
 
-//// Global state
-TarabishSocket tsocket;
-
-Tarabish tarabish;
-
-@observable
-
-
-bool DEBUG = true;
-
-
-
 @CustomTag('tarabish-app')
-class Tarabish extends PolymerElement {
+class Tarabish extends PolymerElement with TarabishCallbacks {
+  TarabishSocket tsocket;
+  int _tableId;
+  bool _seated = false;
+
   @observable bool isLoggedIn = false;
   @observable String newLoginName;
   @observable String loginName = "Nobody";
@@ -48,14 +40,22 @@ class Tarabish extends PolymerElement {
   @observable bool showTables = false;
   @observable List<TableView> tableViews = [];
 
-  @observable bool showTable = true; /* TODO: should be false */
-  TheTable _theTable;
+  @observable String chatText = "";
+  @observable String chatLine = "";
+
+  @observable bool showTable = false; /* TODO: should be false */
+
+  @observable TheTable _theTable;
+  TheTable get table => _theTable;
 
   Tarabish.created() : super.created() {
-    tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket",
-        valid_login, update_lobby);
     print ("Tarabish Created");
-    tarabish = this;
+  }
+
+  void enteredView() {
+    _theTable = shadowRoot.querySelector("#thetable");
+    tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket", this, _theTable);
+    print("Tarabish Entered View");
   }
 
   // Lazy start socket on first login
@@ -63,7 +63,7 @@ class Tarabish extends PolymerElement {
     tsocket.init();
   }
 
-  valid_login(name) {
+  validLogin(name) {
     isLoggedIn = true;
     loginName = name;
 
@@ -71,7 +71,7 @@ class Tarabish extends PolymerElement {
     refreshTables();
   }
 
-  update_lobby(tables) {
+  lobbyUpdate(tables) {
     tableViews = tables;
   }
 
@@ -83,45 +83,50 @@ class Tarabish extends PolymerElement {
 
   doLogin() {
     _setup_socket();
-    var login = mkmsg("login", {"name": newLoginName});
-    tsocket.send(JSON.encode(login));
+    tsocket.login(newLoginName);
     print("Login called");
   }
 
   // TODO: add a @require_socket
   refreshTables() {
-    tsocket.send(JSON.encode(mkmsg("get_tables")));
+    tsocket.getTables();
   }
 
   sit(Event event, var detail, var target) {
-    var table = int.parse(target.attributes['data-table']);
+    _tableId = int.parse(target.attributes['data-table']);
     var seat = int.parse(target.attributes['data-seat']);
 
-    var sit = mkmsg("sit", {
-      "table_id": table,
-      "seat": seat
-    });
-    tsocket.send(JSON.encode(sit));
-    print("Sit called $table -- $seat");
+    tsocket.sit(_tableId, seat);
+    print("Sit called $_tableId -- $seat");
   }
-}
 
-mkmsg(String method, [Map others = null]) {
-  var message = {"method": method};
-  if (others != null) {
-    message.addAll(others);
+  startGame() {
+    if (_seated)
+      tsocket.startGame(_tableId);
   }
-  return message;
-}
 
-suit_toString(suit) {
-  return ["clubs", "diamonds", "spades", "hearts"][suit - 1];
-}
+  TableCallbacks youSat(int tableId, TableView tableView, int seatNum) {
+    _seated = true;
+    showTable = true;
+    //_theTable = shadowRoot.querySelector("#thetable");
+    _theTable.init(tsocket, tableId, tableView, seatNum, recvChat);
+    return _theTable;
+  }
 
-///**
-// * Learn about the Web UI package by visiting
-// * http://www.dartlang.org/articles/dart-web-components/.
-// */
-void main() {
-  print ("Main called");
+  sendChat() {
+    if (_seated && chatLine.length > 0) {
+      tsocket.sendChat(_tableId, chatLine);
+      chatLine = "";
+    }
+  }
+
+  recvChat(String chat_name, String chat_msg) {
+    String output = "$chat_name: $chat_msg"; // TODO: XSS?
+    if (chatText.length > 0) {
+      chatText = "$output\n$chatText";
+    } else {
+      chatText = output;
+    }
+  }
+
 }
