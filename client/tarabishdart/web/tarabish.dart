@@ -40,13 +40,15 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
   @observable bool showTables = false;
   @observable List<TableView> tableViews = [];
 
-  @observable String chatText = "";
+  // Used to display the chat
+  @observable Table table = null;
+
   @observable String chatLine = "";
 
   @observable bool showTable = false; /* TODO: should be false */
 
   @observable TheTable _theTable;
-  TheTable get table => _theTable;
+  //TheTable get table => _theTable;
 
   Tarabish.created() : super.created() {
     print ("Tarabish Created");
@@ -54,7 +56,7 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
 
   void enteredView() {
     _theTable = shadowRoot.querySelector("#thetable");
-    tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket", this, _theTable);
+    tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket", this);
     print("Tarabish Entered View");
   }
 
@@ -105,11 +107,13 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
       tsocket.startGame(_tableId);
   }
 
-  TableCallbacks youSat(int tableId, TableView tableView, int seatNum) {
+  youSat(Table table) {
     _seated = true;
     showTable = true;
+    this.table = toObservable(table, deep: true);
+    _tableId = table.id;
     //_theTable = shadowRoot.querySelector("#thetable");
-    _theTable.init(tsocket, tableId, tableView, seatNum, recvChat);
+    _theTable.init(tsocket, table);
     return _theTable;
   }
 
@@ -117,15 +121,6 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
     if (_seated && chatLine.length > 0) {
       tsocket.sendChat(_tableId, chatLine);
       chatLine = "";
-    }
-  }
-
-  recvChat(String chat_name, String chat_msg) {
-    String output = "$chat_name: $chat_msg"; // TODO: XSS?
-    if (chatText.length > 0) {
-      chatText = "$output\n$chatText";
-    } else {
-      chatText = output;
     }
   }
 

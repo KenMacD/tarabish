@@ -26,17 +26,10 @@ abstract class TarabishCallbacks {
   void validLogin(String name);
   void lobbyUpdate(List<TableView> tables);
 
-  TableCallbacks youSat(int tableId, TableView tableView, int seatNum);
-
-  // This is per-table, but we're only single table now:
-  void recvChat(String chat_name, String chat_msg);
+  void youSat(Table table);
 }
 
-abstract class TableCallbacks {
-  void recvSit(int seat, String name);
-  void recvPart(int seat, String name);
-}
-
+typedef void updatedCallback();
 
 /* A connection to the back end, it could be made more generic */
 class TarabishSocket {
@@ -49,11 +42,11 @@ class TarabishSocket {
   validLoginFun onValidLogin;
   lobbyUpdateFun onLobbyUpdate;
   TarabishCallbacks callbacks;
-  TableCallbacks tableCallbacks;
 
-  @deprecated var table;
+  // For now only 1 table:
+  Table table;
 
-  TarabishSocket(this.url, this.callbacks, this.tableCallbacks) {
+  TarabishSocket(this.url, this.callbacks) {
     init();
   }
 
@@ -126,10 +119,11 @@ class TarabishSocket {
         callbacks.validLogin(message['name']);
         break;
       case "table_view_sit":
-        var view = new TableView.from_json(message['table_view']);
         var id = message['tableId'];
         var seat = message['seat'];
-        callbacks.youSat(id, view, seat);
+        var view = new TableView.from_json(message['table_view']);
+        this.table = new Table(id, view, seat);
+        callbacks.youSat(this.table);
         break;
       case "ask_trump":
         table.recv_ask_trump(message['seat']);
@@ -146,13 +140,13 @@ class TarabishSocket {
       case "chat":
         var chat_msg = message['message'];
         var chat_name = message['name'];
-        callbacks.recvChat(chat_name, chat_msg);
+        table.recvChat(chat_name, chat_msg);
         break;
       case "sit":
-        tableCallbacks.recvSit(message['seat'], message['name']);
+        table.recvSit(message['seat'], message['name']);
         break;
       case "part":
-        tableCallbacks.recvPart(message['seat'],  message['name']);
+        table.recvPart(message['seat'],  message['name']);
         break;
       case "game_cancel":
         // TODO: current this message can be sent after a part message. fix

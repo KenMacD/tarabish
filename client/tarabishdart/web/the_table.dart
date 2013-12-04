@@ -6,16 +6,25 @@ import 'package:tarabishdart/src/tsocket.dart';
 
 typedef void ChatFun(String name, String msg);
 
+class Seat {
+
+}
+
 @CustomTag('the-table')
-class TheTable extends CanvasElement with Polymer, Observable, TableCallbacks {
+class TheTable extends CanvasElement with Polymer, Observable {
 
   CanvasRenderingContext2D _context;
 
   TarabishSocket _tsocket;
-  int _tableId;
-  TableView _tableModel;
+
+  Table model;
   int _seatNum;
   ChatFun _chatFunction; /* TODO: remove when chat is handled by the table */
+
+  // All in the tableModel, but just to make it easier.
+  SeatView _west;
+  SeatView _north;
+  SeatView _east;
 
   TheTable.created() : super.created() {
     print("TheTable Created");
@@ -29,14 +38,12 @@ class TheTable extends CanvasElement with Polymer, Observable, TableCallbacks {
     _update();
   }
 
-  void init(TarabishSocket tsocket, int tableId, TableView tableView, int seatNum,
-            ChatFun chatFunction) {
+  void init(TarabishSocket tsocket, Table table) {
     // TODO: fill in more
     _tsocket = tsocket;
-    _tableId = tableId;
-    _tableModel = tableView;
-    _seatNum = seatNum;
-    _chatFunction = chatFunction;
+    model = table;
+
+    model.registerUpdateCallback(this._update);
     _update();
   }
 
@@ -47,20 +54,24 @@ class TheTable extends CanvasElement with Polymer, Observable, TableCallbacks {
     _context.fillStyle = "#000000";
     _context.fillText("TESTING", 100, 100);
 
+    if (model == null) {
+      return;
+    }
+
+    // Draw West
+    _context.fillText(model.west.name, 10, 512);
+
+    // Draw North
+    _context.fillText(model.north.name, 500, 20);
+
+    // Draw East
+    _context.fillText(model.east.name, 900, 512);
+
   }
 
   void _update() {
     window.requestAnimationFrame(_redraw);
   }
 
-  void recvSit(int seat, String name) {
-    print("Received Sit");
-    // TODO: fill in
-    _chatFunction("Table", "$name sat at seat $seat");
-  }
 
-  void recvPart(int seat, String name) {
-    // TODO: fill in
-    _chatFunction("Table", "$name left seat $seat");
-  }
 }

@@ -2,7 +2,8 @@ library models;
 
 import 'package:polymer/polymer.dart';
 
-@observable
+import 'package:tarabishdart/src/tsocket.dart';
+
 class SeatView {
   bool isOpen;
   String name;
@@ -17,6 +18,20 @@ class SeatView {
   String toString() {
     if (isOpen) return "Seat open";
     else return "Seat occupied by $name";
+  }
+
+  sat(String name) {
+    assert(isOpen == true);
+
+   isOpen = false;
+   this.name = name;
+  }
+
+  stood() {
+    assert(isOpen == false);
+
+    isOpen = true;
+    this.name = "";
   }
 }
 
@@ -43,8 +58,6 @@ class TableView {
     return view;
   }
 }
-
-
 
 class Card {
   int value;
@@ -89,9 +102,11 @@ class Card {
   }
 }
 
+// Note: sending methods are deprecated. Send directly to socket instead
 
-@observable
-class Table {
+// TODO: why doesn't just @observable work here?
+//@observable
+class Table extends Object with Observable {
   int id;
   TableView view;
   int seat; // Your seat
@@ -101,33 +116,43 @@ class Table {
 
   bool askTrump = false;
 
+  // TODO: make observable call work in the_table
+  List<updatedCallback> updateCallbacks = new List();
+
+  @observable
+  String chatText = "";
+
+  SeatView get west  => view.seats[(seat + 1) % 4];
+  SeatView get north => view.seats[(seat + 2) % 4];
+  SeatView get east  => view.seats[(seat + 3) % 4];
+
   Table(this.id, this.view, this.seat);
 
-  chat(Event e) {
-    e.preventDefault();
-
-    // TODO: is there a better way to get these values?
-    InputElement chat_msg_elm = querySelector("#chat-msg");
-    var chat = mkmsg("chat", {"table_id": id, "message": chat_msg_elm.value});
-    chat_msg_elm.value = "";
-    tsocket.send(JSON.encode(chat));
+  void registerUpdateCallback(updatedCallback method) {
+    updateCallbacks.add(method);
   }
 
-  recv_chat(name, message) {
-    var output = querySelector('#chat-display');
-    var text = "$name: $message";
-    if (!output.text.isEmpty) {
-      text = "${text}\n${output.text}";
+
+  void _changed() {
+    for (var callback in updateCallbacks) {
+      callback();
     }
-    output.text = text;
   }
 
-  recv_sit(seat_num, name) {
+  recvChat(name, message) {
+    var text = "$name: $message";
+    if (!chatText.isEmpty) {
+      text = "${text}\n${chatText}";
+    }
+    chatText = text;
+  }
+
+  recvSit(seat_num, name) {
     var seat = view.seats.elementAt(seat_num);
-    seat.isOpen = false;
-    seat.name = name;
+    seat.sat(name);
     // TODO: refactor to recv_chat to accept server messages.
-    recv_chat("Table", "$name sat"); // TODO: print which seat
+    recvChat("Table", "$name sat"); // TODO: print which seat
+    _changed();
   }
 
   part() {
@@ -135,15 +160,12 @@ class Table {
     tsocket.send(JSON.encode(part));
   }
 
-  recv_part(seat_num, name) {
-    if (seat_num == seat) {
-      table = null;
-    } else {
-      var seat = view.seats.elementAt(seat_num);
-      seat.isOpen = true;
-      seat.name = null;
-      recv_chat("Table", "$name left the table");
-    }
+  recvPart(seat_num, name) {
+    assert(seat_num != this.seat);
+    var seat = view.seats.elementAt(seat_num);
+    seat.stood();
+    recvChat("Table", "$name left the table");
+    _changed();
   }
 
   new_game() {
@@ -158,7 +180,7 @@ class Table {
   }
 
   recv_ask_trump(seat) {
-    recv_chat("Table", "Seat $seat asked to call trump");
+    recvChat("Table", "Seat $seat asked to call trump");
     if (seat == this.seat) {
       askTrump = true;
     } else {
@@ -172,17 +194,17 @@ class Table {
   }
 
   recv_trump_passed(seat) {
-    recv_chat("Table", "Seat $seat passed on trump");
+    recvChat("Table", "Seat $seat passed on trump");
   }
 
   recv_trump_called(seat, suit) {
     askTrump = false;
     var suitStr = suit_toString(suit);
-    recv_chat("Table", "Seat $seat called trump $suitStr");
+    recvChat("Table", "Seat $seat called trump $suitStr");
   }
 
   recv_ask_card(seat) {
-    recv_chat("Table", "Seat $seat asked to play a card");
+    recvChat("Table", "Seat $seat asked to play a card");
   }
 
   play_card(value, suit) {
@@ -198,11 +220,11 @@ class Table {
     if (seat_num == seat) {
       cards.remove(played_card);
     }
-    recv_chat("Table", "Seat $seat_num played card $played_card");
+    recvChat("Table", "Seat $seat_num played card $played_card");
   }
 
   recv_take_trick(seat_num) {
-    recv_chat("Table", "Seat $seat_num took down the trick");
+    recvChat("Table", "Seat $seat_num took down the trick");
   }
 
   recv_game_cancel() {
@@ -218,7 +240,7 @@ class Table {
   }
 
   recv_call_run(seat_num, run_type) {
-    recv_chat("Table", "Seat $seat_num called a run type $run_type");
+    recvChat("Table", "Seat $seat_num called a run type $run_type");
   }
 
   show_run() {
@@ -227,12 +249,12 @@ class Table {
   }
 
   recv_show_run(seat_num, run_type, cards) {
-    recv_chat("Table", "Seat $seat_num showed their run: $cards");
+    recvChat("Table", "Seat $seat_num showed their run: $cards");
   }
 
   recv_noshow_run(seat_num, better_type, run_type, high_value, is_trump, other_seat) {
-    recv_chat("Table", "Seat $seat_num was not able to show their run.");
-    recv_chat("Table", "Reason $better_type at $other_seat");
+    recvChat("Table", "Seat $seat_num was not able to show their run.");
+    recvChat("Table", "Reason $better_type at $other_seat");
   }
 
   play_bella() {
@@ -241,6 +263,6 @@ class Table {
   }
 
   recv_call_bella(seat_num) {
-    recv_chat("Table", "Seat $seat_num called bella.");
+    recvChat("Table", "Seat $seat_num called bella.");
   }
 }
