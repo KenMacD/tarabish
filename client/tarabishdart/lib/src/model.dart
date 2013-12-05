@@ -168,15 +168,11 @@ class Table extends Object with Observable {
     _changed();
   }
 
-  new_game() {
-    var start = mkmsg("start_game", {"table_id": id});
-    tsocket.send(JSON.encode(start));
-  }
-
-  recv_deal(new_dealer, new_cards) {
+  recvDeal(new_dealer, new_cards) {
     cards.addAll(new_cards);
     dealer = new_dealer;
     print("Received new dealer $dealer and cards $new_cards");
+    _changed();
   }
 
   recv_ask_trump(seat) {

@@ -160,7 +160,7 @@ class TarabishSocket {
         for (var card in message['dealt']) {
           cards.add(new Card.from_json(card));
         }
-        table.recv_deal(dealer, cards);
+        table.recvDeal(dealer, cards);
         break;
       case "play_card":
         table.recv_play_card(message['seat'], message['card']);

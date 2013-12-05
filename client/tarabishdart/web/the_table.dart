@@ -67,6 +67,11 @@ class TheTable extends CanvasElement with Polymer, Observable {
     // Draw East
     _context.fillText(model.east.name, 900, 512);
 
+    var cardString = "";
+    for (var card in model.cards) {
+      cardString = "$card  $cardString";
+    }
+    _context.fillText(cardString, 500 , 740);
   }
 
   void _update() {
