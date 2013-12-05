@@ -4,6 +4,11 @@ import 'package:polymer/polymer.dart';
 
 import 'package:tarabishdart/src/tsocket.dart';
 
+const int CLUBS = 1;
+const int DIAMONDS = 2;
+const int SPADES = 3;
+const int HEARTS = 4;
+
 class SeatView {
   bool isOpen;
   String name;
@@ -94,11 +99,6 @@ class Card {
   bool operator==(other) {
     if (identical(other, this)) return true;
     return (other.value == value && other.suit == suit);
-  }
-
-  ImageElement get imgElement {
-    return new ImageElement(src: "../images/2.png");
-    // return "../images/2.png";
   }
 }
 

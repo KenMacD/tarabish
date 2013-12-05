@@ -21,6 +21,8 @@ class TheTable extends CanvasElement with Polymer, Observable {
   int _seatNum;
   ChatFun _chatFunction; /* TODO: remove when chat is handled by the table */
 
+  var cardImages = [];
+
   // All in the tableModel, but just to make it easier.
   SeatView _west;
   SeatView _north;
@@ -35,6 +37,12 @@ class TheTable extends CanvasElement with Polymer, Observable {
     super.enteredView();
     print("TheTable Entered View");
     _context = getContext("2d");
+
+    // TODO: is there an easy way to wait on all these being loaded before allowing starting a game?
+    for (var i = 1; i <= 36; i++) {
+      cardImages.add(new ImageElement(src: "images/$i.png"));
+    }
+
     _update();
   }
 
@@ -45,6 +53,27 @@ class TheTable extends CanvasElement with Polymer, Observable {
 
     model.registerUpdateCallback(this._update);
     _update();
+  }
+
+  ImageElement _getCardImage(Card card) {
+    var num = (14 - card.value) * 4;
+    // Order of suits is different from our suites
+    // C - S - H - D
+    switch (card.suit) {
+      case CLUBS:
+        num += 0;
+        break;
+      case SPADES:
+        num += 1;
+        break;
+      case HEARTS:
+        num += 2;
+        break;
+      case DIAMONDS:
+        num += 3;
+        break;
+    }
+    return cardImages[num];
   }
 
   void _redraw(num time) {
@@ -67,11 +96,11 @@ class TheTable extends CanvasElement with Polymer, Observable {
     // Draw East
     _context.fillText(model.east.name, 900, 512);
 
-    var cardString = "";
+    var x = 300;
     for (var card in model.cards) {
-      cardString = "$card  $cardString";
+      _context.drawImage(_getCardImage(card), x, 630);
+      x += 80;
     }
-    _context.fillText(cardString, 500 , 740);
   }
 
   void _update() {

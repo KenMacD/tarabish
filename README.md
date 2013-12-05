@@ -53,3 +53,5 @@ game going.
 ## Legal #######################################################################
 
 Licensed under an MIT/Expat license. See COPYING
+
+Card images from http://www.jfitz.com/cards/
