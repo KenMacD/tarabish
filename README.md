@@ -55,3 +55,5 @@ game going.
 Licensed under an MIT/Expat license. See COPYING
 
 Card images from http://www.jfitz.com/cards/
+
+Suits image from http://en.wikipedia.org/wiki/File:French_suits.svg

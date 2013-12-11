@@ -1,5 +1,6 @@
 import 'package:polymer/polymer.dart';
 import 'dart:html';
+import 'dart:async';
 
 import 'package:tarabishdart/src/model.dart';
 import 'package:tarabishdart/src/tsocket.dart';
@@ -21,7 +22,11 @@ class TheTable extends CanvasElement with Polymer, Observable {
   int _seatNum;
   ChatFun _chatFunction; /* TODO: remove when chat is handled by the table */
 
+  bool allLoaded = false;
+
   var cardImages = [];
+
+  ImageElement suitsImage;
 
   // All in the tableModel, but just to make it easier.
   SeatView _west;
@@ -36,12 +41,27 @@ class TheTable extends CanvasElement with Polymer, Observable {
   void enteredView() {
     super.enteredView();
     print("TheTable Entered View");
+
     _context = getContext("2d");
+
+    this.onClick.listen(_onClick);
+
+    var futures = [];
 
     // TODO: is there an easy way to wait on all these being loaded before allowing starting a game?
     for (var i = 1; i <= 36; i++) {
-      cardImages.add(new ImageElement(src: "images/$i.png"));
+      var image = new ImageElement(src: "images/$i.png");
+      cardImages.add(image);
+      futures.add(image.onLoad.first);
     }
+
+    suitsImage = new ImageElement(src: "images/suits.png");
+    futures.add(suitsImage.onLoad.first);
+
+    Future.wait(futures).then((_) {
+      allLoaded = true;
+      _update();
+    });
 
     _update();
   }
@@ -83,9 +103,14 @@ class TheTable extends CanvasElement with Polymer, Observable {
     _context.fillStyle = "#000000";
     _context.fillText("TESTING", 100, 100);
 
+    if (!allLoaded) {
+      _context.fillText("Still Loading Images", 100, 110);
+    }
+
     if (model == null) {
       return;
     }
+
 
     // Draw West
     _context.fillText(model.west.name, 10, 512);
@@ -95,6 +120,13 @@ class TheTable extends CanvasElement with Polymer, Observable {
 
     // Draw East
     _context.fillText(model.east.name, 900, 512);
+
+    // Draw Middle
+    if (model.askTrump) {
+      _context.fillText("Please select Trump:", 412, 174);
+      _context.drawImage(suitsImage, 412, 284);
+      suitsImage.onClick.listen((event) => print("SUITS CLICKED!"));
+    }
 
     var x = 300;
     for (var card in model.cards) {
@@ -107,5 +139,24 @@ class TheTable extends CanvasElement with Polymer, Observable {
     window.requestAnimationFrame(_redraw);
   }
 
+  void _onClick(MouseEvent event) {
+    var x = event.offset.x;
+    var y = event.offset.y;
 
+    if (model == null) {
+      return;
+    }
+
+    if (model.askTrump && x >= 412 && x < 612 && y >= 284 && y < 484) {
+      // S H
+      // D C
+      if (y < 384) {
+        if (x < 512) _tsocket.callTrump(SPADES);
+        else _tsocket.callTrump(HEARTS);
+      } else {
+        if (x < 512) _tsocket.callTrump(DIAMONDS);
+        else _tsocket.callTrump(CLUBS);
+      }
+    }
+  }
 }

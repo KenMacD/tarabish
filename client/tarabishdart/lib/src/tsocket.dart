@@ -126,7 +126,7 @@ class TarabishSocket {
         callbacks.youSat(this.table);
         break;
       case "ask_trump":
-        table.recv_ask_trump(message['seat']);
+        table.recvAskTrump(message['seat']);
         break;
       case "ask_card":
         table.recv_ask_card(message['seat']);
@@ -218,4 +218,10 @@ class TarabishSocket {
     var chat = mkmsg("chat", {"table_id": table, "message": message});
     _send(JSON.encode(chat));
   }
+
+  void callTrump(int suit) {
+    var call = mkmsg("call_trump", {"table_id": table.id, "suit": suit});
+    _send(JSON.encode(call));
+  }
+
 }

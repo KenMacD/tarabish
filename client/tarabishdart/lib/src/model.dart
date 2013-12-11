@@ -132,7 +132,6 @@ class Table extends Object with Observable {
     updateCallbacks.add(method);
   }
 
-
   void _changed() {
     for (var callback in updateCallbacks) {
       callback();
@@ -175,18 +174,14 @@ class Table extends Object with Observable {
     _changed();
   }
 
-  recv_ask_trump(seat) {
+  recvAskTrump(seat) {
     recvChat("Table", "Seat $seat asked to call trump");
     if (seat == this.seat) {
       askTrump = true;
     } else {
       askTrump = false;
     }
-  }
-
-  call_trump(suit) {
-    var call = mkmsg("call_trump", {"table_id": id, "suit": suit});
-    tsocket.send(JSON.encode(call));
+    _changed();
   }
 
   recv_trump_passed(seat) {
