@@ -7,8 +7,68 @@ import 'package:tarabishdart/src/tsocket.dart';
 
 typedef void ChatFun(String name, String msg);
 
-class Seat {
+abstract class Clickable {
+  int get x;
+  int get y;
+  int get width;
+  int get height;
 
+  bool contains(int x, int y) {
+    if (x < this.x || x > this.x + width)
+      return false;
+    if (y < this.y || y > this.y + height)
+      return false;
+    return true;
+  }
+
+  void clicked(int x, int y, TarabishSocket);
+}
+
+abstract class Drawable {
+  void draw(CanvasRenderingContext2D _context);
+}
+
+class TrumpSelector extends Object with Drawable, Clickable {
+  int x = 412;
+  int y = 284;
+  int width = 200;
+  int height = 260;
+
+  ImageElement suitsImage;
+
+  TrumpSelector() {
+    suitsImage = new ImageElement(src: "images/suits.png");
+
+  }
+
+  void draw(CanvasRenderingContext2D context) {
+    //context.fillText("Please select Trump:", 412, 174);
+    context.drawImage(suitsImage, 412, 284);
+    var oldFont = context.font;
+    context.font = "normal 60px Sans-Serif";
+    context.textAlign = 'center';
+    context.fillText("PASS", 512, 534);
+    context.font = oldFont;
+  }
+
+  void clicked(int x, int y, TarabishSocket socket) {
+    assert(this.contains(x, y));
+
+    if (x >= this.x && x < this.x + this.width
+        && y >= this.y && y < (484 + 60)) {
+      // S H
+      // D C
+      if (y < 384) {
+        if (x < 512) socket.callTrump(SPADES);
+        else socket.callTrump(HEARTS);
+      } else if (y < 484) {
+        if (x < 512) socket.callTrump(DIAMONDS);
+        else socket.callTrump(CLUBS);
+      } else {
+        socket.callTrump(PASS);
+      }
+    }
+  }
 }
 
 @CustomTag('the-table')
@@ -26,7 +86,8 @@ class TheTable extends CanvasElement with Polymer, Observable {
 
   var cardImages = [];
 
-  ImageElement suitsImage;
+  TrumpSelector trumpSelector;
+
 
   // All in the tableModel, but just to make it easier.
   SeatView _west;
@@ -55,9 +116,8 @@ class TheTable extends CanvasElement with Polymer, Observable {
       futures.add(image.onLoad.first);
     }
 
-    suitsImage = new ImageElement(src: "images/suits.png");
-    futures.add(suitsImage.onLoad.first);
-
+    trumpSelector = new TrumpSelector();
+    futures.add(trumpSelector.suitsImage.onLoad.first);
     Future.wait(futures).then((_) {
       allLoaded = true;
       _update();
@@ -123,13 +183,8 @@ class TheTable extends CanvasElement with Polymer, Observable {
 
     // Draw Middle
     if (model.askTrump) {
-      _context.fillText("Please select Trump:", 412, 174);
-      _context.drawImage(suitsImage, 412, 284);
-      var oldFont = _context.font;
-      _context.font = "normal 60px Sans-Serif";
-      _context.textAlign = 'center';
-      _context.fillText("PASS", 512, 534);
-      _context.font = oldFont;
+      trumpSelector.draw(_context);
+
     }
 
     var x = 300;
@@ -151,18 +206,9 @@ class TheTable extends CanvasElement with Polymer, Observable {
       return;
     }
 
-    if (model.askTrump && x >= 412 && x < 612 && y >= 284 && y < (484 + 60)) {
-      // S H
-      // D C
-      if (y < 384) {
-        if (x < 512) _tsocket.callTrump(SPADES);
-        else _tsocket.callTrump(HEARTS);
-      } else if (y < 484) {
-        if (x < 512) _tsocket.callTrump(DIAMONDS);
-        else _tsocket.callTrump(CLUBS);
-      } else {
-        _tsocket.callTrump(PASS);
-      }
+    if (model.askTrump && trumpSelector.contains(x, y)) {
+      trumpSelector.clicked(x, y, _tsocket);
     }
+
   }
 }
