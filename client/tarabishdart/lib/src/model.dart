@@ -4,6 +4,7 @@ import 'package:polymer/polymer.dart';
 
 import 'package:tarabishdart/src/tsocket.dart';
 
+const int PASS = 0;
 const int CLUBS = 1;
 const int DIAMONDS = 2;
 const int SPADES = 3;

@@ -125,7 +125,11 @@ class TheTable extends CanvasElement with Polymer, Observable {
     if (model.askTrump) {
       _context.fillText("Please select Trump:", 412, 174);
       _context.drawImage(suitsImage, 412, 284);
-      suitsImage.onClick.listen((event) => print("SUITS CLICKED!"));
+      var oldFont = _context.font;
+      _context.font = "normal 60px Sans-Serif";
+      _context.textAlign = 'center';
+      _context.fillText("PASS", 512, 534);
+      _context.font = oldFont;
     }
 
     var x = 300;
@@ -147,15 +151,17 @@ class TheTable extends CanvasElement with Polymer, Observable {
       return;
     }
 
-    if (model.askTrump && x >= 412 && x < 612 && y >= 284 && y < 484) {
+    if (model.askTrump && x >= 412 && x < 612 && y >= 284 && y < (484 + 60)) {
       // S H
       // D C
       if (y < 384) {
         if (x < 512) _tsocket.callTrump(SPADES);
         else _tsocket.callTrump(HEARTS);
-      } else {
+      } else if (y < 484) {
         if (x < 512) _tsocket.callTrump(DIAMONDS);
         else _tsocket.callTrump(CLUBS);
+      } else {
+        _tsocket.callTrump(PASS);
       }
     }
   }
