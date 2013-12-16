@@ -228,4 +228,10 @@ class TarabishSocket {
     _send(JSON.encode(call));
   }
 
+  void play_card(Card card) {
+    var value = card.value;
+    var suit = card.suit;
+    var play = mkmsg("play_card", {"table_id": table.id, "card": {"value": value, "suit": suit}});
+    _send(JSON.encode(play));
+  }
 }

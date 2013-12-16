@@ -245,13 +245,6 @@ class Table extends Object with Observable {
     recvChat("Table", "Seat $seat asked to play a card");
   }
 
-//  play_card(value, suit) {
-//    var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
-//    tsocket.send(JSON.encode(play));
-//  }
-
-
-
   recv_take_trick(seat_num) {
     recvChat("Table", "Seat $seat_num took down the trick");
   }
