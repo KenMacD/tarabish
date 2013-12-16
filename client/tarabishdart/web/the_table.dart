@@ -181,14 +181,17 @@ class TheTable extends CanvasElement with Polymer, Observable {
     // Draw East
     _context.fillText(model.east.name, 900, 512);
 
-    // Draw Middle
-    if (model.askTrump) {
-      trumpSelector.draw(_context);
+    if (model.game == null) {
+      return;
+    }
 
+    // Draw Middle
+    if (model.game.askTrump) {
+      trumpSelector.draw(_context);
     }
 
     var x = 300;
-    for (var card in model.cards) {
+    for (var card in model.game.cards) {
       _context.drawImage(_getCardImage(card), x, 630);
       x += 80;
     }
@@ -206,7 +209,11 @@ class TheTable extends CanvasElement with Polymer, Observable {
       return;
     }
 
-    if (model.askTrump && trumpSelector.contains(x, y)) {
+    if (model.game == null) {
+      return;
+    }
+
+    if (model.game.askTrump && trumpSelector.contains(x, y)) {
       trumpSelector.clicked(x, y, _tsocket);
     }
 

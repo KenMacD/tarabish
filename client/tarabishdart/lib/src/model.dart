@@ -10,6 +10,12 @@ const int DIAMONDS = 2;
 const int SPADES = 3;
 const int HEARTS = 4;
 
+const int SOUTH  = 0;
+const int WEST   = 1;
+const int NORTH  = 2;
+const int EAST   = 3;
+const int NONE   = -1;
+
 class SeatView {
   bool isOpen;
   String name;
@@ -105,17 +111,77 @@ class Card {
 
 // Note: sending methods are deprecated. Send directly to socket instead
 
+class Game extends Object with Observable {
+  int seat;
+  List<Card> cards = toObservable(new List());
+
+  int _dealer = NONE;
+  int _action = NONE;
+
+  bool askTrump = false;
+
+  int get dealer => (_dealer == NONE)? NONE : _seatToLocation(_dealer);
+  int get action => (_action == NONE)? NONE : _seatToLocation(_action);
+
+  // TODO: remove this once observable works
+  Table table;
+
+  Game(this.seat, this.table);
+
+  int _seatToLocation(int seatNum) {
+    var offset = (seatNum - seat) % 4;
+    return offset;
+  }
+
+  recvDeal(new_dealer, new_cards) {
+    cards.addAll(new_cards);
+    _dealer = new_dealer;
+
+    print("Received new dealer $dealer and cards $new_cards");
+    _changed();
+  }
+
+  recvAskTrump(seat) {
+    table.recvChat("Table", "Seat $seat asked to call trump");
+    if (seat == this.seat) {
+      askTrump = true;
+    } else {
+      askTrump = false;
+    }
+    _changed();
+  }
+
+  recv_play_card(seat_num, card) {
+    var value = card['value'];
+    var suit = card['suit'];
+    var played_card = new Card(value, suit);
+
+    if (seat_num == seat) {
+      cards.remove(played_card);
+    }
+    table.recvChat("Table", "Seat $seat_num played card $played_card");
+  }
+
+  recv_trump_called(seat, suit) {
+    askTrump = false;
+    var suitStr = suit_toString(suit);
+    table.recvChat("Table", "Seat $seat called trump $suitStr");
+    _changed();
+  }
+
+  // TODO: also remove this later
+  _changed() {
+    this.table._changed();
+  }
+}
+
 // TODO: why doesn't just @observable work here?
 //@observable
 class Table extends Object with Observable {
   int id;
   TableView view;
   int seat; // Your seat
-
-  List<Card> cards = toObservable(new List());
-  int dealer;
-
-  bool askTrump = false;
+  Game game;
 
   // TODO: make observable call work in the_table
   List<updatedCallback> updateCallbacks = new List();
@@ -155,12 +221,13 @@ class Table extends Object with Observable {
     _changed();
   }
 
-  part() {
-    var part = mkmsg("part_table", {"table_id": id});
-    tsocket.send(JSON.encode(part));
-  }
+//  part() {
+//    var part = mkmsg("part_table", {"table_id": id});
+//    tsocket.send(JSON.encode(part));
+//  }
 
   recvPart(seat_num, name) {
+    // TODO: clear game info
     assert(seat_num != this.seat);
     var seat = view.seats.elementAt(seat_num);
     seat.stood();
@@ -168,77 +235,48 @@ class Table extends Object with Observable {
     _changed();
   }
 
-  recvDeal(new_dealer, new_cards) {
-    cards.addAll(new_cards);
-    dealer = new_dealer;
-    print("Received new dealer $dealer and cards $new_cards");
-    _changed();
-  }
-
-  recvAskTrump(seat) {
-    recvChat("Table", "Seat $seat asked to call trump");
-    if (seat == this.seat) {
-      askTrump = true;
-    } else {
-      askTrump = false;
-    }
-    _changed();
-  }
 
   recv_trump_passed(seat) {
     recvChat("Table", "Seat $seat passed on trump");
   }
 
-  recv_trump_called(seat, suit) {
-    askTrump = false;
-    var suitStr = suit_toString(suit);
-    recvChat("Table", "Seat $seat called trump $suitStr");
-  }
 
   recv_ask_card(seat) {
     recvChat("Table", "Seat $seat asked to play a card");
   }
 
-  play_card(value, suit) {
-    var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
-    tsocket.send(JSON.encode(play));
-  }
+//  play_card(value, suit) {
+//    var play = mkmsg("play_card", {"table_id": id, "card": {"value": value, "suit": suit}});
+//    tsocket.send(JSON.encode(play));
+//  }
 
-  recv_play_card(seat_num, card) {
-    var value = card['value'];
-    var suit = card['suit'];
-    var played_card = new Card(value, suit);
 
-    if (seat_num == seat) {
-      cards.remove(played_card);
-    }
-    recvChat("Table", "Seat $seat_num played card $played_card");
-  }
 
   recv_take_trick(seat_num) {
     recvChat("Table", "Seat $seat_num took down the trick");
   }
 
-  recv_game_cancel() {
-    // TODO: move to a 'game' class
-    cards.clear();
-    askTrump = false;
-    dealer = null;
+  recv_new_game() {
+    game = new Game(seat, this);
   }
 
-  call_run() {
-    var call_run = mkmsg("call_run", {"table_id": id});
-    tsocket.send(JSON.encode(call_run));
+  recv_game_cancel() {
+    game = null;
   }
+
+//  call_run() {
+//    var call_run = mkmsg("call_run", {"table_id": id});
+//    tsocket.send(JSON.encode(call_run));
+//  }
 
   recv_call_run(seat_num, run_type) {
     recvChat("Table", "Seat $seat_num called a run type $run_type");
   }
 
-  show_run() {
-    var show_run = mkmsg("show_run", {"table_id": id});
-    tsocket.send(JSON.encode(show_run));
-  }
+//  show_run() {
+//    var show_run = mkmsg("show_run", {"table_id": id});
+//    tsocket.send(JSON.encode(show_run));
+//  }
 
   recv_show_run(seat_num, run_type, cards) {
     recvChat("Table", "Seat $seat_num showed their run: $cards");
@@ -249,10 +287,10 @@ class Table extends Object with Observable {
     recvChat("Table", "Reason $better_type at $other_seat");
   }
 
-  play_bella() {
-    var play_bella = mkmsg("play_bella", {"table_id": id});
-    tsocket.send(JSON.encode(play_bella));
-  }
+//  play_bella() {
+//    var play_bella = mkmsg("play_bella", {"table_id": id});
+//    tsocket.send(JSON.encode(play_bella));
+//  }
 
   recv_call_bella(seat_num) {
     recvChat("Table", "Seat $seat_num called bella.");

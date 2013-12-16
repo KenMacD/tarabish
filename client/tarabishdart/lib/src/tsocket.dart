@@ -126,7 +126,7 @@ class TarabishSocket {
         callbacks.youSat(this.table);
         break;
       case "ask_trump":
-        table.recvAskTrump(message['seat']);
+        table.game.recvAskTrump(message['seat']);
         break;
       case "ask_card":
         table.recv_ask_card(message['seat']);
@@ -135,7 +135,7 @@ class TarabishSocket {
         table.recv_trump_passed(message['seat']);
         break;
       case "trump_called":
-        table.recv_trump_called(message['seat'], message['suit']);
+        table.game.recv_trump_called(message['seat'], message['suit']);
         break;
       case "chat":
         var chat_msg = message['message'];
@@ -147,6 +147,9 @@ class TarabishSocket {
         break;
       case "part":
         table.recvPart(message['seat'],  message['name']);
+        break;
+      case "new_game":
+        table.recv_new_game();
         break;
       case "game_cancel":
         // TODO: current this message can be sent after a part message. fix
@@ -160,10 +163,10 @@ class TarabishSocket {
         for (var card in message['dealt']) {
           cards.add(new Card.from_json(card));
         }
-        table.recvDeal(dealer, cards);
+        table.game.recvDeal(dealer, cards);
         break;
       case "play_card":
-        table.recv_play_card(message['seat'], message['card']);
+        table.game.recv_play_card(message['seat'], message['card']);
         break;
       case "take_trick":
         table.recv_take_trick(message['seat']);
@@ -185,6 +188,7 @@ class TarabishSocket {
       case "call_bella":
         table.recv_call_bella(message['seat']);
         break;
+      default:
         var type = message['type'];
         print("Received message with type $type");
         print("Message: $message");
