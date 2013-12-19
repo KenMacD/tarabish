@@ -105,6 +105,26 @@ class TheTable extends CanvasElement with Polymer, Observable {
       trumpSelector.draw(_context);
     }
 
+    if (model.game.southCard != null){
+      var cardUI = new CardUI(476, 357, model.game.southCard);
+      cardUI.draw(_context);
+    }
+
+    if (model.game.westCard != null) {
+      var cardUI = new CardUI(394, 253, model.game.westCard);
+      cardUI.draw(_context);
+    }
+
+    if (model.game.northCard != null) {
+      var cardUI = new CardUI(476, 145, model.game.northCard);
+      cardUI.draw(_context);
+    }
+
+    if (model.game.eastCard != null) {
+      var cardUI = new CardUI(558, 253, model.game.eastCard);
+      cardUI.draw(_context);
+    }
+
     var x = 300;
     for (var card in model.game.cards) {
       var cardUI = new CardUI(x, 630, card);

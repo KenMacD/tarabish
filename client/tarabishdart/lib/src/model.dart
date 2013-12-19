@@ -123,6 +123,11 @@ class Game extends Object with Observable {
   int get dealer => (_dealer == NONE)? NONE : _seatToLocation(_dealer);
   int get action => (_action == NONE)? NONE : _seatToLocation(_action);
 
+  Card northCard = null;
+  Card eastCard = null;
+  Card southCard = null;
+  Card westCard = null;
+
   // TODO: remove this once observable works
   Table table;
 
@@ -151,15 +156,32 @@ class Game extends Object with Observable {
     _changed();
   }
 
-  recv_play_card(seat_num, card) {
+  recv_play_card(seatNum, card) {
     var value = card['value'];
     var suit = card['suit'];
-    var played_card = new Card(value, suit);
+    var playedCard = new Card(value, suit);
 
-    if (seat_num == seat) {
-      cards.remove(played_card);
+    if (seatNum == seat) {
+      cards.remove(playedCard);
     }
-    table.recvChat("Table", "Seat $seat_num played card $played_card");
+    table.recvChat("Table", "Seat $seatNum played card $playedCard");
+
+    var offset = (seatNum - seat) % 4;
+    switch (offset) {
+      case SOUTH:
+        southCard = new Card(value, suit);
+        break;
+      case WEST:
+        westCard = new Card(value, suit);
+        break;
+      case NORTH:
+        northCard = new Card(value, suit);
+        break;
+      case EAST:
+        eastCard = new Card(value, suit);
+        break;
+    }
+    _changed();
   }
 
   recv_trump_called(seat, suit) {
