@@ -25,7 +25,46 @@ new() ->
 % Taken from: http://www.trapexit.org/RandomShuffle
 shuffle(Cards) ->
 %% Determine the log n portion then randomize the list.
-  randomize(round(math:log(length(Cards)) + 0.5), Cards).
+%  randomize(round(math:log(length(Cards)) + 0.5), Cards).
+  HackDeck = [
+    #card{value=6, suit=1},
+    #card{value=7, suit=1},
+    #card{value=8, suit=1},
+    #card{value=6, suit=2},
+    #card{value=7, suit=2},
+    #card{value=8, suit=2},
+    #card{value=6, suit=3},
+    #card{value=7, suit=3},
+    #card{value=8, suit=3},
+    #card{value=6, suit=4},
+    #card{value=7, suit=4},
+    #card{value=8, suit=4},
+    #card{value=9, suit=1},
+    #card{value=10, suit=1},
+    #card{value=11, suit=1},
+    #card{value=9, suit=2},
+    #card{value=10, suit=2},
+    #card{value=11, suit=2},
+    #card{value=9, suit=3},
+    #card{value=10, suit=3},
+    #card{value=11, suit=3},
+    #card{value=9, suit=4},
+    #card{value=10, suit=4},
+    #card{value=11, suit=4},
+    #card{value=12, suit=1},
+    #card{value=13, suit=1},
+    #card{value=14, suit=1},
+    #card{value=12, suit=2},
+    #card{value=13, suit=2},
+    #card{value=14, suit=2},
+    #card{value=12, suit=3},
+    #card{value=13, suit=3},
+    #card{value=14, suit=3},
+    #card{value=12, suit=4},
+    #card{value=13, suit=4},
+    #card{value=14, suit=4}
+  ],
+  HackDeck.
 
 randomize(1, List) ->
   randomize(List);
