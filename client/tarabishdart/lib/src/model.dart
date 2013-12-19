@@ -299,13 +299,15 @@ class Table extends Object with Observable {
     game = null;
   }
 
-//  call_run() {
-//    var call_run = mkmsg("call_run", {"table_id": id});
-//    tsocket.send(JSON.encode(call_run));
-//  }
-
-  recv_call_run(seat_num, run_type) {
-    recvChat("Table", "Seat $seat_num called a run type $run_type");
+  recv_call_run(seatNum, runType) {
+    switch (runType) {
+      case 1:
+        recvChat("Table", "Seat $seatNum called a Twenty");
+        break;
+      case 2:
+        recvChat("Table", "Seat $seatNum called a Fifty");
+        break;
+    }
   }
 
 //  show_run() {

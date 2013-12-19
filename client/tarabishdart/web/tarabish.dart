@@ -107,6 +107,11 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
       tsocket.startGame(_tableId);
   }
 
+  callRun() {
+    if (_seated)
+      tsocket.callRun(_tableId);
+  }
+
   youSat(Table table) {
     _seated = true;
     showTable = true;
