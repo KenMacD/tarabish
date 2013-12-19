@@ -1,5 +1,6 @@
 library models;
 
+import 'dart:async';
 import 'package:polymer/polymer.dart';
 
 import 'package:tarabishdart/src/tsocket.dart';
@@ -128,6 +129,9 @@ class Game extends Object with Observable {
   Card southCard = null;
   Card westCard = null;
 
+  Timer sweepTimer;
+  int sweepDirection;
+
   // TODO: remove this once observable works
   Table table;
 
@@ -161,6 +165,11 @@ class Game extends Object with Observable {
     var suit = card['suit'];
     var playedCard = new Card(value, suit);
 
+    // Sweep if required:
+    if (sweepTimer != null && sweepTimer.isActive) {
+      _sweep();
+    }
+
     if (seatNum == seat) {
       cards.remove(playedCard);
     }
@@ -188,6 +197,21 @@ class Game extends Object with Observable {
     askTrump = false;
     var suitStr = suit_toString(suit);
     table.recvChat("Table", "Seat $seat called trump $suitStr");
+    _changed();
+  }
+
+  recv_take_trick(seatNum) {
+    sweepTimer = new Timer(new Duration(seconds:2), () => _sweep());
+    table.recvChat("Table", "Seat $seatNum took down the trick");
+  }
+
+  _sweep() {
+    if (sweepTimer != null && sweepTimer.isActive) {
+      sweepTimer.cancel();
+      sweepTimer = null;
+    }
+    sweepDirection = NONE;
+    northCard = eastCard = southCard = westCard = null;
     _changed();
   }
 
@@ -265,10 +289,6 @@ class Table extends Object with Observable {
 
   recv_ask_card(seat) {
     recvChat("Table", "Seat $seat asked to play a card");
-  }
-
-  recv_take_trick(seat_num) {
-    recvChat("Table", "Seat $seat_num took down the trick");
   }
 
   recv_new_game() {

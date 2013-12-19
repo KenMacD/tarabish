@@ -169,7 +169,7 @@ class TarabishSocket {
         table.game.recv_play_card(message['seat'], message['card']);
         break;
       case "take_trick":
-        table.recv_take_trick(message['seat']);
+        table.game.recv_take_trick(message['seat']);
         break;
       case "call_run":
         table.recv_call_run(message['seat'], message['run']);
