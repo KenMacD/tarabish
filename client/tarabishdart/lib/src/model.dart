@@ -310,11 +310,6 @@ class Table extends Object with Observable {
     }
   }
 
-//  show_run() {
-//    var show_run = mkmsg("show_run", {"table_id": id});
-//    tsocket.send(JSON.encode(show_run));
-//  }
-
   recv_show_run(seat_num, run_type, cards) {
     recvChat("Table", "Seat $seat_num showed their run: $cards");
   }
