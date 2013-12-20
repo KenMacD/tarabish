@@ -152,6 +152,7 @@ class Game extends Object with Observable {
 
   recvAskTrump(seat) {
     table.recvChat("Table", "Seat $seat asked to call trump");
+    _action = seat;
     if (seat == this.seat) {
       askTrump = true;
     } else {
@@ -160,7 +161,8 @@ class Game extends Object with Observable {
     _changed();
   }
 
-  recv_play_card(seatNum, card) {
+  recvPlayCard(seatNum, card) {
+    _action = NONE;
     var value = card['value'];
     var suit = card['suit'];
     var playedCard = new Card(value, suit);
@@ -193,16 +195,25 @@ class Game extends Object with Observable {
     _changed();
   }
 
-  recv_trump_called(seat, suit) {
+  recvTrumpCalled(seat, suit) {
     askTrump = false;
+    _action = NONE;
     var suitStr = suit_toString(suit);
     table.recvChat("Table", "Seat $seat called trump $suitStr");
     _changed();
   }
 
-  recv_take_trick(seatNum) {
+  recvTakeTrick(seatNum) {
+    _action = NONE;
     sweepTimer = new Timer(new Duration(seconds:2), () => _sweep());
     table.recvChat("Table", "Seat $seatNum took down the trick");
+    _changed();
+  }
+
+  recvAskCard(seat) {
+    _action = seat;
+    table.recvChat("Table", "Seat $seat asked to play a card");
+    _changed();
   }
 
   _sweep() {
@@ -282,13 +293,8 @@ class Table extends Object with Observable {
   }
 
 
-  recv_trump_passed(seat) {
+  recvTrumpPassed(seat) {
     recvChat("Table", "Seat $seat passed on trump");
-  }
-
-
-  recv_ask_card(seat) {
-    recvChat("Table", "Seat $seat asked to play a card");
   }
 
   recv_new_game() {
@@ -299,7 +305,7 @@ class Table extends Object with Observable {
     game = null;
   }
 
-  recv_call_run(seatNum, runType) {
+  recvCallRun(seatNum, runType) {
     switch (runType) {
       case 1:
         recvChat("Table", "Seat $seatNum called a Twenty");

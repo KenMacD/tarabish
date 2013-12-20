@@ -74,9 +74,7 @@ class TheTable extends CanvasElement with Polymer, Observable {
 
     _context.fillStyle = "#27462c";
     _context.fillRect(0, 0, window.innerWidth, window.innerHeight);
-
     _context.fillStyle = "#000000";
-    _context.fillText("TESTING", 100, 100);
 
     if (!allLoaded) {
       _context.fillText("Still Loading Images", 100, 110);
@@ -123,6 +121,33 @@ class TheTable extends CanvasElement with Polymer, Observable {
     if (model.game.eastCard != null) {
       var cardUI = new CardUI(558, 253, model.game.eastCard);
       cardUI.draw(_context);
+    }
+
+    if (model.game.action != NONE) {
+      var offset = model.game.action;
+      var arrow;
+
+      _context.save();
+      switch (offset) {
+        case WEST:
+          arrow = 0x2190;
+          break;
+        case NORTH:
+          arrow = 0x2191;
+          break;
+        case EAST:
+          arrow = 0x2192;
+          break;
+        case SOUTH:
+          arrow = 0x2193;
+          break;
+      }
+      var oldFont = _context.font;
+      _context.font = "40pt SansSerif";
+      _context.textAlign = 'center';
+      _context.fillText(new String.fromCharCode(arrow), 512, 311);
+      _context.restore();
+      _context.font = oldFont;
     }
 
     var x = 300;

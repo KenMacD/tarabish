@@ -129,13 +129,13 @@ class TarabishSocket {
         table.game.recvAskTrump(message['seat']);
         break;
       case "ask_card":
-        table.recv_ask_card(message['seat']);
+        table.game.recvAskCard(message['seat']);
         break;
       case "trump_passed":
-        table.recv_trump_passed(message['seat']);
+        table.recvTrumpPassed(message['seat']);
         break;
       case "trump_called":
-        table.game.recv_trump_called(message['seat'], message['suit']);
+        table.game.recvTrumpCalled(message['seat'], message['suit']);
         break;
       case "chat":
         var chat_msg = message['message'];
@@ -166,13 +166,13 @@ class TarabishSocket {
         table.game.recvDeal(dealer, cards);
         break;
       case "play_card":
-        table.game.recv_play_card(message['seat'], message['card']);
+        table.game.recvPlayCard(message['seat'], message['card']);
         break;
       case "take_trick":
-        table.game.recv_take_trick(message['seat']);
+        table.game.recvTakeTrick(message['seat']);
         break;
       case "call_run":
-        table.recv_call_run(message['seat'], message['run']);
+        table.recvCallRun(message['seat'], message['run']);
         break;
       case "show_run":
         List<Card> cards = new List();
