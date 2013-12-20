@@ -244,4 +244,9 @@ class TarabishSocket {
     var msg = mkmsg("show_run", {"table_id": table});
     _send(JSON.encode(msg));
   }
+
+  void playBella(int table) {
+    var msg = mkmsg("play_bella", {"table_id": table});
+    _send(JSON.encode(msg));
+  }
 }
