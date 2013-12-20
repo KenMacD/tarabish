@@ -1,6 +1,6 @@
 -module(client).
 
--include("tarabish_constants.hrl").
+-include("tarabish_types.hrl").
 
 -behaviour(gen_server).
 

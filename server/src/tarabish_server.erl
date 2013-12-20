@@ -1,7 +1,5 @@
 -module(tarabish_server).
 
--include("tarabish_types.hrl").
-
 -behaviour(gen_server).
 
 %% Public:

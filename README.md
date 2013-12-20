@@ -2,9 +2,13 @@ Tarabish
 ========
 
 ## Requirements ################################################################
- * [Apache Thrift](http://thrift.apache.org/) 0.6.0
  * [Erlang](http://www.erlang.org/) R14
+ * [Rebar](https://github.com/rebar/rebar) 2.0
  * [Python](http://www.python.org/) 2.6
+
+Once Rebar is installed from the server directory run:
+
+    $ rebar compile
 
 ## Source ######################################################################
 ### Repository #################################################################
@@ -15,7 +19,7 @@ Source if available on GitHub:
 ### Layout #####################################################################
 
     .
-    ├── api        Thrift API for any servers/clients
+    ├── api        Thrift API for any servers/clients (no longer used)
     ├── client-py
     │   ├── qt     Qt4 main client
     │   └── py     Python test client and bot
@@ -25,30 +29,18 @@ Source if available on GitHub:
 
 ### Building ###################################################################
 
-The API must be build first:
-
-    $ cd api
-    $ make
-
-Then the server can be build:
+The server:
 
     $ cd server
     $ make
 
-Generated gen-js files have to be copied to docroot, as does thrift.js from the
-thrift project.
 
 ## Running #####################################################################
 
 To start the server run `make start` from the server directory. It will listen
 on port 42745 for client connections.
 
-To start a client run `./client/qt/tarabish.py`. 
-
-A bot exists in the client-py directory that can be made to connect. It joins
-the first empty seat and plays any card permitted. Currently a bot has to be
-started from the base directory with `./client/py/bot.py`. Start 4 to get a
-game going.
+The client can be started in the DartEditor, running index.html.
 
 ## Legal #######################################################################
 

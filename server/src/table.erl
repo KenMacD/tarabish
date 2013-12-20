@@ -1,6 +1,5 @@
 -module(table).
 
--include("tarabish_types.hrl").
 -include("client.hrl").
 
 -behaviour(gen_server).
@@ -79,23 +78,24 @@ init([Id]) ->
   update_server(State),
   {ok, State}.
 
-handle_call({join, ClientName, Client}, _From, State) ->
-  case orddict:find(ClientName, State#state.members) of
-    {ok, _Person} ->
-      {reply, {error, already_joined}, State};
-    error ->
-      Event = #event{type=?tarabish_EventType_JOIN,
-                     name=ClientName},
-      send_event_all(Event, State),
-      Person = #person{name=ClientName, client=Client, seat=none},
-      NewMembers = orddict:store(Client, Person, State#state.members),
-      Observers = [ClientName|State#state.observers],
-      NewState = State#state{members=NewMembers, observers=Observers},
-      update_server(NewState),
-      send_event_one(#event{type=?tarabish_EventType_TABLEVIEW,
-                            table_view=make_table_view(NewState)}, NewState, Client),
-      {reply, ok, NewState}
-  end;
+% Join not currently allowed, as you can't watch the table.
+%handle_call({join, ClientName, Client}, _From, State) ->
+%  case orddict:find(ClientName, State#state.members) of
+%    {ok, _Person} ->
+%      {reply, {error, already_joined}, State};
+%    error ->
+%      Event = #event{type=?tarabish_EventType_JOIN,
+%                     name=ClientName},
+%      send_event_all(Event, State),
+%      Person = #person{name=ClientName, client=Client, seat=none},
+%      NewMembers = orddict:store(Client, Person, State#state.members),
+%      Observers = [ClientName|State#state.observers],
+%      NewState = State#state{members=NewMembers, observers=Observers},
+%      update_server(NewState),
+%      send_event_one(#event{type=?tarabish_EventType_TABLEVIEW,
+%                            table_view=make_table_view(NewState)}, NewState, Client),
+%      {reply, ok, NewState}
+%  end;
 
 handle_call({part, Client}, _From, State) ->
   case orddict:find(Client, State#state.members) of
@@ -185,27 +185,27 @@ handle_call({start_game, Client}, _From, #state{game=none} = State) ->
       {reply, {error, not_at_table}, State}
   end;
 
-handle_call({stand, Client}, _From, State) ->
- case orddict:find(Client, State#state.members) of
-    {ok, #person{seat=none} = _Person} ->
-      {reply, {error, not_seated}, State};
-    {ok, #person{name=ClientName, seat=SeatNum} = Person} ->
-      Event = #event{type=?tarabish_EventType_STAND,
-                 name=ClientName},
-      send_event_all(Event#event{seat=SeatNum}, State),
-      cancel_game(State),
-      NewPerson = Person#person{seat=none},
-      NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
-      NewMembers = orddict:store(Client, NewPerson, State#state.members),
-      NewObservers = [ClientName|State#state.observers],
-
-      NewState = State#state{members=NewMembers, seats=NewSeats,
-        observers=NewObservers, game=none},
-      update_server(NewState),
-      {reply, ok, NewState};
-    error ->
-      {reply, {error, not_at_table}, State}
-  end;
+%handle_call({stand, Client}, _From, State) ->
+% case orddict:find(Client, State#state.members) of
+%    {ok, #person{seat=none} = _Person} ->
+%      {reply, {error, not_seated}, State};
+%    {ok, #person{name=ClientName, seat=SeatNum} = Person} ->
+%      Event = #event{type=?tarabish_EventType_STAND,
+%                 name=ClientName},
+%      send_event_all(Event#event{seat=SeatNum}, State),
+%      cancel_game(State),
+%      NewPerson = Person#person{seat=none},
+%      NewSeats = setelement(SeatNum + 1, State#state.seats, empty),
+%      NewMembers = orddict:store(Client, NewPerson, State#state.members),
+%      NewObservers = [ClientName|State#state.observers],
+%
+%      NewState = State#state{members=NewMembers, seats=NewSeats,
+%        observers=NewObservers, game=none},
+%      update_server(NewState),
+%      {reply, ok, NewState};
+%    error ->
+%      {reply, {error, not_at_table}, State}
+%  end;
 
 handle_call({start_game, _ClientName}, _From, State) ->
   {reply, {error, already_started}, State};
@@ -285,11 +285,6 @@ handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
     [?MODULE, Request]),
   {stop, "Bad Call", State}.
-
-handle_cast({broadcast,
-    #event{type=?tarabish_EventType_GAME_DONE} = Event}, State) ->
-      send_event_all(Event, State),
-      {noreply, State#state{game=none}};
 
 handle_cast({broadcast, Event}, State) ->
   send_event_all(Event, State),

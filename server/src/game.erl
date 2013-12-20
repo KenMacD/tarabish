@@ -4,7 +4,6 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include("tarabish_constants.hrl").
 -include("tarabish_types.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
@@ -139,16 +138,14 @@ wait_trump(_Event, _From, State) ->
   {reply, {error, invalid}, wait_trump, State}.
 
 process_scores([S1, S2] = Scores, State) when S1 > 500, S1 > S2 ->
-  Event = #event{type=?tarabish_EventType_GAME_DONE,
-                 seat=0,
-                 score=Scores},
+  Event = [{type, <<"game_done">>},
+    {seat, 0}, {scores, Scores}],
   table:broadcast(State#state.table, Event),
   {stop, normal, ok, State};
 
 process_scores([S1, S2] = Scores, State) when S2 > 500, S2 > S1 ->
-  Event = #event{type=?tarabish_EventType_GAME_DONE,
-                 seat=1,
-                 score=Scores},
+  Event = [{type, <<"game_done">>},
+    {seat, 1}, {scores, Scores}],
   table:broadcast(State#state.table, Event),
   {stop, normal, ok, State};
 
@@ -180,10 +177,10 @@ process_hand(Score1, Score2, BaitType,
   ScoreList = tuple_to_list(Score),
   NewScoresList = lists:zipwith(fun(X, Y) -> X + Y end, HandScoreList, ScoreList),
 
-  Event = #event{type=?tarabish_EventType_HAND_DONE,
-                 hand_score=HandScoreList,
-                 score=NewScoresList,
-                 bait=BaitType},
+  Event = [{type, <<"hand_done">>},
+    {hand_score, HandScoreList},
+    {score, NewScoresList},
+    {bait, BaitType}],
   table:broadcast(Table, Event),
 
   process_scores(NewScoresList, State#state{score=list_to_tuple(NewScoresList)}).
