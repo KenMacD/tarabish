@@ -33,6 +33,7 @@ def on_open(ws):
     wssend(ws, "login", name=name)
 
 def on_message(ws, message):
+    global cards
     print("< " + message)
     try:
         event = json.loads(message)
@@ -71,7 +72,6 @@ def on_message(ws, message):
     elif mtype == "ask_trump" and tome(event):
         wssend(ws, "call_trump", table_id=1, suit=1)
     elif mtype == "game_cancel":
-        global cards
         cards = []
     elif mtype == "ask_card" and tome(event):
         for (val, suit) in cards:
