@@ -188,6 +188,9 @@ class TarabishSocket {
       case "call_bella":
         table.recv_call_bella(message['seat']);
         break;
+      case "hand_done":
+        table.game.recvHandDone(message['hand_score'], message['score'], message['bait']);
+        break;
       default:
         var type = message['type'];
         print("Received message with type $type");

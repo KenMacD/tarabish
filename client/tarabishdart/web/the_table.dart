@@ -156,6 +156,15 @@ class TheTable extends CanvasElement with Polymer, Observable {
       doubleClickable.add(cardUI);
       x += 80;
     }
+
+    var y = 10;
+    for (var score in model.game.handScores) {
+      // TODO: order by Us and Them and add title.
+      var l = score.elementAt(0);
+      var r = score.elementAt(1);
+      _context.fillText("$l | $r", 800, y);
+      y += 10;
+    }
   }
 
   _update() {

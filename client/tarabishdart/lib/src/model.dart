@@ -132,6 +132,9 @@ class Game extends Object with Observable {
   Timer sweepTimer;
   int sweepDirection;
 
+  List<List<int>> handScores = new List();
+  List<int> score = new List();
+
   // TODO: remove this once observable works
   Table table;
 
@@ -206,6 +209,12 @@ class Game extends Object with Observable {
   recvAskCard(seat) {
     _action = seat;
     table.recvChat("Table", "Seat $seat asked to play a card");
+  }
+
+  recvHandDone(handScores, score, bait) {
+    _sweep();
+    this.handScores.add(handScores);
+    table.recvChat("Table", "Hand done $handScores");
   }
 
   _sweep() {
