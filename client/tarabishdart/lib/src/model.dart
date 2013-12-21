@@ -167,10 +167,7 @@ class Game extends Object with Observable {
     var suit = card['suit'];
     var playedCard = new Card(value, suit);
 
-    // Sweep if required:
-    if (sweepTimer != null && sweepTimer.isActive) {
-      _sweep();
-    }
+    _sweep();
 
     if (seatNum == seat) {
       cards.remove(playedCard);
@@ -205,6 +202,7 @@ class Game extends Object with Observable {
 
   recvTakeTrick(seatNum) {
     _action = NONE;
+    sweepDirection = _seatToLocation(seatNum);
     sweepTimer = new Timer(new Duration(seconds:2), () => _sweep());
     table.recvChat("Table", "Seat $seatNum took down the trick");
     _changed();
@@ -217,6 +215,9 @@ class Game extends Object with Observable {
   }
 
   _sweep() {
+    if (sweepDirection == NONE) {
+      return;
+    }
     if (sweepTimer != null && sweepTimer.isActive) {
       sweepTimer.cancel();
       sweepTimer = null;
