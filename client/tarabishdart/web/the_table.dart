@@ -63,7 +63,6 @@ class TheTable extends CanvasElement with Polymer, Observable {
     _tsocket = tsocket;
     model = table;
 
-    model.registerUpdateCallback(this._update);
     _update();
   }
 
@@ -160,7 +159,13 @@ class TheTable extends CanvasElement with Polymer, Observable {
   }
 
   _update() {
-    window.requestAnimationFrame(_redraw);
+    window.requestAnimationFrame(_animate);
+  }
+
+  _animate(num highResTime) {
+    // TODO: only animate when changed?
+    window.requestAnimationFrame(_animate);
+    _redraw(highResTime);
   }
 
   // TODO: handle z-height if anything ever overlaps.

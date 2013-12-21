@@ -147,7 +147,6 @@ class Game extends Object with Observable {
     _dealer = new_dealer;
 
     print("Received new dealer $dealer and cards $new_cards");
-    _changed();
   }
 
   recvAskTrump(seat) {
@@ -158,7 +157,6 @@ class Game extends Object with Observable {
     } else {
       askTrump = false;
     }
-    _changed();
   }
 
   recvPlayCard(seatNum, card) {
@@ -189,7 +187,6 @@ class Game extends Object with Observable {
         eastCard = new Card(value, suit);
         break;
     }
-    _changed();
   }
 
   recvTrumpCalled(seat, suit) {
@@ -197,7 +194,6 @@ class Game extends Object with Observable {
     _action = NONE;
     var suitStr = suit_toString(suit);
     table.recvChat("Table", "Seat $seat called trump $suitStr");
-    _changed();
   }
 
   recvTakeTrick(seatNum) {
@@ -205,13 +201,11 @@ class Game extends Object with Observable {
     sweepDirection = _seatToLocation(seatNum);
     sweepTimer = new Timer(new Duration(seconds:2), () => _sweep());
     table.recvChat("Table", "Seat $seatNum took down the trick");
-    _changed();
   }
 
   recvAskCard(seat) {
     _action = seat;
     table.recvChat("Table", "Seat $seat asked to play a card");
-    _changed();
   }
 
   _sweep() {
@@ -224,12 +218,6 @@ class Game extends Object with Observable {
     }
     sweepDirection = NONE;
     northCard = eastCard = southCard = westCard = null;
-    _changed();
-  }
-
-  // TODO: also remove this later
-  _changed() {
-    this.table._changed();
   }
 }
 
@@ -253,16 +241,6 @@ class Table extends Object with Observable {
 
   Table(this.id, this.view, this.seat);
 
-  void registerUpdateCallback(updatedCallback method) {
-    updateCallbacks.add(method);
-  }
-
-  void _changed() {
-    for (var callback in updateCallbacks) {
-      callback();
-    }
-  }
-
   recvChat(name, message) {
     var text = "$name: $message";
     if (!chatText.isEmpty) {
@@ -276,7 +254,6 @@ class Table extends Object with Observable {
     seat.sat(name);
     // TODO: refactor to recv_chat to accept server messages.
     recvChat("Table", "$name sat"); // TODO: print which seat
-    _changed();
   }
 
 //  part() {
@@ -290,7 +267,6 @@ class Table extends Object with Observable {
     var seat = view.seats.elementAt(seat_num);
     seat.stood();
     recvChat("Table", "$name left the table");
-    _changed();
   }
 
 
