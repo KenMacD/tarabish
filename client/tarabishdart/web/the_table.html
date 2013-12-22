@@ -1,5 +1,31 @@
 <!DOCTYPE html>
 
-<polymer-element extends="canvas" name="the-table" width="1024" height="768">
+<polymer-element name="the-table" width="1024" height="768">
+  <template>
+  <style>
+    div#tableview
+    {
+      position: relative;
+      height: 768px;
+      width: 1024px;
+    }
+    div#tablebuttons
+    {
+      bottom: 50px;
+      left: 10px;
+      position: absolute;
+    }
+    </style>
+    <div id="tableview">
+      <canvas id="thetable" width="1024" height="768"></canvas>
+      <div id="tablebuttons">
+        <button on-click="{{startGame}}">Start Game</button>
+        <button on-click="{{callRun}}">Call Run</button>
+        <button on-click="{{showRun}}">Show Run</button>
+        <button on-click="{{playBella}}">Play Bella</button>
+      </div>
+    </div>
+
+  </template>
   <script type="application/dart" src="the_table.dart"></script>
 </polymer-element>

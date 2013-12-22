@@ -102,25 +102,6 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
     print("Sit called $_tableId -- $seat");
   }
 
-  startGame() {
-    if (_seated)
-      tsocket.startGame(_tableId);
-  }
-
-  callRun() {
-    if (_seated)
-      tsocket.callRun(_tableId);
-  }
-
-  showRun() {
-    if (_seated)
-      tsocket.showRun(_tableId);
-  }
-
-  playBella() {
-    if (_seated)
-      tsocket.playBella(_tableId);
-  }
 
   youSat(Table table) {
     _seated = true;

@@ -8,10 +8,8 @@ import 'package:tarabishdart/src/tsocket.dart';
 
 typedef void ChatFun(String name, String msg);
 
-
-
 @CustomTag('the-table')
-class TheTable extends CanvasElement with Polymer, Observable {
+class TheTable  extends PolymerElement with Polymer, Observable {
 
   CanvasRenderingContext2D _context;
 
@@ -41,7 +39,8 @@ class TheTable extends CanvasElement with Polymer, Observable {
     super.enteredView();
     print("TheTable Entered View");
 
-    _context = getContext("2d");
+    CanvasElement canvas = shadowRoot.querySelector("#thetable");
+    _context = canvas.getContext("2d");
 
     this.onClick.listen(_onClick);
     this.onDoubleClick.listen(_onDoubleClick);
@@ -199,4 +198,21 @@ class TheTable extends CanvasElement with Polymer, Observable {
       }
     }
   }
+
+  startGame() {
+    _tsocket.startGame(model.id);
+  }
+
+  callRun() {
+    _tsocket.callRun(model.id);
+  }
+
+  showRun() {
+    _tsocket.showRun(model.id);
+  }
+
+  playBella() {
+    _tsocket.playBella(model.id);
+  }
+
 }
