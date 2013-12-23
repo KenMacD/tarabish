@@ -17,10 +17,10 @@ const int NORTH  = 2;
 const int EAST   = 3;
 const int NONE   = -1;
 
-class SeatView {
-  bool isOpen;
-  String name;
-  int num;
+class SeatView extends Object with Observable{
+  @observable bool isOpen;
+  @observable String name;
+  @observable int num;
 
   SeatView(this.isOpen, this.name, this.num);
 
@@ -48,15 +48,15 @@ class SeatView {
   }
 }
 
-@observable
-class TableView {
-  int tableId;
-  List<SeatView> seats;
+//@observable
+class TableView extends Object with Observable {
+  @observable int tableId;
+  @observable List<SeatView> seats;
 
   TableView(this.tableId, this.seats);
 
   factory TableView.from_json(json) {
-    var seats = new List<SeatView>();
+    var seats = toObservable(new List<SeatView>());
     for (var seat in json['seats']) {
       seats.add(new SeatView.from_json(seat));
     }

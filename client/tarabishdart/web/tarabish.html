@@ -19,7 +19,6 @@
       position: absolute;
     }
     </style>
-    <p>Hello world from Dart!</p>
     <!--
     <p><button on-click="debug_sit()">Debug Login</button>
     <button on-click="debug_clone()">New Tab</button></p>
@@ -35,10 +34,9 @@
       <button on-click="{{refreshTables}}">Refresh Tables</button>
       <table>
         <thead>
-          <tr><th>Id</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
+          <tr><th>#</th><th>Seat 1</th><th>Seat 2</th><th>Seat 3</th><th>Seat 4</th></tr>
         </thead>
-        <template repeat="{{table in tableViews}}">
-          <tr>
+        <tr template repeat="{{table in tableViews}}">
             <td>{{table.tableId}}</td>
             <td template repeat="{{seat in table.seats}}">
               <template if="{{seat.isOpen}}">
@@ -48,10 +46,8 @@
                 {{seat.name}}
               </template>
             </td>
-          </tr>
-        </template>
+        </tr>
       </table>
-      <p>TABLES</p>
     </template>
     
     <!-- Show always for now, can't query if it's not there

@@ -47,9 +47,9 @@ start() ->
           {mimetypes, {fun mimetypes:path_to_mimes/2, default}}
         ]},
         {"/websocket", ?MODULE, []},
-        {"/static/[...]", cowboy_static, [
-          {directory, filename:join([Path, "static"])},
-          {mimetypes, {fun mimetypes:path_to_mimes/2, default}}
+        {"/[...]", cowboy_static, [
+            {directory, Path},
+            {mimetypes, {fun mimetypes:path_to_mimes/2, default}}
         ]}
       ]}]),
 

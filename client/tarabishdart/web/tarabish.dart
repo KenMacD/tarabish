@@ -38,7 +38,7 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
   @observable String loginName = "Nobody";
 
   @observable bool showTables = false;
-  @observable List<TableView> tableViews = [];
+  @observable List<TableView> tableViews = toObservable([]);
 
   // Used to display the chat
   @observable Table table = null;
@@ -74,7 +74,9 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
   }
 
   lobbyUpdate(tables) {
-    tableViews = tables;
+    tableViews.clear();
+    tableViews.addAll(tables);
+    //tableViews = tables;
   }
 
   // Temporary  to test re-attach
