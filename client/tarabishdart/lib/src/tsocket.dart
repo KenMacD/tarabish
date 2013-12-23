@@ -179,10 +179,10 @@ class TarabishSocket {
         for (var card in message['cards']) {
           cards.add(new Card.from_json(card));
         }
-        table.recv_show_run(message['seat'], message['run'], cards);
+        table.recvShowRun(message['seat'], message['run'], cards);
         break;
       case "noshow_run":
-        table.recv_noshow_run(message['seat'], message['better'], message['run'],
+        table.recvNoshowRun(message['seat'], message['better'], message['run'],
             message['high_value'], message['is_trump'], message['other_seat']);
         break;
       case "call_bella":

@@ -152,8 +152,8 @@ class Game extends Object with Observable {
     print("Received new dealer $dealer and cards $new_cards");
   }
 
-  recvAskTrump(seat) {
-    table.recvChat("Table", "Seat $seat asked to call trump");
+  recvAskTrump(seatNum) {
+    table.seatChat("Table", seatNum, "asked to call trump");
     _action = seat;
     if (seat == this.seat) {
       askTrump = true;
@@ -173,7 +173,7 @@ class Game extends Object with Observable {
     if (seatNum == seat) {
       cards.remove(playedCard);
     }
-    table.recvChat("Table", "Seat $seatNum played card $playedCard");
+    table.seatChat("Table", seatNum, "played card $playedCard");
 
     var offset = (seatNum - seat) % 4;
     switch (offset) {
@@ -192,23 +192,23 @@ class Game extends Object with Observable {
     }
   }
 
-  recvTrumpCalled(seat, suit) {
+  recvTrumpCalled(seatNum, suit) {
     askTrump = false;
     _action = NONE;
     var suitStr = suit_toString(suit);
-    table.recvChat("Table", "Seat $seat called trump $suitStr");
+    table.seatChat("Table", seatNum, "called trump $suitStr");
   }
 
   recvTakeTrick(seatNum) {
     _action = NONE;
     sweepDirection = _seatToLocation(seatNum);
     sweepTimer = new Timer(new Duration(seconds:2), () => _sweep());
-    table.recvChat("Table", "Seat $seatNum took down the trick");
+    table.seatChat("Table", seatNum, "took down the trick");
   }
 
-  recvAskCard(seat) {
+  recvAskCard(seatNum) {
     _action = seat;
-    table.recvChat("Table", "Seat $seat asked to play a card");
+    table.seatChat("Table", seatNum, "asked to play a card");
   }
 
   recvHandDone(handScores, score, bait) {
@@ -250,12 +250,21 @@ class Table extends Object with Observable {
 
   Table(this.id, this.view, this.seat);
 
+  String seatToName(int seatnum) {
+    return view.seats[seatnum].name;
+  }
+
   recvChat(name, message) {
     var text = "$name: $message";
     if (!chatText.isEmpty) {
       text = "${text}\n${chatText}";
     }
     chatText = text;
+  }
+
+  seatChat(name, seatNum, message) {
+    var seatName = seatToName(seatNum);
+    recvChat(name, "$seatName $message");
   }
 
   recvSit(seat_num, name) {
@@ -279,8 +288,8 @@ class Table extends Object with Observable {
   }
 
 
-  recvTrumpPassed(seat) {
-    recvChat("Table", "Seat $seat passed on trump");
+  recvTrumpPassed(seatNum) {
+    seatChat("Table", seatNum, "passed on trump");
   }
 
   recv_new_game() {
@@ -294,29 +303,24 @@ class Table extends Object with Observable {
   recvCallRun(seatNum, runType) {
     switch (runType) {
       case 1:
-        recvChat("Table", "Seat $seatNum called a Twenty");
+        seatChat("Table", seatNum, "called a Twenty");
         break;
       case 2:
-        recvChat("Table", "Seat $seatNum called a Fifty");
+        seatChat("Table", seatNum, "called a Fifty");
         break;
     }
   }
 
-  recv_show_run(seat_num, run_type, cards) {
-    recvChat("Table", "Seat $seat_num showed their run: $cards");
+  recvShowRun(seatNum, runType, cards) {
+    seatChat("Table", seatNum, "showed their run: $cards");
   }
 
-  recv_noshow_run(seat_num, better_type, run_type, high_value, is_trump, other_seat) {
-    recvChat("Table", "Seat $seat_num was not able to show their run.");
-    recvChat("Table", "Reason $better_type at $other_seat");
+  recvNoshowRun(seatNum, betterType, runType, highValue, isTrump, otherSeat) {
+    var otherName = seatToName(otherSeat);
+    seatChat("Table", seatNum, "was not able to show their $highValue run, $otherName's is better.");
   }
 
-//  play_bella() {
-//    var play_bella = mkmsg("play_bella", {"table_id": id});
-//    tsocket.send(JSON.encode(play_bella));
-//  }
-
-  recv_call_bella(seat_num) {
-    recvChat("Table", "Seat $seat_num called bella.");
+  recv_call_bella(seatNum) {
+    seatChat("Table", seatNum, "called bella.");
   }
 }
