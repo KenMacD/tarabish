@@ -1,6 +1,6 @@
 part of ui;
 
-class TrumpSelector extends Object with Drawable, Clickable {
+class TrumpSelector extends Object with Locatable, Drawable, Clickable {
   int x = 412;
   int y = 284;
   int width = 200;

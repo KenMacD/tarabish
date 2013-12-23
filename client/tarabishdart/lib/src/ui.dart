@@ -6,6 +6,7 @@ import 'package:tarabishdart/src/tsocket.dart';
 
 part 'package:tarabishdart/src/ui/trumpselector.dart';
 part 'package:tarabishdart/src/ui/card.dart';
+part 'package:tarabishdart/src/ui/score.dart';
 
 var cardImages = [];
 
@@ -20,8 +21,7 @@ initUI() {
   return futures;
 }
 
-// Used for both clickable and double-clickable.
-abstract class Clickable {
+abstract class Locatable {
   int get x;
   int get y;
   int get width;
@@ -34,7 +34,11 @@ abstract class Clickable {
       return false;
     return true;
   }
+  
+}
 
+// Used for both clickable and double-clickable.
+abstract class Clickable {
   void clicked(int x, int y, TarabishSocket socket);
 }
 

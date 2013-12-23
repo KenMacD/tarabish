@@ -1,7 +1,7 @@
 part of ui;
 
 
-class CardUI extends Object with Drawable, Clickable {
+class CardUI extends Object with Drawable, Locatable, Clickable {
   int x;
   int y;
   int width = 72;

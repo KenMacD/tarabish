@@ -156,14 +156,18 @@ class TheTable  extends PolymerElement with Polymer, Observable {
       x += 80;
     }
 
-    var y = 10;
+    // TODO: this will be a kept around and added to
+    var scoreBox = new ScoreBox(850, 10);
     for (var score in model.game.handScores) {
-      // TODO: order by Us and Them and add title.
       var l = score.elementAt(0);
       var r = score.elementAt(1);
-      _context.fillText("$l | $r", 800, y);
-      y += 10;
+      if (model.seat % 2 == 1) {
+        scoreBox.addScores(r, l);
+      } else {
+        scoreBox.addScores(l, r);
+      }
     }
+    scoreBox.draw(_context);
   }
 
   _update() {
