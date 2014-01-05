@@ -154,8 +154,8 @@ class Game extends Object with Observable {
 
   recvAskTrump(seatNum) {
     table.seatChat("Table", seatNum, "asked to call trump");
-    _action = seat;
-    if (seat == this.seat) {
+    _action = seatNum;
+    if (seatNum == this.seat) {
       askTrump = true;
     } else {
       askTrump = false;
@@ -207,7 +207,7 @@ class Game extends Object with Observable {
   }
 
   recvAskCard(seatNum) {
-    _action = seat;
+    _action = seatNum;
     table.seatChat("Table", seatNum, "asked to play a card");
   }
 
