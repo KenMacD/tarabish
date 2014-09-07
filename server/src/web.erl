@@ -16,6 +16,7 @@
 start() ->
   Port = 42745,
   ok = application:start(ranch),
+  ok = application:start(cowlib),
   ok = application:start(cowboy),
 
   % New API:
@@ -38,19 +39,12 @@ start() ->
   % TODO: setup as application as use priv_dir
   {ok, Cwd} = file:get_cwd(),
   Path = filename:join([Cwd, "docroot"]),
+  io:format(" [*] Using docroot: ~p~n", [Path]),
   Dispatch = cowboy_router:compile([
       {'_', [
-        {"/", cowboy_static, [
-          {directory, Path},
-%          {file, "html_ws_client.html"},
-          {file, "index.html"},
-          {mimetypes, {fun mimetypes:path_to_mimes/2, default}}
-        ]},
+        {"/", cowboy_static, {file, Path ++ "/index.html"}},
         {"/websocket", ?MODULE, []},
-        {"/[...]", cowboy_static, [
-            {directory, Path},
-            {mimetypes, {fun mimetypes:path_to_mimes/2, default}}
-        ]}
+        {"/[...]", cowboy_static, {dir, Path}}
       ]}]),
 
   {ok, _} = cowboy:start_http(http, 100, [{port, Port}],
