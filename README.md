@@ -2,13 +2,15 @@ Tarabish
 ========
 
 ## Requirements ################################################################
- * [Erlang](http://www.erlang.org/) R14
- * [Rebar](https://github.com/rebar/rebar) 2.0
- * [Python](http://www.python.org/) 2.6
+ * [Erlang](http://www.erlang.org/) R17
+ * [Rebar](https://github.com/rebar/rebar) 2.5
+ * [Python](http://www.python.org/) 2.7
 
 Once Rebar is installed from the server directory run:
 
+    $ rebar get-deps
     $ rebar compile
+    $ make test
 
 ## Source ######################################################################
 ### Repository #################################################################
@@ -37,10 +39,13 @@ The server:
 
 ## Running #####################################################################
 
+Copy or link the Dart generated files in to the server directory:
+
+    $ cd server
+    $ ln -s ../client/tarabishdart/build ./docroot
+
 To start the server run `make start` from the server directory. It will listen
 on port 42745 for client connections.
-
-The client can be started in the DartEditor, running index.html.
 
 ## Legal #######################################################################
 
