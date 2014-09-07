@@ -47,15 +47,16 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
 
   @observable bool showTable = false; /* TODO: should be false */
 
-  @observable TheTable _theTable;
+  @observable TheTable theTable;
   //TheTable get table => _theTable;
 
   Tarabish.created() : super.created() {
     print ("Tarabish Created");
   }
 
-  void enteredView() {
-    _theTable = shadowRoot.querySelector("#thetable");
+  void attached() {
+    super.attached();
+    theTable = shadowRoot.querySelector("#thetable");
     tsocket = new TarabishSocket("ws://127.0.0.1:42745/websocket", this);
     print("Tarabish Entered View");
   }
@@ -111,8 +112,8 @@ class Tarabish extends PolymerElement with TarabishCallbacks {
     this.table = toObservable(table, deep: true);
     _tableId = table.id;
     //_theTable = shadowRoot.querySelector("#thetable");
-    _theTable.init(tsocket, table);
-    return _theTable;
+    theTable.init(tsocket, table);
+    return theTable;
   }
 
   sendChat() {

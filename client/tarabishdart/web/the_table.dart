@@ -35,8 +35,8 @@ class TheTable  extends PolymerElement with Polymer, Observable {
     /* TODO: fill in */
   }
 
-  void enteredView() {
-    super.enteredView();
+  void attached() {
+    super.attached();
     print("TheTable Entered View");
 
     CanvasElement canvas = shadowRoot.querySelector("#thetable");
