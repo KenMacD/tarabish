@@ -6,12 +6,6 @@ Tarabish
  * [Rebar](https://github.com/rebar/rebar) 2.5
  * [Python](http://www.python.org/) 2.7
 
-Once Rebar is installed from the server directory run:
-
-    $ rebar get-deps
-    $ rebar compile
-    $ make test
-
 ## Source ######################################################################
 ### Repository #################################################################
 Source if available on GitHub:
@@ -31,18 +25,21 @@ Source if available on GitHub:
 
 ### Building ###################################################################
 
+The client:
+
+    $ cd client/tarabishdart
+    $ pub get
+    $ pub build
+
 The server:
 
     $ cd server
+    $ rebar get-deps
+    $ rebar compile
     $ make
-
+    $ ln -s ../client/tarabishdart/build/web/ ./docroot/
 
 ## Running #####################################################################
-
-Copy or link the Dart generated files in to the server directory:
-
-    $ cd server
-    $ ln -s ../client/tarabishdart/build ./docroot
 
 To start the server run `make start` from the server directory. It will listen
 on port 42745 for client connections.
