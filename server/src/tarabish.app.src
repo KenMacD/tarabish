@@ -1,0 +1,14 @@
+{application, tarabish,
+ [{description, "Tarabish server"},
+  {vsn, "0.0.1"},
+  {registered, []},
+  {modules, []},
+  {applications, [
+                 kernel
+                 ,stdlib
+                 ,mnesia
+                 ,cowboy
+                 ]},
+  {mod, {tarabish_app, []}},
+  {env, []}
+ ]}.

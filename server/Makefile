@@ -1,24 +1,16 @@
 
 all: 
-	mkdir -p ebin
-	erl -make
+	rebar3 compile
 
-test: all
-	erl -pa ebin -noshell -s account test \
-	                      -s deck test \
-			      -s rules test \
-	                      -s game test \
-			      -s runs test \
-			      -s init stop
+unit: all
+	rebar3 eunit
 
-test_ct:
-	mkdir -p test_log
-	ct_run -pa ebin/ -logdir test_log -suite test/system_SUITE
+system:
+	rebar3 ct --suite test/system_SUITE
 
 clean:
-	rm -f ebin/*
+	rm -rf _build
 	rm -f erl_crash.dump
 
 start: all
-	erl -pa ebin/ deps/*/ebin -noshell -s main start
-
+	erl -env ERL_LIBS _build/default/lib -eval 'application:ensure_all_started(tarabish).' -noshell

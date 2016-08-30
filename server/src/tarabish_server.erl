@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% Public:
--export([start/0, get_client/1, create_table/0,
+-export([start_link/0, get_client/1, create_table/0,
     get_table/1, get_tables/0, get_client_if_new/2, get_client_if_new/1]).
 
 -export([login/1]).
@@ -21,8 +21,9 @@
 -record(state, {id, tables, tables_view, table_cnt}).
 
 % Public:
-start() ->
-  gen_server:start({global, ?MODULE}, ?MODULE, [], []).
+start_link() ->
+  io:format(" [*] Tarbish Server Started~n"),
+  gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 get_client(Id) ->
   gen_server:call({global, ?MODULE}, {get_client, Id}).
@@ -52,10 +53,21 @@ update_table_image(TableId, TableView) ->
 % gen_server:
 init([]) ->
   process_flag(trap_exit, true),
+
+  % TODO: account:install(RaMNodes, DickNodes)?
+
+  % Create some starting tables:
+  {ok, NewTable1} = table:start(1),
+  {ok, NewTable2} = table:start(2),
+  {ok, NewTable3} = table:start(3),
+  Tables = orddict:from_list(
+	     [{1, NewTable1},
+	      {2, NewTable2},
+	      {3, NewTable3}]),
   {ok, #state{id=orddict:new(),
-              tables=orddict:new(),
+              tables=Tables,
               tables_view=orddict:new(),
-              table_cnt = 0}}.
+              table_cnt = 3}}.
 
 handle_call({create_table}, _From, State) ->
   NextId = State#state.table_cnt + 1,

@@ -3,7 +3,7 @@ Tarabish
 
 ## Requirements ################################################################
  * [Erlang](http://www.erlang.org/) R17
- * [Rebar](https://github.com/rebar/rebar) 2.5
+ * [Rebar](https://github.com/rebar/rebar) 3
  * [Python](http://www.python.org/) 2.7
 
 ## Source ######################################################################

@@ -15,9 +15,6 @@
 % Section 1 - Cowboy Setup
 start() ->
   Port = 42745,
-  ok = application:start(ranch),
-  ok = application:start(cowlib),
-  ok = application:start(cowboy),
 
   % New API:
   ets:new(webcmd, [named_table, {read_concurrency, true}]),
@@ -50,11 +47,8 @@ start() ->
   {ok, _} = cowboy:start_http(http, 100, [{port, Port}],
     [{env, [{dispatch, Dispatch}]}]),
 
-  io:format(" [*] Running at http://localhost:~p~n", [Port]),
+  io:format(" [*] Running at http://localhost:~p~n", [Port]).
 
-  receive
-    _ -> ok
-  end.
 
 % Section 2 - API
 
