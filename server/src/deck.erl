@@ -36,7 +36,7 @@ randomize(T, List) ->
 
 randomize(List) ->
   D = lists:map(fun(A) ->
-                   {random:uniform(), A}
+                   {rand:uniform(), A}
             end, List),
   {_, D1} = lists:unzip(lists:keysort(1, D)),
   D1.
