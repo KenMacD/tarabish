@@ -10,7 +10,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
    terminate/2, code_change/3]).
 
--export([chat/3, join/3, part/1, sit/3, stand/1,
+-export([chat/3, part/1, sit/3,
     start_game/1, call_trump/2, play_card/2, play_bella/1,
     call_run/1, show_run/1]).
 
@@ -30,8 +30,8 @@ chat(Table, From, Message) ->
     {name, From}, {message, Message}],
   broadcast(Table, Event).
 
-join(Table, ClientName, Client) ->
-  gen_server:call(Table, {join, ClientName, Client}).
+%join(Table, ClientName, Client) ->
+%  gen_server:call(Table, {join, ClientName, Client}).
 
 part(Table) ->
   gen_server:call(Table, {part, self()}).
@@ -39,8 +39,8 @@ part(Table) ->
 sit(Table, ClientName, Seat) ->
   gen_server:call(Table, {sit, ClientName, self(), Seat}).
 
-stand(Table) ->
-  gen_server:call(Table, {stand, self()}).
+%stand(Table) ->
+%  gen_server:call(Table, {stand, self()}).
 
 start_game(Table) ->
   gen_server:call(Table, {start_game, self()}).

@@ -11,7 +11,7 @@
    terminate/2, code_change/3]).
 
 % From Web Socket commands:
--export([chat/3, join_table/2, part_table/2, sit/3, stand/2,
+-export([chat/3, part_table/2, sit/3,
     start_game/2, call_trump/3, play_card/3, play_bella/2,
     call_run/2, show_run/2, get_tables/1]).
 
@@ -33,8 +33,8 @@ chat(Client, TableId, Message) ->
 get_tables(Client) ->
   gen_server:cast(Client, {get_tables, self()}).
 
-join_table(Client, TableId) ->
-  gen_server:call(Client, {join, TableId}).
+%join_table(Client, TableId) ->
+%  gen_server:call(Client, {join, TableId}).
 
 part_table(Client, TableId) ->
   gen_server:cast(Client, {part, TableId}).
@@ -42,8 +42,8 @@ part_table(Client, TableId) ->
 sit(Client, TableId, Seat) ->
   gen_server:cast(Client, {sit, TableId, Seat}).
 
-stand(Client, TableId) ->
-  gen_server:cast(Client, {stand, TableId}).
+%stand(Client, TableId) ->
+%  gen_server:cast(Client, {stand, TableId}).
 
 start_game(Client, TableId) ->
   gen_server:cast(Client, {start_game, TableId}).
@@ -81,19 +81,19 @@ handle_call({stop}, _From, State) ->
   {stop, normal, ok, State};
 
 % TODO: any risk of deadlock?
-handle_call({join, TableId}, _From, State) ->
-  case tarabish_server:get_table(TableId) of
-    {ok, Table} ->
-      case table:join(Table, State#state.id, self()) of
-        ok ->
-          NewTables = orddict:store(TableId, Table, State#state.tables),
-          {reply, ok, State#state{tables=NewTables}};
-        {error, Reason} ->
-          {reply, {error, Reason}, State}
-      end;
-    {error, Reason} ->
-      {reply, {error, Reason}, State}
-  end;
+%handle_call({join, TableId}, _From, State) ->
+%  case tarabish_server:get_table(TableId) of
+%    {ok, Table} ->
+%      case table:join(Table, State#state.id, self()) of
+%        ok ->
+%          NewTables = orddict:store(TableId, Table, State#state.tables),
+%          {reply, ok, State#state{tables=NewTables}};
+%        {error, Reason} ->
+%          {reply, {error, Reason}, State}
+%      end;
+%    {error, Reason} ->
+%      {reply, {error, Reason}, State}
+%  end;
 
 handle_call(Request, _From, State) ->
   io:format("~w received unknown call ~p~n",
@@ -216,21 +216,21 @@ handle_cast({play_bella, TableId}, State) ->
       {noreply, State}
   end;
 
-handle_cast({stand, TableId}, State) ->
-  case tarabish_server:get_table(TableId) of
-    {ok, Table} ->
-      case table:stand(Table) of
-        ok ->
-          % Stay at table, but as observer
-          {noreply, State};
-        {error, Reason} ->
-          % TODO: some error
-          {noreply, State}
-      end;
-    {error, Reason} ->
-      % TODO: some error
-      {noreply, State}
-  end;
+%handle_cast({stand, TableId}, State) ->
+%  case tarabish_server:get_table(TableId) of
+%    {ok, Table} ->
+%      case table:stand(Table) of
+%        ok ->
+%          % Stay at table, but as observer
+%          {noreply, State};
+%        {error, Reason} ->
+%          % TODO: some error
+%          {noreply, State}
+%      end;
+%    {error, Reason} ->
+%      % TODO: some error
+%      {noreply, State}
+%  end;
 
 handle_cast({event, Event}, #state{socket=Socket} = State) ->
   web:send_event(Socket, Event),
