@@ -8,6 +8,12 @@ unit: all
 system:
 	rebar3 ct --suite test/system_SUITE
 
+tar:
+	rebar3 as prod tar
+
+release:
+	rebar3 as prod release
+
 clean:
 	rm -rf _build
 	rm -f erl_crash.dump
