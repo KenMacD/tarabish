@@ -40,13 +40,6 @@ print "Get Version - " + str(client.getVersion())
 
 name = ''.join(random.choice(string.ascii_letters) for x in range(5))
 
-
-print "Creating account %s "%(name,),
-try:
-        print str(client.createAccount(name, "%s@invalid"%(name,), "password")),
-except InvalidOperation as invalid:
-        print "Didn't work, perhaps the account exists"
-
 print "Login"
 cookie = client.login(name, "password")
 

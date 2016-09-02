@@ -54,8 +54,6 @@ update_table_image(TableId, TableView) ->
 init([]) ->
   process_flag(trap_exit, true),
 
-  % TODO: account:install(RaMNodes, DickNodes)?
-
   % Create some starting tables:
   {ok, NewTable1} = table:start(1),
   {ok, NewTable2} = table:start(2),

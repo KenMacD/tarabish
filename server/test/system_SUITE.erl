@@ -12,7 +12,6 @@ test1(_Config) ->
   mnesia:stop(),
   mnesia:start(),
   crypto:start(),
-  account:install([node()], []),
   {ok, _TarabishServer} = tarabish_server:start_link(),
 
   % Create one table
