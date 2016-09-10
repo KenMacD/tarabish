@@ -3,6 +3,16 @@ import './App.css';
 import Table from './Table';
 
 
+const TableList = ({table_data}) => {
+  let items = []
+  for (let table of table_data) {
+    items.push(<p key={table.tableId}>This is table {table.tableId}</p>)
+  }
+  return (
+    <ul>{items}</ul>
+  )
+}
+
 class App extends Component {
   constructor () {
     super();
@@ -18,7 +28,8 @@ class App extends Component {
     this.ws.onmessage = ({data}) => this.handleMessage(data)
 
     this.state = {
-      show_login: true
+      show_login: true,
+      table_data: []
     }
   };
 
@@ -31,9 +42,17 @@ class App extends Component {
       console.log("Error: Non JSON data")
       return
     }
-    if (msg.type === "valid_login") {
-      console.log("Logged In")
-      this.setState({show_login: false})
+    switch (msg.type) {
+      case "valid_login":
+        console.log("Logged In")
+        this.setState({show_login: false})
+        break
+      case "tables":
+        console.log("Received Tables")
+        this.setState({table_data: msg.tables})
+        break
+      default:
+        console.log("Unknown msg type " + msg.type)
     }
   }
 
@@ -48,6 +67,12 @@ class App extends Component {
       method: "login",
       name: name
     }
+    this.ws.send(JSON.stringify(msg))
+  }
+
+  get_tables = (event) => {
+    console.log("Getting tables")
+    const msg = {method: "get_tables"}
     this.ws.send(JSON.stringify(msg))
   }
 
@@ -70,6 +95,8 @@ class App extends Component {
             <h2>Welcome to Tarabish Online</h2>
           </div>
           {login_block}
+          <TableList table_data={this.state.table_data} />
+          <a href="#" onClick={this.get_tables}>Get Tables</a>
           <div><Table name="Test Table 1"/></div>
         </div>
       </div>
