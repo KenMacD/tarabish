@@ -2,14 +2,18 @@ import React, { Component } from 'react';
 import './App.css';
 import Table from './Table';
 
+
 class App extends Component {
   constructor () {
     super();
-    const ws = new WebSocket('ws://localhost:42745/websocket')
-    this.state = {
-      ws: ws
+
+    let ws_url = process.env.REACT_APP_WS_URL
+    if (!ws_url) {
+      const proto = (location.protocol === "https:")? "wss://" : "ws://"
+      ws_url = proto + location.host + "/websocket"
     }
-    ws.onopen = () => console.log("OPENED")
+    this.ws = new WebSocket(ws_url)
+    this.ws.onopen = () => console.log("OPENED")
   };
 
   login = (event) => {
@@ -23,7 +27,7 @@ class App extends Component {
       method: "login",
       name: name
     }
-    this.state.ws.send(JSON.stringify(msg))
+    this.ws.send(JSON.stringify(msg))
   }
 
   render() {
