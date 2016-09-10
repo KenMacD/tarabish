@@ -14,7 +14,28 @@ class App extends Component {
     }
     this.ws = new WebSocket(ws_url)
     this.ws.onopen = () => console.log("OPENED")
+
+    this.ws.onmessage = ({data}) => this.handleMessage(data)
+
+    this.state = {
+      show_login: true
+    }
   };
+
+  handleMessage = (data) => {
+    console.log("Received data: " + data)
+    let msg = null;
+    try {
+      msg = JSON.parse(data)
+    } catch (e) {
+      console.log("Error: Non JSON data")
+      return
+    }
+    if (msg.type === "valid_login") {
+      console.log("Logged In")
+      this.setState({show_login: false})
+    }
+  }
 
   login = (event) => {
     let name = this.nameInput.value
@@ -31,18 +52,24 @@ class App extends Component {
   }
 
   render() {
+    let login_block = (
+      <div>
+        <input type="text" placeholder="Name"
+          ref={(ref) => this.nameInput = ref}
+        />
+        <input type="button" value="Login" onClick={this.login} />
+      </div>
+    )
+    if (!this.state.show_login) {
+      login_block = null
+    }
     return (
       <div>
        <div className="App">
           <div className="App-header">
             <h2>Welcome to Tarabish Online</h2>
           </div>
-          <div>
-            <input type="text" placeholder="Name"
-              ref={(ref) => this.nameInput = ref}
-            />
-            <input type="button" value="Login" onClick={this.login} />
-          </div>
+          {login_block}
           <div><Table name="Test Table 1"/></div>
         </div>
       </div>
