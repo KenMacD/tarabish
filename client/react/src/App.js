@@ -33,6 +33,10 @@ class App extends Component {
     }
   };
 
+  sendMessage = (data) => {
+    this.ws.send(JSON.stringify(data))
+  }
+
   handleMessage = (data) => {
     console.log("Received data: " + data)
     let msg = null;
@@ -63,17 +67,15 @@ class App extends Component {
       return
     }
     console.log("Logging in as " + name);
-    let msg = {
+    this.sendMessage({
       method: "login",
       name: name
-    }
-    this.ws.send(JSON.stringify(msg))
+    })
   }
 
   get_tables = (event) => {
     console.log("Getting tables")
-    const msg = {method: "get_tables"}
-    this.ws.send(JSON.stringify(msg))
+    this.sendMessage({method: "get_tables"})
   }
 
   render() {
