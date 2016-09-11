@@ -3,13 +3,44 @@ import './App.css';
 import Table from './Table';
 
 
-const TableList = ({table_data}) => {
-  let items = []
+const TableList = ({table_data, sendMessage}) => {
+  let rows = []
   for (let table of table_data) {
-    items.push(<p key={table.tableId}>This is table {table.tableId}</p>)
+    let seat_elements = []
+    for (let seat of table.seats) {
+      if (!seat.isOpen) {
+        seat_elements.push(<td key={seat.num}>{seat.name}</td>)
+      } else {
+        seat_elements.push(
+          <td key={seat.num}><button onClick={() =>
+            sendMessage({method: "sit",
+                         table_id: table.tableId,
+                         seat: seat.num})
+          }> Sit </button></td>)
+      }
+    }
+    rows.push(
+      <tr key={table.tableId}>
+        <td>{table.tableId}</td>
+        {seat_elements}
+      </tr>
+    )
   }
   return (
-    <ul>{items}</ul>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Seat 1</th>
+          <th>Seat 2</th>
+          <th>Seat 3</th>
+          <th>Seat 4</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows}
+      </tbody>
+    </table>
   )
 }
 
@@ -50,6 +81,7 @@ class App extends Component {
       case "valid_login":
         console.log("Logged In")
         this.setState({show_login: false})
+        this.get_tables()
         break
       case "tables":
         console.log("Received Tables")
@@ -97,7 +129,8 @@ class App extends Component {
             <h2>Welcome to Tarabish Online</h2>
           </div>
           {login_block}
-          <TableList table_data={this.state.table_data} />
+          <TableList table_data={this.state.table_data}
+                     sendMessage={this.sendMessage}/>
           <a href="#" onClick={this.get_tables}>Get Tables</a>
           <div><Table name="Test Table 1"/></div>
         </div>

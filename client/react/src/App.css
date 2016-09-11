@@ -7,3 +7,8 @@
   padding: 20px;
   color: white;
 }
+
+table {
+  margin-left: auto;
+  margin-right: auto;
+}
