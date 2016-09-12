@@ -59,7 +59,7 @@ class App extends Component {
     this.ws.onmessage = ({data}) => this.handleMessage(data)
 
     this.state = {
-      show_login: true,
+      name: null,
       table_data: []
     }
   };
@@ -80,7 +80,7 @@ class App extends Component {
     switch (msg.type) {
       case "valid_login":
         console.log("Logged In")
-        this.setState({show_login: false})
+        this.setState({name: msg.name})
         this.get_tables()
         break
       case "tables":
@@ -119,7 +119,7 @@ class App extends Component {
         <input type="button" value="Login" onClick={this.login} />
       </div>
     )
-    if (!this.state.show_login) {
+    if (this.state.name) {
       login_block = null
     }
     return (
