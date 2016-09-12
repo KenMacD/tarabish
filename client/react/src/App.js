@@ -81,7 +81,7 @@ class App extends Component {
       case "valid_login":
         console.log("Logged In")
         this.setState({name: msg.name})
-        this.get_tables()
+        this.update_tables()
         break
       case "tables":
         console.log("Received Tables")
@@ -105,7 +105,7 @@ class App extends Component {
     })
   }
 
-  get_tables = (event) => {
+  update_tables = (event) => {
     console.log("Getting tables")
     this.sendMessage({method: "get_tables"})
   }
@@ -122,6 +122,18 @@ class App extends Component {
     if (this.state.name) {
       login_block = null
     }
+
+    let lobby_block = (
+      <div>
+        <TableList table_data={this.state.table_data}
+                   sendMessage={this.sendMessage}/>
+        <a href="#" onClick={this.update_tables}>Update Tables</a>
+      </div>
+    )
+    if (!this.state.name) {
+      lobby_block = null
+    }
+
     return (
       <div>
        <div className="App">
@@ -129,9 +141,7 @@ class App extends Component {
             <h2>Welcome to Tarabish Online</h2>
           </div>
           {login_block}
-          <TableList table_data={this.state.table_data}
-                     sendMessage={this.sendMessage}/>
-          <a href="#" onClick={this.get_tables}>Get Tables</a>
+          {lobby_block}
           <div><Table name="Test Table 1"/></div>
         </div>
       </div>
