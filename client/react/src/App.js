@@ -60,7 +60,8 @@ class App extends Component {
 
     this.state = {
       name: null,
-      table_data: []
+      table_data: [],
+      tables: new Map(),
     }
   };
 
@@ -87,8 +88,14 @@ class App extends Component {
         console.log("Received Tables")
         this.setState({table_data: msg.tables})
         break
+      case "table_view_sit":
+        const id = msg.tableId
+        let table = <Table key={msg.tableId} ws={this.ws} name={msg.tableId.toString()}/>
+        this.state.tables.set(id, table)
+        this.forceUpdate()
+        break
       default:
-        console.log("Unknown msg type " + msg.type)
+        console.log("App unknown msg type " + msg.type)
     }
   }
 
@@ -130,8 +137,13 @@ class App extends Component {
         <a href="#" onClick={this.update_tables}>Update Tables</a>
       </div>
     )
-    if (!this.state.name) {
+    if (!this.state.name || this.state.tables.size > 0) {
       lobby_block = null
+    }
+
+    let tables = []
+    for (let table of this.state.tables) {
+      tables.push(table)
     }
 
     return (
@@ -142,7 +154,7 @@ class App extends Component {
           </div>
           {login_block}
           {lobby_block}
-          <div><Table name="Test Table 1"/></div>
+          {tables}
         </div>
       </div>
     );

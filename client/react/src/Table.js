@@ -3,7 +3,8 @@ import Card from './Card';
 
 export default class Table extends Component {
     static propTypes = {
-        name: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      ws: PropTypes.object.isRequired,
     };
 
     constructor(props) {
@@ -15,6 +16,14 @@ export default class Table extends Component {
       this.directions = [ "north", "east", "south", "west"];
     };
 
+    componentDidMount() {
+      this.props.ws.addEventListener("message", this.handleMessage)
+    }
+
+    componentWillUnmount() {
+      this.props.ws.removeEventListener("message", this.handleMessage)
+    }
+
     turn_test = (event) => {
 
       const new_offset = (this.state.offset + 1) % 4;
@@ -23,6 +32,10 @@ export default class Table extends Component {
         offset: new_offset
       })
     };
+
+    handleMessage = (data) => {
+      console.log("Table " + this.props.name + " received: " + data)
+    }
 
     render() {
         return (
