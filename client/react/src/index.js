@@ -1,9 +1,20 @@
+// React
 import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './App';
+import { render } from 'react-dom';
+
+// Redux
+import { Provider } from 'react-redux'
+import { createStore } from 'redux'
+import tarabishApp from './reducers'
+import App from './components/App'
+
 import './index.css';
 
-ReactDOM.render(
-  <App />,
+let store = createStore(tarabishApp)
+
+render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
   document.getElementById('root')
-);
+)
