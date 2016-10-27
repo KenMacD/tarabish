@@ -9,7 +9,7 @@ class Login extends Component {
       return
     }
     console.log("Logging in as " + name);
-    this.props.sendLogin(name)
+    this.props.sendMsg("login", {name: name})
   }
 
   render() {

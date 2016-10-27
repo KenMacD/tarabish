@@ -4,10 +4,11 @@ import { connect } from 'react-redux'
 import { send } from '../actions'
 
 import Login from '../components/Login'
+import TableList from '../components/TableList'
 
 class App extends Component {
   render() {
-    const { isAuthenticated, sendLogin } = this.props
+    const { sendMsg, isAuthenticated } = this.props
     return (
       <div>
         <div className="App">
@@ -16,8 +17,10 @@ class App extends Component {
           </div>
 
           {!isAuthenticated? (
-            <Login sendLogin={sendLogin} />
-            ) : null
+              <Login sendMsg={sendMsg} />
+            ) : (
+              <TableList/>
+            )
           }
         </div>
       </div>
@@ -26,14 +29,13 @@ class App extends Component {
 }
 
 App.propTypes = {
-  sendLogin: PropTypes.func.isRequired,
-  isAuthenticated: PropTypes.bool.isRequired
+  sendMsg: PropTypes.func.isRequired,
+  isAuthenticated: PropTypes.bool.isRequired,
 }
 
 function mapStateToProps(state) {
 
-  const { auth } = state
-  const { isAuthenticated } = auth
+  const { auth: { isAuthenticated } } = state
 
   return {
     isAuthenticated,
@@ -42,10 +44,8 @@ function mapStateToProps(state) {
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    sendLogin: (name) => {
-      dispatch(send("login", {
-        name: name
-      }))
+    sendMsg: (method, data) => {
+      dispatch(send(method, data))
     }
   }
 }
