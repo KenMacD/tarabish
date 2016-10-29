@@ -5,7 +5,7 @@ import { WS_MSG } from './actions'
 // TODO: Should just one reducer accept WS_MSG
 // and repack the message and resend them?
 
-function auth(state = {isAuthenticated: false}, action) {
+function screen(state = {name: "login"}, action) {
   switch (action.type) {
     case WS_MSG:
       let msg = action.msg
@@ -13,7 +13,27 @@ function auth(state = {isAuthenticated: false}, action) {
         case "valid_login":
           return {
             ...state,
-            isAuthenticated: true
+            name: "lobby",
+          }
+        default:
+          break
+      }
+      break
+    default:
+      break
+  }
+  return state
+ }
+
+function auth(state = {}, action) {
+  switch (action.type) {
+    case WS_MSG:
+      let msg = action.msg
+      switch (msg.type) {
+        case "valid_login":
+          return {
+            ...state,
+            name: msg.name
           }
         default:
           break
@@ -48,6 +68,7 @@ function lobby(state = {tableList: []}, action) {
 
 
 const tarabishApp = combineReducers({
+  screen,
   auth,
   lobby,
 })

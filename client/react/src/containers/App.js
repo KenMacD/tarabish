@@ -8,20 +8,19 @@ import TableList from '../components/TableList'
 
 class App extends Component {
   render() {
-    const { sendMsg, isAuthenticated } = this.props
+    const { sendMsg, screenName } = this.props
+    const screens = {
+      "login": () => <Login sendMsg={sendMsg} />,
+      "lobby": () => <TableList/>,
+    }
+    const Screen = screens[screenName]
     return (
       <div>
         <div className="App">
           <div className="App-header">
             <h2>Welcome to Tarabish Online</h2>
           </div>
-
-          {!isAuthenticated? (
-              <Login sendMsg={sendMsg} />
-            ) : (
-              <TableList/>
-            )
-          }
+          <Screen/>
         </div>
       </div>
     )
@@ -30,15 +29,15 @@ class App extends Component {
 
 App.propTypes = {
   sendMsg: PropTypes.func.isRequired,
-  isAuthenticated: PropTypes.bool.isRequired,
+  screenName: PropTypes.string.isRequired,
 }
 
 function mapStateToProps(state) {
 
-  const { auth: { isAuthenticated } } = state
+  const { screen: { name: screenName } } = state
 
   return {
-    isAuthenticated,
+    screenName,
   }
 }
 
