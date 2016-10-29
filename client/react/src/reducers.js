@@ -22,10 +22,10 @@ function auth(state = {isAuthenticated: false}, action) {
     default:
       break
   }
-  return state;
+  return state
 }
 
-function tables(state = {tableList: []}, action) {
+function lobby(state = {tableList: []}, action) {
   switch (action.type) {
     // get-tables, sit, stand...
     case WS_MSG:
@@ -49,7 +49,7 @@ function tables(state = {tableList: []}, action) {
 
 const tarabishApp = combineReducers({
   auth,
-  tables
+  lobby,
 })
 
 export default tarabishApp

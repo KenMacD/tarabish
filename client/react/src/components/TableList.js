@@ -56,7 +56,7 @@ class TableList extends Component {
 }
 
 const mapStateToProps = (state) => {
-  const { tables: {tableList} } = state
+  const { lobby: {tableList} } = state
   return {
     tableList
   }
