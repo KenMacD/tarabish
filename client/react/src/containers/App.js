@@ -5,6 +5,7 @@ import { send } from '../actions'
 
 import Login from '../components/Login'
 import TableList from '../components/TableList'
+import Table from '../components/Table'
 
 class App extends Component {
   render() {
@@ -12,6 +13,7 @@ class App extends Component {
     const screens = {
       "login": () => <Login sendMsg={sendMsg} />,
       "lobby": () => <TableList/>,
+      "table": () => <Table name={"TESTING"}/>,
     }
     const Screen = screens[screenName]
     return (

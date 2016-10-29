@@ -15,6 +15,11 @@ function screen(state = {name: "login"}, action) {
             ...state,
             name: "lobby",
           }
+        case "table_view_sit":
+          return {
+            ...state,
+            name: "table",
+          }
         default:
           break
       }
@@ -63,7 +68,54 @@ function lobby(state = {tableList: []}, action) {
     default:
       break
   }
-  return state;
+  return state
+}
+
+function table(state = {}, action) {
+  switch (action.type) {
+    case WS_MSG:
+      let msg = action.msg
+      switch (msg.type) {
+        case "table_view_sit":
+          return {
+            ...state,
+            seat: msg.seat,
+          }
+        default:
+          break
+      }
+      break
+    default:
+      break
+  }
+  return state
+}
+
+// On-screen table layout:
+//   2
+//  1 3
+//   0
+
+function seat(position) {
+  return (state = {}, action) => {
+    switch (action.type) {
+      case WS_MSG:
+        let msg = action.msg
+        switch (msg.type) {
+          case "table_view_sit":
+            return {
+              ...state,
+              my_num: (position + msg.seat) % 4,
+            }
+          default:
+            break
+        }
+        break
+      default:
+        break
+    }
+    return state
+  }
 }
 
 
@@ -71,6 +123,11 @@ const tarabishApp = combineReducers({
   screen,
   auth,
   lobby,
+  table,
+  south: seat(0),
+  west: seat(1),
+  north: seat(2),
+  east: seat(3),
 })
 
 export default tarabishApp

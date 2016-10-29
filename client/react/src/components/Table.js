@@ -4,7 +4,6 @@ import Card from './Card';
 export default class Table extends Component {
     static propTypes = {
       name: PropTypes.string.isRequired,
-      ws: PropTypes.object.isRequired,
     };
 
     constructor(props) {
@@ -15,14 +14,6 @@ export default class Table extends Component {
       };
       this.directions = [ "north", "east", "south", "west"];
     };
-
-    componentDidMount() {
-      this.props.ws.addEventListener("message", this.handleMessage)
-    }
-
-    componentWillUnmount() {
-      this.props.ws.removeEventListener("message", this.handleMessage)
-    }
 
     turn_test = (event) => {
 
