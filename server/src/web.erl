@@ -1,16 +1,16 @@
 -module(web).
 
 -export([start/0]).
--behaviour(cowboy_websocket_handler).
+-behaviour(cowboy_websocket).
 
 -export([set_client/3, send_tables/2, send_event/2]).
 
 -record(state, {client}).
--export([init/3]).
--export([websocket_init/3]).
--export([websocket_handle/3]).
--export([websocket_info/3]).
--export([websocket_terminate/3]).
+-export([init/2]).
+-export([websocket_init/1]).
+-export([websocket_handle/2]).
+-export([websocket_info/2]).
+-export([terminate/3]).
 
 % Section 1 - Cowboy Setup
 start() ->
@@ -34,7 +34,7 @@ start() ->
   ets:insert(webcmd, {play_bella, client, [table_id], true}),
 
   % TODO: setup as application as use priv_dir
-  {ok, Cwd} = file:get_cwd(),
+  %{ok, Cwd} = file:get_cwd(),
   Dispatch = cowboy_router:compile([
       {'_', [
         {"/", cowboy_static, {priv_file, tarabish, "docroot/index.html"}},
@@ -42,8 +42,8 @@ start() ->
         {"/[...]", cowboy_static, {priv_dir, tarabish, "docroot"}}
       ]}]),
 
-  {ok, _} = cowboy:start_http(http, 100, [{port, Port}],
-    [{env, [{dispatch, Dispatch}]}]),
+  {ok, _} = cowboy:start_clear(web, [{port, Port}],
+    #{env => #{dispatch => Dispatch}}),
 
   io:format(" [*] Running at http://localhost:~p~n", [Port]).
 
@@ -63,14 +63,14 @@ send_event(Server, Event) ->
 % Section 3 - websocket server
 
 % Test of example code.
-init({tcp, http}, _Req, _Opts) ->
-  {upgrade, protocol, cowboy_websocket}.
+init(Req, _Opts) ->
+  {cowboy_websocket, Req, #state{}}.
 
-websocket_init(_TransportName, Req, _Opts) ->
+websocket_init(State) ->
   erlang:start_timer(1000, self(), <<"Hello!">>),
-  {ok, Req, #state{}}.
+  {ok, State}.
 
-websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
+websocket_handle({text, Msg}, #state{client=Client} = State) ->
   Data = jsx:decode(Msg, [{labels, existing_atom}]),
 
   io:format("Message: ~p~n", [Data]),
@@ -80,31 +80,31 @@ websocket_handle({text, Msg}, Req, #state{client=Client} = State) ->
   try binary_to_existing_atom(Method, utf8) of
     MethodAtom ->
       handle_method(ets:lookup(webcmd, MethodAtom), Data, Client),
-      {ok, Req, State}
+      {ok, State}
   catch
-    error:badarg -> {ok, Req, State}
+    error:badarg -> {ok, State}
   end;
 
-websocket_handle(_Data, Req, State) ->
-  {ok, Req, State}.
+websocket_handle(_Data, State) ->
+  {ok, State}.
 
 %websocket_info({event, Event}, Req, State) ->
 %  {reply, {text, Event}, Req, State};
 
-websocket_info({event, Event}, Req, State) ->
+websocket_info({event, Event}, State) ->
   try jsx:encode(Event) of
-    Eventj -> {reply, {text, Eventj}, Req, State}
+    Eventj -> {reply, {text, Eventj}, State}
   catch
     error:badarg ->
       io:format("Badarg message ~p~n", [Event]),
-      {ok, Req, State};
+      {ok, State};
     error:function_clause ->
       io:format("Function clause message ~p~n", [Event]),
-      {ok, Req, State}
+      {ok, State}
   end;
 
 % TODO prevent double login
-websocket_info({client, Client, Id}, Req, State) ->
+websocket_info({client, Client, Id}, State) ->
   link(Client),
   % TODO: send event
 
@@ -112,32 +112,32 @@ websocket_info({client, Client, Id}, Req, State) ->
     {type, <<"valid_login">>},
     {name, Id}]),
   %L = io_lib:format("{\You are logged in. Cookie ~p~n", [Cookie]),
-  {reply, {text, Event}, Req, State#state{client=Client}};
+  {reply, {text, Event}, State#state{client=Client}};
 
-websocket_info({tables, Tables}, Req, State) ->
+websocket_info({tables, Tables}, State) ->
   Event = jsx:encode([
       {type, <<"tables">>},
       {tables, Tables}]),
-  {reply, {text, Event}, Req, State};
+  {reply, {text, Event}, State};
 
-websocket_info({timeout, _Ref, Msg}, Req, State) ->
+websocket_info({timeout, Msg}, State) ->
   % erlang:start_timer(5000, self(), <<".">>),
-  {reply, {text, Msg}, Req, State};
-websocket_info(_Info, Req, State) ->
-  {ok, Req, State}.
+  {reply, {text, Msg}, State};
+websocket_info(_Info, State) ->
+  {ok, State}.
 
 
-websocket_terminate(_Reason, _Req, #state{client=undefined}) ->
+terminate(_Reason, _Req, #state{client=undefined}) ->
   io:format("Websocket terminated~n"),
   ok;
 
-websocket_terminate(_Reason, _Req, #state{client=Client}) ->
+terminate(_Reason, _Req, #state{client=Client}) ->
   io:format("Websocket terminated~n"),
   client:quit(Client),
   ok.
 
 % Client method with no client:
-handle_method([{_Fun, _Mod, _Params, true}], Data, undefined) ->
+handle_method([{_Fun, _Mod, _Params, true}], _Data, undefined) ->
   io:format("Bad call, no client~n"),
   % TODO: return an error
   ok;
@@ -151,13 +151,13 @@ handle_method([{Fun, Mod, Params, NeedClient}], Data, Client) ->
   io:format("Calling ~p ~p with ~p~n", [Mod, Fun, Args2]),
   apply(Mod, Fun, Args2);
 
-handle_method([], Data, Client) ->
+handle_method([], _Data, _Client) ->
   ok.
 
 get_args(Params, Data) ->
   get_args([], Params, Data).
 
-get_args(Values, [], Data) ->
+get_args(Values, [], _Data) ->
   {ok, Values};
 
 get_args(Values, [P|Rest], Data) ->
